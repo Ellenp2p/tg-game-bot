@@ -334,7 +334,7 @@ bot.catch(async (err: BotError<Context>) => {
 const commandsZh = [
   { command: 'start', description: '开始使用' },
   { command: 'help', description: '查看所有命令' },
-  { command: 'newrule', description: '开始创建规则（下一步发 JSON）' },
+  { command: 'newrule', description: '创建规则（发 JSON 文本或 .json 文件）' },
   { command: 'editrule', description: '编辑规则 /editrule 编号' },
   { command: 'rules', description: '管理我的规则（按钮面板）' },
   { command: 'rule', description: '查看规则 /rule 编号' },
@@ -471,7 +471,7 @@ bot.command('help', async ctx => {
     '<b>游戏主理人 · 命令一览</b>\n\n' +
     '<b>━━━ 规则（私聊）━━━</b>\n' +
     '/rules — 打开规则面板（点击查看 / 编辑 / 删除，支持分页）\n' +
-    '/newrule — 创建规则（下一步发 JSON，<code>name</code> 字段为规则名）\n' +
+    '/newrule — 创建规则（下一步发 JSON 文本，或直接发 <code>.json</code> 文件；长规则建议用文件）\n' +
     '/editrule <code>编号</code> — 重新编辑规则\n' +
     '/rule <code>编号</code> — 查看规则 JSON\n' +
     '/deleterule <code>编号</code> — 删除规则\n' +
@@ -515,7 +515,9 @@ bot.command('newrule', async ctx => {
   pending.set(`${ctx.from.id}`, { kind: 'create-rule', userId: ctx.from.id });
   await ctx.reply(
     '收到。\n\n' +
-    '请把规则 JSON 发给我（<code>name</code> 字段为规则名）。\n' +
+    '请把规则 JSON 发给我（<code>name</code> 字段为规则名）：\n' +
+    '· 直接粘贴 JSON 文本，或\n' +
+    '· 把规则存成 <code>.json</code> 文件发给我（长规则推荐）\n' +
     '结构见 /help。\n' +
     '取消：/cancel'
   , { parse_mode: 'HTML' });
@@ -586,7 +588,7 @@ bot.callbackQuery('rnew', async ctx => {
   pending.set(`${ctx.from.id}`, { kind: 'create-rule', userId: ctx.from.id });
   await ctx.answerCallbackQuery();
   await ctx.reply(
-    '好的，请把规则 JSON 发给我（<code>name</code> 字段为规则名）。\n结构见 /help。\n取消：/cancel',
+    '好的，请把规则 JSON 发给我（<code>name</code> 字段为规则名）：直接粘贴文本，或发送 <code>.json</code> 文件。\n结构见 /help。\n取消：/cancel',
     { parse_mode: 'HTML' }
   );
 });
@@ -811,13 +813,21 @@ bot.command('status', async ctx => {
   await sendStatus(chatIdOf(ctx), game.gameId);
 });
 
-bot.on('message:text', async ctx => {
-  if (!isPrivate(ctx) || !ctx.from) return;
-  const p = pending.get(`${ctx.from.id}`);
-  if (!p) return;
-  const text = ctx.message.text;
+/** 下载 Telegram 服务器上的文件（用户上传的 .json 规则） */
+async function downloadTelegramFile(filePath: string): Promise<string> {
+  const root = (process.env.BOT_API_ROOT || 'https://api.telegram.org').replace(/\/+$/, '');
+  const res = await fetch(`${root}/file/bot${token}/${filePath}`);
+  if (!res.ok) throw Error(`下载文件失败：HTTP ${res.status}`);
+  return await res.text();
+}
+
+/** 把一段规则 JSON（粘贴的文本或上传的文件内容）落库：新建或覆盖 */
+async function saveRuleJson(ctx: Context, p: Pending, raw: string): Promise<void> {
+  if (!ctx.from) return;
+  db.touchUser(ctx.from.id);
+  const clean = raw.replace(/^\uFEFF/, '').trim();
   let def: RuleDefinition;
-  try { def = ruleDefinition.parse(JSON.parse(text)); }
+  try { def = ruleDefinition.parse(JSON.parse(clean)); }
   catch (e) { throw Error(`JSON 解析失败：${(e as Error).message}`); }
   if (p.kind === 'create-rule') {
     const name = def.name?.trim() || '未命名';
@@ -825,10 +835,45 @@ bot.on('message:text', async ctx => {
     pending.delete(`${ctx.from.id}`);
     await ctx.reply('✅ 已创建\n\n' + ruleDetailText(rule), { parse_mode: 'HTML', reply_markup: ruleDetailKeyboard(rule.ruleId) });
   } else {
-    const updated = db.updateRule(p.ruleId!, ctx.from.id, db.getRuleByUser(p.ruleId!, ctx.from.id)?.name ?? def.name, def);
+    const existing = db.getRuleByUser(p.ruleId!, ctx.from.id);
+    const updated = db.updateRule(p.ruleId!, ctx.from.id, existing?.name ?? def.name, def);
     pending.delete(`${ctx.from.id}`);
     if (!updated) throw Error('更新失败');
     await ctx.reply('✅ 已更新\n\n' + ruleDetailText(updated), { parse_mode: 'HTML', reply_markup: ruleDetailKeyboard(updated.ruleId) });
+  }
+}
+
+bot.on('message:text', async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) return;
+  const p = pending.get(`${ctx.from.id}`);
+  if (!p) return;
+  await saveRuleJson(ctx, p, ctx.message.text);
+});
+
+bot.on('message:document', async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) return;
+  const doc = ctx.message.document;
+  const fname = doc.file_name ?? '';
+  const looksJson = /\.json$/i.test(fname) || (doc.mime_type ?? '').includes('json');
+  if (!looksJson) {
+    if (pending.has(`${ctx.from.id}`)) {
+      await ctx.reply('这似乎不是 .json 文件。请发送 <code>.json</code> 规则文件，或直接粘贴 JSON 文本。', { parse_mode: 'HTML' });
+    }
+    return;
+  }
+  const fresh = !pending.has(`${ctx.from.id}`);
+  let raw: string;
+  try {
+    const file = await ctx.getFile();
+    if (!file.file_path) throw Error('拿不到文件路径');
+    raw = await downloadTelegramFile(file.file_path);
+  } catch (e) {
+    throw Error(`读取文件失败：${(e as Error).message}`);
+  }
+  const p: Pending = pending.get(`${ctx.from.id}`) ?? { kind: 'create-rule', userId: ctx.from.id };
+  await saveRuleJson(ctx, p, raw);
+  if (fresh) {
+    await ctx.reply('ℹ️ 未在 /newrule 流程中，已按「新建规则」处理；要覆盖已有规则请先 /editrule &lt;编号&gt; 再发文件。', { parse_mode: 'HTML' });
   }
 });
 

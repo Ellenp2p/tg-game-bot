@@ -56,7 +56,7 @@ pnpm start
 
 | 命令 | 干啥 |
 |---|---|
-| `/newrule` | 上传新规则（粘 JSON） |
+| `/newrule` | 上传新规则（粘贴 JSON 文本，或直接发 `.json` 文件） |
 | `/editrule` | 编辑已有规则 |
 | `/rules` | 打开规则管理面板（按钮操作 + 分页） |
 | `/rule <id8>` | 查看规则详情 |

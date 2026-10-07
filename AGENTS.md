@@ -26,6 +26,7 @@ Telegram 群内游戏主理人 bot（grammy + better-sqlite3 + 原生 ws）。
 
 - 私聊：`/start /help /newrule /editrule /rules /rule /deleterule /cancel`
   - `/rules` 打开**按钮式规则面板**（分页列表 → 详情 → 编辑/删除/查看 JSON），`/start` 也有入口按钮；所有命令依旧可用
+  - 创建/编辑规则时，除了**粘贴 JSON 文本**，也可**直接发送 `.json` 文件**（走 `getFile` 下载 → 同一套 zod 校验；长规则用文件，绕过 Telegram 4096 字符消息上限）
 - 群内：`/startgame /joingame /leavegame /begin /next /skip /undo /endgame /status /play`
 
 ## 调试技巧
