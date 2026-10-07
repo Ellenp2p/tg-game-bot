@@ -373,6 +373,136 @@ state.results["rank"] = {
 { "type": "punish", "showActor": true, "defaultText": "{actor} 喝一杯" }
 ```
 
+## 🎰 抽签策略：用老虎机做「任意 N 选一」
+
+需要一个"从 N 个选项里随机抽一个"的机制（抽盲盒、抽卡、抽惩罚…）时，用 **🎰（1–64 均匀）** + `branch` 分段就能实现，**N ≤ 64 任意**。
+
+### 1. 映射数学（等距分段）
+
+🎰 的 64 个值各 1/64。要分成 N 段：
+
+```
+base = floor(64 / N)                          // 每段基础宽度
+rem  = 64 % N                                 // 余数，分给前 rem 段
+第 i 段右端点 t_i = i * base + min(i, rem)    // i = 1..N-1
+```
+
+结果 k 命中区间 `(t_{k-1}, t_k]`（`t_0 = 0`，`t_N = 64`）。每段宽度是 `base` 或 `base+1`，**任意两段概率差 ≤ 1/64**。
+
+- `64 % N == 0`（N ∈ {2,4,8,16,32,64}）时每段等宽，**完全均匀**。
+- 想对任意 N 都**严格均匀** → 见第 6 节「拒绝重掷」。
+
+### 2. 选哪个随机源（尽量用能整除的骰子）
+
+| N | 推荐 emoji | 是否精确 |
+|---|---|---|
+| 2 / 3 / 6 | 🎲 | ✅ 整除 |
+| 5 | ⚽ / 🏀 | ✅ 整除 |
+| 4 / 8 / 16 / 32 / 64 | 🎰 | ✅ 整除 |
+| 其他（7,9,10,11,12,…63） | 🎰 | 近似（偏差 ≤ 1/64） |
+
+### 3. `branch` 链式表达
+
+`branch` 每个 step **最多 8 个 case**，条件是对**最近一次单掷** `dice` 的**单次比较**：
+
+- 用 `{ "check": "dice", "op": "lte", "value": t }`，阈值**升序**排列（首个命中即跳）
+- 每段最多放 8 个阈值，`default` 指向**下一段 branch**
+- 最后一段的 `default` 指向第 N 个结果
+- 段数 `G = ceil((N-1) / 8)`
+
+```jsonc
+// 前提：上一步必须是 roll（🎰），且中间没有再插 roll
+{ "type": "roll", "label": "抽签", "emoji": "🎰" },
+{ "type": "branch", "label": "选结果 1-8", "cases": [
+  { "if": { "check": "dice", "op": "lte", "value": t1 }, "goto": <结果1> },
+  { "if": { "check": "dice", "op": "lte", "value": t2 }, "goto": <结果2> }
+  /* …最多 8 条… */
+], "default": <第2段 branch> },
+{ "type": "branch", "label": "选结果 9-16", "cases": [ /* … */ ], "default": <结果N> }
+```
+
+### 4. 生成器（把任意 N 变成 branch 步骤）
+
+约定布局：选取步占 `S..S+G-1`（G 段 branch），结果步紧接占 `S+G..S+G+N-1`。
+
+```js
+// 返回 G 个 branch 步骤，按顺序插到 round.steps 的第 S 个位置起
+function drawStrategy(N, roundIdx, S) {
+  const G = Math.ceil((N - 1) / 8);
+  const base = Math.floor(64 / N), rem = 64 % N;
+  const th = Array.from({ length: N - 1 },
+    (_, i) => { const k = i + 1; return k * base + Math.min(k, rem); });
+  const resultGoto = i => ({ roundIdx, stepIdx: S + G + (i - 1) });
+  const branchGoto = g => ({ roundIdx, stepIdx: S + g });
+  const steps = [];
+  for (let g = 0; g < G; g++) {
+    const slice = th.slice(g * 8, g * 8 + 8);
+    steps.push({
+      type: 'branch',
+      label: `选结果 ${g * 8 + 1}-${g * 8 + slice.length}`,
+      cases: slice.map((t, j) => ({ if: { check: 'dice', op: 'lte', value: t }, goto: resultGoto(g * 8 + j + 1) })),
+      default: g < G - 1 ? branchGoto(g + 1) : resultGoto(N)
+    });
+  }
+  return steps;
+}
+```
+
+### 5. 例子：16 个盲盒（N=16，完全均匀）
+
+64 / 16 = 4，阈值 4,8,12,…,60 共 15 个 → 2 段 branch：
+
+```jsonc
+{ "type": "roll", "label": "抽盲盒", "assignment": "winner", "emoji": "🎰" },
+{ "type": "branch", "label": "选盒 1-8", "cases": [
+  { "if": { "check": "dice", "op": "lte", "value": 4 },  "goto": <盒1> },
+  { "if": { "check": "dice", "op": "lte", "value": 8 },  "goto": <盒2> },
+  { "if": { "check": "dice", "op": "lte", "value": 12 }, "goto": <盒3> },
+  { "if": { "check": "dice", "op": "lte", "value": 16 }, "goto": <盒4> },
+  { "if": { "check": "dice", "op": "lte", "value": 20 }, "goto": <盒5> },
+  { "if": { "check": "dice", "op": "lte", "value": 24 }, "goto": <盒6> },
+  { "if": { "check": "dice", "op": "lte", "value": 28 }, "goto": <盒7> },
+  { "if": { "check": "dice", "op": "lte", "value": 32 }, "goto": <盒8> }
+], "default": <第2段 branch> },
+{ "type": "branch", "label": "选盒 9-16", "cases": [
+  { "if": { "check": "dice", "op": "lte", "value": 36 }, "goto": <盒9> },
+  /* 40 / 44 / 48 / 52 / 56 / 60 */
+], "default": <盒16> }
+```
+
+### 6. 严格均匀：拒绝重掷（可选）
+
+当 `64 % N != 0` 而要零偏差：取 `M = N * floor(64/N)`（≤64 的最大 N 倍数），**只接受 `v <= M`**，否则回到 `roll` 步重掷。接受后的分段是**等宽**的：宽度 `w = M / N`，阈值 `w, 2w, …`。
+
+以 **N=10** 为例：`w = 6`、`M = 60`，阈值 6,12,…,54（等宽 6），掷到 61–64 就重掷：
+
+```jsonc
+{ "type": "roll", "label": "抽签（N=10）", "emoji": "🎰" },
+{ "type": "branch", "label": "重掷判定", "cases": [
+  { "if": { "check": "dice", "op": "gt", "value": 60 }, "goto": <回退到上面 roll 的坐标> }
+], "default": <正常分段 branch> },
+{ "type": "branch", "label": "选结果 1-8", "cases": [
+  { "if": { "check": "dice", "op": "lte", "value": 6 },  "goto": <结果1> },
+  { "if": { "check": "dice", "op": "lte", "value": 12 }, "goto": <结果2> }
+  /* … 18 / 24 / 30 / 36 / 42 / 48，最多 8 条 … */
+], "default": <第2段 branch> }
+```
+
+代价：玩家要再发一次 emoji，且管理员无法代掷。
+
+### 7. 坑（务必避开）
+
+1. `dice` 读的是**最近一次单掷**，`roll` 之后必须**紧接** `branch`，中间别再插 roll。
+2. `branch` 每步 ≤ 8 个 case → 大 N 必须链式多段（N=64 要 8 段）。
+3. 引擎**没有"跳到轮末"**，每个结果步后面还要挂一个 `default` 指向越界坐标（轮末）的 branch；N 大时步数会逼近上限（40/轮）。
+4. **N 上限 64**。要更多得连掷两颗再组合，当前引擎只暴露"最近一颗"，暂不支持。
+5. 抽中编号目前没有占位符，每个结果要各写一个 `text`/`punish` 步承接。
+
+### 8. 未来可加的原语（当前未实现，先别用）
+
+- `goto: "end"`：结束当前轮，省掉每个结果步后面的样板 branch。
+- `draw` 抽签步：`{ "type": "draw", "emoji": "🎰", "count": 16, "targets": [16 个 goto], "store": "box" }`，一步顶掉整条 branch 链。
+
 ## 完整示例：真心话大冒险
 
 ```json
@@ -566,6 +696,7 @@ state.results["rank"] = {
 8. **`showdown` 未掷满被 `/next` 强制结算时**，未掷玩家按 0 分计（`accumulate` 时保留其历史总分）
 9. **模板占位符在结果槽不存在时原样保留**：如未开过 showdown 就写 `{winner}`，群里会显示 `{winner}`
 10. **`branch` 自环/回跳**：靠 `maxHits`（默认 50）兜底，超过后强制前进
+11. **`branch` 每步最多 8 个 case**：较大 N 的抽签要链式多段（见「🎰 抽签策略：用老虎机做「任意 N 选一」」）
 
 ## AI 设计规则时的自检清单
 
@@ -586,6 +717,7 @@ state.results["rank"] = {
 13. **`branch` 的 `cases` 是否有明确的兜底 `default`**？回跳/自环要设 `maxHits`
 14. **`showdown.actor` / `choice.chooser` / `roll.assignment` 引用的是哪个槽**？跨多个结果槽时用 `actorSlot`/`chooserSlot` 指明确
 15. **`showdown` 的 `order` 与 `tie` 是否符合玩法**？比大用 `high`、比小用 `low`；要唯一赢家优先用 `tie: 'first'`
+16. **要不要「N 选一」抽签**？N ≤ 64 用 🎰 + `branch` 分段（见「🎰 抽签策略」）：`64 % N == 0` 精确，否则偏差 ≤ 1/64；大 N 记得链式多段 + 每个结果步后的轮末 branch
 
 ## 完整示例库
 

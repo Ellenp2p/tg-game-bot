@@ -57,7 +57,7 @@ SQLite 文件位置（默认）：`./data/bot.sqlite`（WAL 模式）。`.gitign
 
 | 文件 | 何时读 |
 |---|---|
-| [`RULES_AUTHORING.md`](RULES_AUTHORING.md) | **必读**。schema 字段约束、step 类型细节、AI 自检 15 条、已知引擎限制 |
+| [`RULES_AUTHORING.md`](RULES_AUTHORING.md) | **必读**。schema 字段约束、step 类型细节、AI 自检 16 条、已知引擎限制、🎰 抽签策略 |
 | [`examples/README.md`](examples/README.md) | 17 个规则的表格（人数 / 用到的特性），找最相近的模板 |
 | [`examples/*.json`](examples/) | 复制最相近的模板改写，保留 `version: "1.6.0"` |
 
@@ -77,6 +77,7 @@ SQLite 文件位置（默认）：`./data/bot.sqlite`（WAL 模式）。`.gitign
 - emoji 取值范围：🎲🎯🎳=1-6；🏀⚽=1-5；🎰=1-64
 - 引擎用 `state.lastRollerId` + `nextRollerId()` 自动轮换（assignment=next_player），单人场永远轮到自己
 - `showdown` 全员各掷一次后自动排序；结果存命名槽并可用 `{...}` 引用；`branch` 按条件跳转
+- 需要「N 选一」抽签（N ≤ 64）：用 🎰(1–64) + `branch` 的 `dice` 阈值分段，见 RULES_AUTHORING.md「🎰 抽签策略」
 
 ### 修改 `CURRENT_RULE_SCHEMA_VERSION` 时
 
