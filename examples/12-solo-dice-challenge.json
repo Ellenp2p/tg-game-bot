@@ -1,0 +1,31 @@
+{
+  "version": "1.5.0",
+  "name": "单人骰子挑战",
+  "description": "扔色子决定今天做几个俯卧撑 / 跑几分钟 / 喝几杯水。适合一人在家无聊时玩。循环 10 圈后结束。",
+  "minPlayers": 1,
+  "maxPlayers": 1,
+  "rounds": [
+    {
+      "name": "挑战轮（循环 10 圈）",
+      "loop": true,
+      "maxLoops": 10,
+      "defaultEmoji": "🎲",
+      "steps": [
+        { "type": "roll", "label": "🎲 命运色子", "assignment": "next_player" },
+        {
+          "type": "punish",
+          "label": "按点数接受挑战",
+          "defaultText": "🎲 1-2 点：喝一杯水",
+          "ladder": [
+            { "at": 1, "text": "🎲 1 点：喝一杯水" },
+            { "at": 2, "text": "🎲 2 点：做 5 个深呼吸" },
+            { "at": 3, "text": "🎲 3 点：做 5 个俯卧撑" },
+            { "at": 4, "text": "🎲 4 点：做 10 个俯卧撑" },
+            { "at": 5, "text": "🎲 5 点：原地跑 1 分钟" },
+            { "at": 6, "text": "🎲 6 点：出门走 5 分钟" }
+          ]
+        }
+      ]
+    }
+  ]
+}

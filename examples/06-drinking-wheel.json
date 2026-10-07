@@ -1,0 +1,51 @@
+{
+  "version": "1.5.0",
+  "name": "喝酒转盘",
+  "description": "色子决定喝多少。选择逃避则惩罚升级。简单粗暴的劝酒神器。跑 10 圈后结束。",
+  "defaultEmoji": "🎲",
+  "minPlayers": 2,
+  "maxPlayers": 12,
+  "rounds": [
+    {
+      "name": "喝酒轮（循环 10 圈）",
+      "loop": true,
+      "maxLoops": 10,
+      "steps": [
+        { "type": "roll", "label": "🎲 命运色子", "assignment": "next_player" },
+        {
+          "type": "choice",
+          "label": "喝 or 逃",
+          "prompt": "掷到你啦！选择面对现实或者逃避加倍。",
+          "options": [
+            { "text": "🍺 我喝", "goto": "next" },
+            { "text": "🏃 我逃", "goto": { "roundIdx": 0, "stepIdx": 2 } }
+          ]
+        },
+        {
+          "type": "punish",
+          "label": "按色子点数喝",
+          "defaultText": "喝一小口",
+          "ladder": [
+            { "at": 1, "text": "🎲 1 点：喝一小口" },
+            { "at": 2, "text": "🎲 2 点：喝一口" },
+            { "at": 3, "text": "🎲 3 点：喝两口" },
+            { "at": 4, "text": "🎲 4 点：喝一杯" },
+            { "at": 5, "text": "🎲 5 点：喝两杯" },
+            { "at": 6, "text": "🎲 6 点：直接喝一瓶（指定酒）" }
+          ]
+        },
+        {
+          "type": "punish",
+          "label": "逃避加倍惩罚",
+          "defaultText": "喝两杯",
+          "ladder": [
+            { "at": 2, "text": "做 20 个俯卧撑" },
+            { "at": 3, "text": "当众讲一件从来没告诉任何人的尴尬事" },
+            { "at": 5, "text": "发一条朋友圈让大家点赞才能过" },
+            { "at": 7, "text": "打电话给通讯录里随机一个异性朋友说「我想你了」" }
+          ]
+        }
+      ]
+    }
+  ]
+}

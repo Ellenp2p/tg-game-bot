@@ -1,0 +1,34 @@
+{
+  "version": "1.5.0",
+  "name": "成语接龙",
+  "description": "经典文字游戏。玩家用上一句成语的最后一个字开头接新成语，接不出接受惩罚。适合 4-8 人。接龙轮最多 15 圈。",
+  "defaultEmoji": "🎲",
+  "minPlayers": 4,
+  "maxPlayers": 8,
+  "rounds": [
+    {
+      "name": "接龙轮（循环 15 圈）",
+      "loop": true,
+      "maxLoops": 15,
+      "steps": [
+        { "type": "roll", "label": "🎲 轮到下一位接龙", "assignment": "next_player" },
+        {
+          "type": "text",
+          "label": "成语接龙",
+          "prompt": "用上一句成语的最后一个字开头接一个新成语。\n\n示例：\n胸有成竹 → 竹报平安 → 安居乐业 → 业精于勤\n\n接不出的话老实承认。"
+        },
+        {
+          "type": "punish",
+          "label": "接不出的惩罚",
+          "defaultText": "喝一小口",
+          "ladder": [
+            { "at": 2, "text": "喝一口" },
+            { "at": 3, "text": "讲一个冷笑话" },
+            { "at": 5, "text": "用方言读一遍刚接的成语" },
+            { "at": 7, "text": "唱一句带「竹」字（或最后一个字）的歌" }
+          ]
+        }
+      ]
+    }
+  ]
+}

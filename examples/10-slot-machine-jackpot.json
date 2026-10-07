@@ -1,0 +1,29 @@
+{
+  "version": "1.5.0",
+  "name": "老虎机抽奖",
+  "description": "老虎机 emoji 抽奖。3 个 reel × {BAR,🍓,🍋,7} = 64 种组合；3 个相同 = JACKPOT（实际 1/16）。3 轮内先抽中 jackpot 的人获胜。本规则用 rule.defaultEmoji='🎰' 演示三层 emoji 默认值。",
+  "defaultEmoji": "🎰",
+  "minPlayers": 2,
+  "maxPlayers": 8,
+  "rounds": [
+    {
+      "name": "抽奖轮",
+      "loop": true,
+      "maxLoops": 3,
+      "steps": [
+        { "type": "roll", "label": "🎰 拉杆", "assignment": "next_player" },
+        {
+          "type": "punish",
+          "label": "判定奖励",
+          "defaultText": "🎰 没中三个：喝一小口",
+          "ladder": [
+            { "at": 1, "text": "🎰 三连（jackpot）！全场敬你一杯，你是今晚 MVP 🎉" },
+            { "at": 2, "text": "🎰 第二次没中三个：喝两口" },
+            { "at": 3, "text": "🎰 第三次还没中：表演一个节目" }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

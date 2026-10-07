@@ -1,0 +1,71 @@
+{
+  "version": "1.5.0",
+  "name": "真心话大冒险",
+  "description": "经典派对游戏。色子决定谁来答题，玩家在 choice 阶段二选一答或罚；循环的惩罚轮让没完成的人一直升级。第二轮最多跑 8 圈。",
+  "minPlayers": 2,
+  "maxPlayers": 8,
+  "rounds": [
+    {
+      "name": "第一轮 · 真心话",
+      "loop": false,
+      "steps": [
+        { "type": "roll", "label": "🎲 谁来回答真心话", "emoji": "🎲", "assignment": "next_player" },
+        {
+          "type": "choice",
+          "label": "选择命运",
+          "prompt": "掷到你啦，选一个：",
+          "options": [
+            { "text": "回答真心话", "goto": "next" },
+            { "text": "接受惩罚", "goto": { "roundIdx": 0, "stepIdx": 3 } }
+          ]
+        },
+        {
+          "type": "text",
+          "label": "回答真心话",
+          "prompt": "选一个问题回答：\n1. 你最近撒的最大的谎是什么？\n2. 你暗恋过谁？\n3. 你做过最尴尬的事？"
+        },
+        {
+          "type": "punish",
+          "label": "接受惩罚",
+          "defaultText": "喝一小口",
+          "ladder": [
+            { "at": 2, "text": "喝一口" },
+            { "at": 4, "text": "喝一杯" },
+            { "at": 6, "text": "喝两杯" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "第二轮 · 大冒险（循环）",
+      "loop": true,
+      "maxLoops": 8,
+      "steps": [
+        { "type": "roll", "label": "🎲 谁做大冒险", "emoji": "🎲", "assignment": "next_player" },
+        {
+          "type": "choice",
+          "label": "选择命运",
+          "options": [
+            { "text": "做大冒险", "goto": "next" },
+            { "text": "接受惩罚", "goto": { "roundIdx": 1, "stepIdx": 3 } }
+          ]
+        },
+        {
+          "type": "text",
+          "label": "做大冒险",
+          "prompt": "选一个任务完成：\n· 学一种动物叫\n· 跳舞 30 秒\n· 用左手写字\n· 给列表里某个 ID 发送奇怪的话\n· 模仿表情包"
+        },
+        {
+          "type": "punish",
+          "label": "没完成？惩罚升级",
+          "defaultText": "做 5 个俯卧撑",
+          "ladder": [
+            { "at": 2, "text": "做 10 个俯卧撑" },
+            { "at": 4, "text": "原地跑 30 秒" },
+            { "at": 6, "text": "表演一段 B-box" }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1103 @@
+import 'dotenv/config';
+import { Bot, InlineKeyboard, type BotError, type Context } from 'grammy';
+import { createServer, type IncomingMessage } from 'node:http';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { WebSocketServer, WebSocket } from 'ws';
+import { verifyInitData } from './auth.js';
+import { Db } from './db.js';
+import {
+  ruleDefinition, type RuleDefinition, type RuleRecord, type GameRecord,
+  type GamePlayer, type DiceEmoji, SUPPORTED_DICE_EMOJIS,
+  type GamePhase, type GameStatus
+} from './model.js';
+import {
+  advanceToStep, applyNext, applyRoll, applySkip, applyChoice, beginGame,
+  displayName, findStep, initialState, loopProgress
+} from './rules.js';
+import { decodeSlotValue, isJackpot, SLOT_SYMBOL_LABEL } from './model.js';
+
+const token = process.env.BOT_TOKEN;
+if (!token) throw Error('BOT_TOKEN is required');
+const bot = new Bot(token, { client: { apiRoot: process.env.BOT_API_ROOT || 'https://api.telegram.org' } });
+const db = new Db(process.env.DATA_FILE || './data/bot.sqlite');
+const port = Number(process.env.PORT || 3001);
+const appLink = process.env.BOT_USERNAME && process.env.APP_SHORT_NAME
+  ? `https://t.me/${process.env.BOT_USERNAME.replace(/^@/, '')}/${process.env.APP_SHORT_NAME}`
+  : undefined;
+const publicUrl = process.env.PUBLIC_URL;
+
+type Pending = { kind: 'create-rule' | 'edit-rule'; userId: number; ruleId?: string };
+const pending = new Map<string, Pending>();
+
+const html = (s: string) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+const isGroup = (ctx: Context) => ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+const isPrivate = (ctx: Context) => ctx.chat?.type === 'private';
+const chatIdOf = (ctx: Context) => ctx.chat!.id;
+const userIdOf = (ctx: Context) => ctx.from!.id;
+
+async function isTelegramGroupAdmin(chatId: number, userId: number): Promise<boolean> {
+  try {
+    const m = await bot.api.getChatMember(chatId, userId);
+    return m.status === 'administrator' || m.status === 'creator';
+  } catch { return false; }
+}
+
+async function isBotAdmin(chatId: number): Promise<boolean> {
+  try {
+    const me = await bot.api.getMe();
+    const m = await bot.api.getChatMember(chatId, me.id);
+    return m.status === 'administrator' || m.status === 'creator';
+  } catch { return false; }
+}
+
+async function requireGroupAdmin(ctx: Context): Promise<void> {
+  if (!isGroup(ctx)) throw Error('该命令仅在群内使用');
+  if (!await isTelegramGroupAdmin(ctx.chat!.id, userIdOf(ctx))) {
+    throw Error('仅本群 Telegram 管理员可操作');
+  }
+}
+
+function snapshot(game: GameRecord, definition: RuleDefinition | undefined, players: GamePlayer[], viewerId: number, isAdminViewer: boolean) {
+  const rule = definition ?? null;
+  const phase = game.state.phase;
+  const step = rule && phase.kind !== 'signup' ? findStep(rule, phase.roundIdx, phase.stepIdx) : undefined;
+  return {
+    gameId: game.gameId,
+    chatId: game.chatId,
+    ruleId: game.ruleId,
+    starterId: game.starterId,
+    status: game.status,
+    rule: rule ? { ruleId: rule ? rule.name : '', name: rule.name, rounds: rule.rounds } : null,
+    roundIdx: game.roundIdx,
+    stepIdx: game.stepIdx,
+    loopProgress: rule && phase.kind !== 'signup' ? loopProgress(rule, game.state.loopCounters, phase.roundIdx) : null,
+    phase: phase.kind === 'signup' ? { kind: 'signup' as const }
+      : phase.kind === 'roll' ? { kind: 'roll' as const, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx, expectedPlayerId: phase.expectedPlayerId, emoji: phase.emoji, stepLabel: step?.type === 'roll' ? step.label : '' }
+      : phase.kind === 'text' ? { kind: 'text' as const, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx, text: phase.text, stepLabel: step?.type === 'text' ? step.label : '' }
+      : phase.kind === 'choice' ? { kind: 'choice' as const, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx, options: phase.options, pickedBy: phase.pickedBy, stepLabel: step?.type === 'choice' ? step.label : '' }
+      : { kind: 'punish' as const, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx, text: phase.text, hitCount: phase.hitCount, stepLabel: step?.type === 'punish' ? step.label : '' },
+    players: players.map(p => ({
+      userId: p.userId,
+      label: displayName(p.userId),
+      isViewer: p.userId === viewerId
+    })),
+    lastDice: game.state.lastDice
+      ? { ...game.state.lastDice, decoded: game.state.lastDice.emoji === '🎰' ? decodeSlotValue(game.state.lastDice.value) : null }
+      : null,
+    lastMessage: game.state.lastMessage ?? null,
+    viewer: { id: viewerId, isAdmin: isAdminViewer }
+  };
+}
+
+const wsByGame = new Map<string, Set<WebSocket>>();
+const SIGNUP_PAGE_SIZE = 8;
+function broadcast(gameId: string): void {
+  const set = wsByGame.get(gameId);
+  if (!set) return;
+  const game = db.getGame(gameId);
+  if (!game) return;
+  const rule = db.getRule(game.ruleId);
+  const players = db.listPlayers(gameId);
+  const payload = JSON.stringify({
+    type: 'state',
+    snapshot: snapshot(game, rule?.definition, players, 0, false)
+  });
+  for (const ws of set) if (ws.readyState === WebSocket.OPEN) ws.send(payload);
+}
+
+function renderSignupPage(game: GameRecord, def: RuleDefinition | undefined, players: GamePlayer[], page: number) {
+  const total = players.length;
+  const totalPages = Math.max(1, Math.ceil(total / SIGNUP_PAGE_SIZE));
+  page = Math.min(Math.max(1, page), totalPages);
+  const start = (page - 1) * SIGNUP_PAGE_SIZE;
+  const pagePlayers = players.slice(start, start + SIGNUP_PAGE_SIZE);
+  const list = pagePlayers.length
+    ? pagePlayers.map((p, i) => `${start + i + 1}. ${mentionHtml(p.userId, displayName(p.userId))}`).join('\n')
+    : '（暂无）';
+  const name = def?.name ?? game.ruleId;
+  const min = def?.minPlayers ?? 1;
+  const max = def?.maxPlayers ?? 99;
+  const header = game.status === 'signup'
+    ? `🎲 <b>${html(name)}</b> 等待报名`
+    : `🎲 <b>${html(name)}</b> · 游戏已开始`;
+  const footer = game.status === 'signup'
+    ? `· 玩家：/joingame\n· 退出：/leavegame\n· 管理员：/begin 开始（至少 ${min} 人，最多 ${max} 人）`
+    : `查看实时：点下方「实时视图」`;
+  return {
+    page, totalPages,
+    text: `${header}\n\n${list}\n\n第 ${page}/${totalPages} 页 · 共 ${total} / ${max} 人\n\n${footer}`
+  };
+}
+
+function signupKeyboard(game: GameRecord, page: number): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  const players = db.listPlayers(game.gameId);
+  const totalPages = Math.max(1, Math.ceil(players.length / SIGNUP_PAGE_SIZE));
+  page = Math.min(Math.max(1, page), totalPages);
+  if (page > 1) kb.text('◀ 上一页', `sign:${game.gameId}:${page - 1}`);
+  if (page < totalPages) kb.text('下一页 ▶', `sign:${game.gameId}:${page + 1}`);
+  kb.text('🔄 刷新', `sign:${game.gameId}:${page}`);
+  if (game.status === 'signup') {
+    kb.text('加入', `join:${game.gameId}`).text('退出报名', `leave:${game.gameId}`);
+    if (players.length > 0) kb.text('▶ 开始', `begin:${game.gameId}`);
+  }
+  if (appLink) kb.url('实时视图', `${appLink}?startapp=game_${game.gameId}`);
+  return kb;
+}
+
+async function refreshSignupMessage(game: GameRecord): Promise<void> {
+  const msgId = game.signupMsgId;
+  if (!msgId) return;
+  const rule = db.getRule(game.ruleId);
+  const players = db.listPlayers(game.gameId);
+  const { text } = renderSignupPage(game, rule?.definition, players, 1);
+  try {
+    await bot.api.editMessageText(game.chatId, msgId, text, { parse_mode: 'HTML', reply_markup: signupKeyboard(game, 1) });
+  } catch (e) { console.warn('[signup] edit failed:', (e as Error).message); }
+}
+
+function push(game: GameRecord): void {
+  db.updateGame(game);
+  broadcast(game.gameId);
+}
+
+function mentionHtml(id: number, label: string) {
+  return `<a href="tg://user?id=${id}">${html(label)}</a>`;
+}
+
+function statusKeyboard(game: GameRecord, gameId: string, phase: GamePhase, status: GameStatus, players: GamePlayer[]): InlineKeyboard | undefined {
+  const kb = new InlineKeyboard();
+  if (status === 'ended') return undefined;
+  if (status === 'signup') return undefined;
+  if (phase.kind === 'roll') return undefined;
+  if (phase.kind === 'choice') {
+    if (!phase.options.length) return undefined;
+    phase.options.forEach((o, i) => kb.text(o.text, `pickChoice:${gameId}:${i}`));
+    return kb;
+  }
+  if (phase.kind === 'text' || phase.kind === 'punish') {
+    kb.text('下一步', `next:${gameId}`).text('跳过', `skip:${gameId}`);
+    return kb;
+  }
+  return undefined;
+}
+
+async function sendStatus(chatId: number, gameId: string): Promise<void> {
+  const game = db.getGame(gameId);
+  if (!game) return;
+  const rule = db.getRule(game.ruleId);
+  const players = db.listPlayers(gameId);
+  const text = renderStatus(game, rule?.definition, players);
+  const kb = statusKeyboard(game, gameId, game.state.phase, game.status, players);
+  await bot.api.sendMessage(chatId, text, {
+    parse_mode: 'HTML',
+    reply_markup: kb
+  });
+}
+
+async function notifyGroup(game: GameRecord, action: string, actorId: number): Promise<void> {
+  const players = db.listPlayers(game.gameId);
+  if (action === 'join' || action === 'leave' || action === 'begin') {
+    await refreshSignupMessage(game);
+  }
+  if (action === 'begin' || action === 'next' || action === 'skip' || action === 'choice') {
+    await sendStatus(game.chatId, game.gameId);
+  } else if (action === 'end') {
+    game.signupMsgId = null;
+    db.updateGame(game);
+    await bot.api.sendMessage(game.chatId, '🏁 对局已结束。');
+  }
+}
+
+function renderStatus(game: GameRecord, def: RuleDefinition | undefined, players: GamePlayer[]): string {
+  const phase = game.state.phase;
+  const header = game.status === 'ended' ? '🏁 对局已结束\n\n' : '';
+  if (phase.kind === 'signup') {
+    if (players.length === 0) {
+      return '⏳ 等待开局\n\n已 /startgame，但还没有玩家加入。\n玩家 /joingame 加入；管理员 /begin 开始；或 /endgame 取消。';
+    }
+    const list = players.map((p, i) => `${i + 1}. ${mentionHtml(p.userId, displayName(p.userId))}`).join('\n');
+    return `🎲 报名中（${players.length} 人）\n\n${list}\n\n玩家点 /joingame 加入；管理员 /begin 开始。`;
+  }
+  const step = def ? findStep(def, phase.roundIdx, phase.stepIdx) : undefined;
+  const roundName = def?.rounds[phase.roundIdx]?.name ?? `第 ${phase.roundIdx + 1} 轮`;
+  let body = `📍 ${html(roundName)} · ${html(step?.label ?? '')}`;
+  if (def) {
+    const lp = loopProgress(def, game.state.loopCounters, phase.roundIdx);
+    if (lp) body += lp.total === null ? ` · 🔁 第 ${lp.current} 轮（无限）` : ` · 🔁 第 ${lp.current} / ${lp.total} 轮`;
+  }
+  if (phase.kind === 'roll') {
+    const expected = phase.expectedPlayerId
+      ? mentionHtml(phase.expectedPlayerId, displayName(phase.expectedPlayerId))
+      : '任一玩家';
+    body += `\n\n等待 ${expected} 发送 🎲`;
+  } else if (phase.kind === 'text') {
+    body += `\n\n${html(phase.text)}`;
+  } else if (phase.kind === 'punish') {
+    body += `\n\n🎯 惩罚：${html(phase.text)}（第 ${phase.hitCount} 次）`;
+  } else if (phase.kind === 'choice') {
+    const who = phase.pickedBy ? `${mentionHtml(phase.pickedBy, displayName(phase.pickedBy))} 请选择：` : '请选择：';
+    body += `\n\n${who}\n` + phase.options.map((o, i) => `${i + 1}. ${html(o.text)}`).join('\n');
+  }
+  if (game.state.lastDice) {
+    let lastLine = `🎲 上次：${mentionHtml(game.state.lastDice.userId, displayName(game.state.lastDice.userId))} → ${game.state.lastDice.value}`;
+    if (game.state.lastDice.emoji === '🎰') {
+      const d = decodeSlotValue(game.state.lastDice.value);
+      const jp = isJackpot(game.state.lastDice.value);
+      lastLine += ` (${SLOT_SYMBOL_LABEL[d.r1]} ${SLOT_SYMBOL_LABEL[d.r2]} ${SLOT_SYMBOL_LABEL[d.r3]}${jp ? ' · 🎉 JACKPOT' : ''})`;
+    }
+    body += `\n\n${lastLine}`;
+  }
+  const playerList = players.map((p, i) => `${i + 1}. ${mentionHtml(p.userId, displayName(p.userId))}`).join('\n');
+  body += `\n\n👥 玩家\n${playerList}`;
+  return header + body;
+}
+
+bot.catch(async (err: BotError<Context>) => {
+  console.error('[bot]', err.message);
+  const ctx = err.ctx;
+  const msg = `⚠️ ${err.message}`;
+  try {
+    if (ctx.callbackQuery) await ctx.answerCallbackQuery({ text: err.message, show_alert: true }).catch(() => {});
+    else await ctx.reply(msg);
+  } catch {}
+});
+
+const commandsZh = [
+  { command: 'start', description: '开始使用' },
+  { command: 'help', description: '查看所有命令' },
+  { command: 'newrule', description: '开始创建规则（下一步发 JSON）' },
+  { command: 'editrule', description: '编辑规则 /editrule 编号' },
+  { command: 'rules', description: '列出我的规则' },
+  { command: 'rule', description: '查看规则 /rule 编号' },
+  { command: 'deleterule', description: '删除规则 /deleterule 编号' },
+  { command: 'cancel', description: '取消当前创建/编辑' },
+  { command: 'startgame', description: '群里开局（管理员）' },
+  { command: 'joingame', description: '报名参与' },
+  { command: 'leavegame', description: '退出报名' },
+  { command: 'begin', description: '开始游戏（管理员）' },
+  { command: 'next', description: '下一步（管理员）' },
+  { command: 'skip', description: '跳过（管理员）' },
+  { command: 'undo', description: '撤销（管理员）' },
+  { command: 'endgame', description: '结束游戏（管理员）' },
+  { command: 'status', description: '查看当前对局状态' },
+  { command: 'play', description: '群里发，私聊收 Mini App 内嵌按钮' }
+];
+
+(async () => {
+  try {
+    await bot.api.setMyCommands(commandsZh, { scope: { type: 'all_private_chats' } });
+    await bot.api.setMyCommands(commandsZh, { scope: { type: 'all_group_chats' } });
+    if (publicUrl) {
+      await bot.api.setChatMenuButton({
+        menu_button: { type: 'web_app', text: '🎮 打开 Mini App', web_app: { url: publicUrl } }
+      });
+    }
+  } catch (e) { console.error('[setMyCommands/menu]', (e as Error).message); }
+})();
+
+bot.command('start', async ctx => {
+  if (!ctx.from) return;
+  db.touchUser(ctx.from.id);
+  await ctx.reply(
+    '欢迎使用游戏主理人。\n\n' +
+    '私聊用法：\n' +
+    '· /newrule <名称> — 创建规则\n' +
+    '· /rules — 列出我的规则\n' +
+    '· /rule <编号> — 查看规则\n' +
+    '· /deleterule <编号> — 删除规则\n\n' +
+    '群内用法（任何群管理员）：\n' +
+    '· /startgame — 选择我的规则开局\n' +
+    '· /joingame / /leavegame — 报名\n' +
+    '· /begin / /next / /skip / /undo / /endgame\n\n' +
+    '/help 查看完整说明'
+  );
+});
+
+bot.command('help', async ctx => {
+  if (isGroup(ctx)) {
+    await ctx.reply(
+      '<b>游戏主理人 · 群内命令</b>\n\n' +
+      '<b>━━━ 玩家（所有人）━━━</b>\n' +
+      '/joingame — 报名\n' +
+      '/leavegame — 退出报名\n' +
+      '/status — 查看当前对局状态和要用哪个表情\n' +
+      '到玩家回合时发当前 step 需要的表情（Telegram 原生 dice）\n\n' +
+      '<b>━━━ 管理员（群管理员 / 机器人管理员）━━━</b>\n' +
+      '/startgame — 选择规则开局\n' +
+      '/begin — 开始游戏（报名结束后）\n' +
+      '/next — 下一步\n' +
+      '/skip — 跳过当前步骤\n' +
+      '/undo — 撤销上一次动作\n' +
+      '/endgame — 强制结束\n\n' +
+      '支持的表情（看 /status 知道当前要用哪个）：\n' +
+      '🎲 色子 1-6　🎯 飞镖 1-6　🏀 篮球 1-5　⚽ 足球 1-5　🎰 老虎机 1-64　🎳 保龄球 1-6\n\n' +
+      '创建/管理规则请私聊机器人。'
+    , { parse_mode: 'HTML' });
+    return;
+  }
+  await ctx.reply(
+    '<b>游戏主理人 · 命令一览</b>\n\n' +
+    '<b>━━━ 规则（私聊）━━━</b>\n' +
+    '/newrule — 创建规则（下一步发 JSON，<code>name</code> 字段为规则名）\n' +
+    '/editrule <code>编号</code> — 重新编辑规则\n' +
+    '/rules — 列出我的规则\n' +
+    '/rule <code>编号</code> — 查看规则 JSON\n' +
+    '/deleterule <code>编号</code> — 删除规则\n' +
+    '/cancel — 取消当前创建/编辑\n\n' +
+    '<b>━━━ 玩家（群内）━━━</b>\n' +
+    '/joingame — 报名\n' +
+    '/leavegame — 退出报名\n' +
+    '/status — 查看当前对局状态和要用哪个表情\n' +
+    '到玩家回合时发当前 step 需要的表情\n\n' +
+    '<b>━━━ 管理员（群内）━━━</b>\n' +
+    '/startgame — 选择我的规则开局\n' +
+    '/begin — 开始游戏\n' +
+    '/next / /skip / /undo / /endgame — 流程控制\n\n' +
+    '<b>━━━ 支持的表情 ━━━</b>\n' +
+    '🎲 色子 1-6　🎯 飞镖 1-6　🏀 篮球 1-5　⚽ 足球 1-5　🎰 老虎机 1-64　🎳 保龄球 1-6\n' +
+    '可在 step / round / rule 三层都设 <code>emoji</code>（或 <code>defaultEmoji</code>），优先级 step &gt; round &gt; rule &gt; 🎲。\n\n' +
+    '<b>━━━ 规则 JSON 示例 ━━━</b>\n' +
+    '<pre language="json">{\n' +
+    '  "name": "真心话大冒险",\n' +
+    '  "defaultEmoji": "🎲",\n' +
+    '  "rounds": [\n' +
+    '    { "name": "Round 1", "steps": [\n' +
+    '      { "type": "roll", "label": "谁来回答真心话" },\n' +
+    '      { "type": "text", "label": "回答问题", "prompt": "你最近撒的最大的谎是什么？" },\n' +
+    '      { "type": "punish", "label": "惩罚", "defaultText": "喝一口", "ladder": [\n' +
+    '        { "at": 3, "text": "喝一杯" },\n' +
+    '        { "at": 5, "text": "喝两杯" }\n' +
+    '      ]}\n' +
+    '    ]}\n' +
+    '  ]\n' +
+    '}</pre>'
+  , { parse_mode: 'HTML' });
+});
+
+bot.command('newrule', async ctx => {
+  if (!isPrivate(ctx)) throw Error('请私聊机器人创建规则');
+  if (!ctx.from) return;
+  db.touchUser(ctx.from.id);
+  pending.set(`${ctx.from.id}`, { kind: 'create-rule', userId: ctx.from.id });
+  await ctx.reply(
+    '收到。\n\n' +
+    '请把规则 JSON 发给我（<code>name</code> 字段为规则名）。\n' +
+    '结构见 /help。\n' +
+    '取消：/cancel'
+  , { parse_mode: 'HTML' });
+});
+
+bot.command('editrule', async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) throw Error('请私聊机器人');
+  const ruleId = (ctx.message?.text ?? '').replace(/^\/\w+(?:@\w+)?\s*/, '').trim();
+  if (!/^[0-9a-f]{8}$/.test(ruleId)) throw Error('格式：/editrule 8位编号');
+  const rule = db.getRuleByUser(ruleId, ctx.from.id);
+  if (!rule) throw Error('找不到规则');
+  pending.set(`${ctx.from.id}`, { kind: 'edit-rule', userId: ctx.from.id, ruleId });
+  await ctx.reply(
+    `当前 JSON：\n<pre>${html(JSON.stringify(rule.definition, null, 2))}</pre>\n\n` +
+    '把新 JSON 发给我即可覆盖；名称会沿用当前的：' + rule.name + '\n' +
+    '取消：/cancel'
+  , { parse_mode: 'HTML' });
+});
+
+bot.command('cancel', async ctx => {
+  if (!ctx.from) return;
+  pending.delete(`${ctx.from.id}`);
+  await ctx.reply('已取消。');
+});
+
+bot.command('rules', async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) return;
+  const list = db.listRules(ctx.from.id);
+  if (!list.length) {
+    await ctx.reply('你还没有规则。私聊 /newrule 名称 开始创建。');
+    return;
+  }
+  const lines = list.map(r => `· <code>${r.ruleId}</code> ${html(r.name)}（${r.definition.rounds.length} 轮 / ${totalSteps(r.definition)} 步）`);
+  await ctx.reply('<b>我的规则</b>\n\n' + lines.join('\n') + '\n\n查看：/rule 编号　删除：/deleterule 编号', { parse_mode: 'HTML' });
+});
+
+function totalSteps(d: RuleDefinition): number {
+  return d.rounds.reduce((s, r) => s + r.steps.length, 0);
+}
+
+bot.command('rule', async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) return;
+  const ruleId = (ctx.message?.text ?? '').replace(/^\/\w+(?:@\w+)?\s*/, '').trim();
+  if (!/^[0-9a-f]{8}$/.test(ruleId)) throw Error('格式：/rule 编号');
+  const rule = db.getRuleByUser(ruleId, ctx.from.id);
+  if (!rule) throw Error('找不到规则');
+  await ctx.reply(
+    `<b>${html(rule.name)}</b>\n\n<pre>${html(JSON.stringify(rule.definition, null, 2))}</pre>`,
+    { parse_mode: 'HTML' }
+  );
+});
+
+bot.command('deleterule', async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) return;
+  const ruleId = (ctx.message?.text ?? '').replace(/^\/\w+(?:@\w+)?\s*/, '').trim();
+  if (!/^[0-9a-f]{8}$/.test(ruleId)) throw Error('格式：/deleterule 编号');
+  const ok = db.deleteRule(ruleId, ctx.from.id);
+  if (!ok) throw Error('找不到规则或权限不足');
+  await ctx.reply('已删除。');
+});
+
+bot.command('startgame', async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  await requireGroupAdmin(ctx);
+  if (!await isBotAdmin(chatIdOf(ctx))) {
+    throw Error('请先把机器人设为本群管理员（需要发送消息权限）');
+  }
+  const existing = db.getActiveGameByChat(chatIdOf(ctx));
+  if (existing) {
+    existing.status = 'ended';
+    existing.endedAt = Date.now();
+    db.recordEvent(existing.gameId, ctx.from.id, 'replace', {});
+    push(existing);
+  }
+  const rules = db.listRules(ctx.from.id);
+  if (!rules.length) {
+    await ctx.reply('你还没有规则。私聊 /newrule 名称 创建后再来开局。');
+    return;
+  }
+  const kb = new InlineKeyboard();
+  for (const r of rules) kb.text(r.name.slice(0, 30), `pick:${r.ruleId}`).row();
+  await ctx.reply('选择要开始的规则：', { reply_markup: kb });
+});
+
+bot.callbackQuery(/^pick:([0-9a-f]{8})$/, async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  await requireGroupAdmin(ctx);
+  const ruleId = ctx.match[1];
+  const rule = db.getRuleByUser(ruleId, ctx.from.id);
+  if (!rule) throw Error('规则不存在');
+  const game = db.createGame(chatIdOf(ctx), ruleId, ctx.from.id);
+  await ctx.answerCallbackQuery();
+  const { text } = renderSignupPage(game, rule.definition, [], 1);
+  const sent = await bot.api.sendMessage(chatIdOf(ctx), text, { parse_mode: 'HTML', reply_markup: signupKeyboard(game, 1) });
+  game.signupMsgId = sent.message_id;
+  db.updateGame(game);
+  broadcast(game.gameId);
+});
+
+bot.command('joingame', async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  const game = db.getActiveGameByChat(chatIdOf(ctx));
+  if (!game || game.status !== 'signup') throw Error('当前不在报名阶段');
+  const rule = db.getRule(game.ruleId);
+  if (!rule) throw Error('规则不存在（可能被删除）');
+  const players = db.listPlayers(game.gameId);
+  if (players.length >= rule.definition.maxPlayers) {
+    throw Error(`已满员（最多 ${rule.definition.maxPlayers} 人）`);
+  }
+  const ok = db.addPlayer(game.gameId, ctx.from.id);
+  if (!ok) throw Error('你已经在对局里了');
+  db.recordEvent(game.gameId, ctx.from.id, 'join', {});
+  push(game);
+  await notifyGroup(game, 'join', ctx.from.id);
+  await ctx.reply(`✅ 已加入（当前 ${players.length + 1} / ${rule.definition.maxPlayers} 人）`);
+});
+
+bot.command('leavegame', async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  const game = db.getActiveGameByChat(chatIdOf(ctx));
+  if (!game) throw Error('本群没有进行中的对局');
+  if (game.status !== 'signup') throw Error('已开始的对局不能退出（用 /endgame 强制结束）');
+  const ok = db.removePlayer(game.gameId, ctx.from.id);
+  if (!ok) throw Error('你没有加入');
+  db.recordEvent(game.gameId, ctx.from.id, 'leave', {});
+  push(game);
+  await notifyGroup(game, 'leave', ctx.from.id);
+  await ctx.reply('已退出。');
+});
+
+bot.command('begin', async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  await requireGroupAdmin(ctx);
+  const game = db.getActiveGameByChat(chatIdOf(ctx));
+  if (!game || game.status !== 'signup') throw Error('没有处于报名阶段的对局');
+  const players = db.listPlayers(game.gameId);
+  const rule = db.getRule(game.ruleId);
+  if (!rule) throw Error('规则不存在（可能被删除）');
+  const min = rule.definition.minPlayers;
+  const max = rule.definition.maxPlayers;
+  if (players.length < min) throw Error(`至少需要 ${min} 位玩家，当前 ${players.length} 人`);
+  if (players.length > max) throw Error(`最多 ${max} 位玩家，当前 ${players.length} 人`);
+  beginGame(game, rule.definition);
+  db.recordEvent(game.gameId, ctx.from.id, 'begin', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+  push(game);
+  await sendStatus(chatIdOf(ctx), game.gameId);
+});
+
+bot.command('next', async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  await requireGroupAdmin(ctx);
+  await doAdmin(ctx, async game => {
+    const rule = db.getRule(game.ruleId);
+    if (!rule) throw Error('规则不存在');
+    applyNext(game, rule.definition, ctx.from!.id);
+    db.recordEvent(game.gameId, ctx.from!.id, 'next', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+  });
+});
+
+bot.command('skip', async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  await requireGroupAdmin(ctx);
+  await doAdmin(ctx, async game => {
+    const rule = db.getRule(game.ruleId);
+    if (!rule) throw Error('规则不存在');
+    applySkip(game, rule.definition);
+    db.recordEvent(game.gameId, ctx.from!.id, 'skip', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+  });
+});
+
+bot.command('undo', async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  await requireGroupAdmin(ctx);
+  await doAdmin(ctx, async game => {
+    const rule = db.getRule(game.ruleId);
+    if (!rule) throw Error('规则不存在');
+    performUndo(game, rule.definition, ctx.from!.id);
+  });
+});
+
+bot.command('endgame', async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  await requireGroupAdmin(ctx);
+  const game = db.getActiveGameByChat(chatIdOf(ctx));
+  if (!game) throw Error('本群没有进行中的对局');
+  game.status = 'ended';
+  game.endedAt = Date.now();
+  db.recordEvent(game.gameId, ctx.from.id, 'end', {});
+  push(game);
+  await ctx.reply('已结束本群当前对局。');
+});
+
+bot.command('play', async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  const game = db.getActiveGameByChat(chatIdOf(ctx));
+  if (!game) throw Error('本群没有进行中的对局');
+  if (!publicUrl) throw Error('未配置 PUBLIC_URL');
+  const url = `${publicUrl}/?game=${game.gameId}`;
+  try {
+    await bot.api.sendMessage(ctx.from.id,
+      `点击下方按钮在 Telegram 内嵌 Mini App 中查看本群当前对局：\n${url}`,
+      { reply_markup: new InlineKeyboard().webApp('🎮 打开实时视图', url) });
+    await ctx.reply('已私聊发给你打开按钮（电脑 Telegram Desktop 也可用）。');
+  } catch (e) {
+    await ctx.reply('请先私聊过我一次（/start）我才能发私聊消息。');
+  }
+});
+
+bot.command('status', async ctx => {
+  if (!isGroup(ctx)) return;
+  const game = db.getActiveGameByChat(chatIdOf(ctx));
+  if (!game) {
+    await ctx.reply('📊 本群没有进行中的对局。');
+    return;
+  }
+  await sendStatus(chatIdOf(ctx), game.gameId);
+});
+
+bot.on('message:text', async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) return;
+  const p = pending.get(`${ctx.from.id}`);
+  if (!p) return;
+  const text = ctx.message.text;
+  let def: RuleDefinition;
+  try { def = ruleDefinition.parse(JSON.parse(text)); }
+  catch (e) { throw Error(`JSON 解析失败：${(e as Error).message}`); }
+  if (p.kind === 'create-rule') {
+    const name = def.name?.trim() || '未命名';
+    const rule = db.createRule(ctx.from.id, name, def);
+    pending.delete(`${ctx.from.id}`);
+    await ctx.reply(`已创建规则 <code>${rule.ruleId}</code> ${html(rule.name)}。\n查看：/rule ${rule.ruleId}`, { parse_mode: 'HTML' });
+  } else {
+    const rule = db.updateRule(p.ruleId!, ctx.from.id, db.getRuleByUser(p.ruleId!, ctx.from.id)?.name ?? def.name, def);
+    pending.delete(`${ctx.from.id}`);
+    if (!rule) throw Error('更新失败');
+    await ctx.reply(`已更新规则 <code>${rule.ruleId}</code>。`, { parse_mode: 'HTML' });
+  }
+});
+
+async function doAdmin(ctx: Context, fn: (game: GameRecord) => void | Promise<void>) {
+  const game = db.getActiveGameByChat(chatIdOf(ctx));
+  if (!game) throw Error('本群没有进行中的对局');
+  await fn(game);
+  push(game);
+  await sendStatus(chatIdOf(ctx), game.gameId);
+}
+
+async function withAdminGame(ctx: Context, fn: (game: GameRecord, rule: RuleRecord) => void | Promise<void>): Promise<void> {
+  const gameId = ctx.match![1];
+  const game = db.getGame(gameId);
+  if (!game) return;
+  const rule = db.getRule(game.ruleId);
+  if (!rule) return;
+  try {
+    await fn(game, rule);
+    push(game);
+    await ctx.answerCallbackQuery();
+    await sendStatus(game.chatId, gameId);
+  } catch (e) {
+    await ctx.answerCallbackQuery({ text: (e as Error).message, show_alert: true });
+  }
+}
+
+function performUndo(game: GameRecord, definition: RuleDefinition, actorId: number): void {
+  const events = db.listEvents(game.gameId);
+  const last = events.at(-1);
+  if (!last) throw Error('没有可撤销的事件');
+  switch (last.type) {
+    case 'join': db.removePlayer(game.gameId, last.userId); break;
+    case 'leave': db.addPlayer(game.gameId, last.userId); break;
+    case 'begin':
+      game.status = 'signup';
+      game.state = initialState();
+      game.roundIdx = 0;
+      game.stepIdx = 0;
+      break;
+    case 'next':
+    case 'skip': {
+      const p = last.payload as { roundIdx?: number; stepIdx?: number };
+      if (typeof p.roundIdx === 'number' && typeof p.stepIdx === 'number') {
+        advanceToStep(game, definition, p.roundIdx, p.stepIdx);
+      }
+      break;
+    }
+    case 'choice': {
+      const p = last.payload as { fromRoundIdx?: number; fromStepIdx?: number };
+      if (typeof p.fromRoundIdx === 'number' && typeof p.fromStepIdx === 'number') {
+        advanceToStep(game, definition, p.fromRoundIdx, p.fromStepIdx);
+      }
+      break;
+    }
+    case 'roll':
+      game.state.lastDice = undefined;
+      delete game.state.pendingRoll;
+      break;
+    case 'end':
+      game.status = 'in_progress';
+      game.endedAt = null;
+      break;
+    default:
+      throw Error(`不能撤销 ${last.type}`);
+  }
+  db.recordEvent(game.gameId, actorId, 'undo', { undoneType: last.type });
+}
+
+function performChoice(game: GameRecord, definition: RuleDefinition, userId: number, optIdx: number, isAdmin: boolean): string {
+  const phase = game.state.phase;
+  if (phase.kind !== 'choice') throw Error('当前不在选择阶段');
+  if (phase.pickedBy !== null && phase.pickedBy !== userId) throw Error('不是你的回合，请等待系统指定玩家');
+  if (phase.pickedBy === null && !isAdmin) throw Error('需要管理员或被指定玩家点击');
+  const r = applyChoice(game, definition, userId, optIdx);
+  db.recordEvent(game.gameId, userId, 'choice', {
+    optionIdx: optIdx,
+    optionText: phase.options[optIdx]?.text,
+    fromRoundIdx: phase.roundIdx,
+    fromStepIdx: phase.stepIdx
+  });
+  return r.message;
+}
+
+const DICE_ANIMATION_MS = 3500;
+
+bot.on('message:dice', async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  const emoji = ctx.message.dice.emoji as DiceEmoji;
+  if (!SUPPORTED_DICE_EMOJIS.includes(emoji)) return;
+  const game = db.getActiveGameByChat(chatIdOf(ctx));
+  if (!game || game.status !== 'in_progress') return;
+  const phase = game.state.phase;
+  if (phase.kind !== 'roll') return;
+  if (phase.emoji !== emoji) {
+    await bot.api.sendMessage(chatIdOf(ctx), `❌ 本轮需要 ${phase.emoji}，你发的是 ${emoji}`);
+    return;
+  }
+  if (phase.expectedPlayerId !== null && phase.expectedPlayerId !== ctx.from.id) return;
+  const players = db.listPlayers(game.gameId);
+  if (!players.some(p => p.userId === ctx.from!.id)) return;
+  if (game.state.pendingRoll) {
+    await bot.api.sendMessage(chatIdOf(ctx), '⏳ 上一轮色子结果还没揭晓，请稍候。');
+    return;
+  }
+
+  const waiting = await bot.api.sendMessage(
+    chatIdOf(ctx),
+    `${emoji} ${mentionHtml(ctx.from.id, displayName(ctx.from.id))} 正在掷${emojiLabel(emoji)}…`,
+    { parse_mode: 'HTML' }
+  );
+
+  game.state.pendingRoll = {
+    userId: ctx.from.id,
+    value: ctx.message.dice.value,
+    chatId: chatIdOf(ctx),
+    waitingMsgId: waiting.message_id,
+    emoji
+  };
+  push(game);
+
+  setTimeout(() => resolvePendingRoll(game.gameId, ctx.from!.id, ctx.message.dice!.value, emoji), DICE_ANIMATION_MS);
+});
+
+function emojiLabel(emoji: DiceEmoji): string {
+  return ({
+    '🎲': '色子', '🎯': '飞镖', '🏀': '篮球', '⚽': '足球', '🎰': '老虎机', '🎳': '保龄球'
+  } as Record<DiceEmoji, string>)[emoji];
+}
+
+async function resolvePendingRoll(gameId: string, expectedUserId: number, expectedValue: number, expectedEmoji: DiceEmoji): Promise<void> {
+  const game = db.getGame(gameId);
+  if (!game) return;
+  const pending = game.state.pendingRoll;
+  if (!pending) return;
+  if (pending.userId !== expectedUserId || pending.value !== expectedValue || pending.emoji !== expectedEmoji) return;
+  delete game.state.pendingRoll;
+  const rule = db.getRule(game.ruleId);
+  if (!rule) return;
+  const players = db.listPlayers(gameId);
+  let resultMessage: string;
+  try {
+    const r = applyRoll(game, rule.definition, pending.userId, pending.value, players, pending.emoji);
+    resultMessage = r.message;
+  } catch (e) {
+    resultMessage = `骰子未接受：${(e as Error).message}`;
+  }
+  db.recordEvent(gameId, pending.userId, 'roll', { value: pending.value, emoji: pending.emoji });
+  push(game);
+  try {
+    await bot.api.editMessageText(pending.chatId, pending.waitingMsgId,
+      `${pending.emoji} ${mentionHtml(pending.userId, displayName(pending.userId))} 掷出 <b>${pending.value}</b>`,
+      { parse_mode: 'HTML' });
+  } catch {}
+  await bot.api.sendMessage(pending.chatId, resultMessage, { parse_mode: 'HTML' });
+  if (game.status === 'ended') {
+    await bot.api.sendMessage(pending.chatId, '🏁 对局已结束。');
+    return;
+  }
+  // 推进后展示下一步的状态（这样 choice/roll 阶段的按钮也能出现）
+  await sendStatus(pending.chatId, game.gameId);
+}
+
+bot.callbackQuery(/^join:([0-9a-f]{8})$/, async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  const gameId = ctx.match[1];
+  const game = db.getGame(gameId);
+  if (!game || game.status !== 'signup') { await ctx.answerCallbackQuery({ text: '报名已结束' }); return; }
+  const ok = db.addPlayer(gameId, ctx.from.id);
+  if (ok) {
+    db.recordEvent(gameId, ctx.from.id, 'join', {});
+    push(game);
+    await refreshSignupMessage(game);
+    await ctx.answerCallbackQuery({ text: '已加入' });
+  } else {
+    await ctx.answerCallbackQuery({ text: '你已经加入了' });
+  }
+});
+
+bot.callbackQuery(/^leave:([0-9a-f]{8})$/, async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  const gameId = ctx.match[1];
+  const game = db.getGame(gameId);
+  if (!game || game.status !== 'signup') { await ctx.answerCallbackQuery({ text: '报名已结束' }); return; }
+  const ok = db.removePlayer(gameId, ctx.from.id);
+  if (ok) {
+    db.recordEvent(gameId, ctx.from.id, 'leave', {});
+    push(game);
+    await refreshSignupMessage(game);
+    await ctx.answerCallbackQuery({ text: '已退出' });
+  } else {
+    await ctx.answerCallbackQuery({ text: '你还没加入' });
+  }
+});
+
+bot.callbackQuery(/^begin:([0-9a-f]{8})$/, async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  await requireGroupAdmin(ctx);
+  const gameId = ctx.match[1];
+  const game = db.getGame(gameId);
+  if (!game || game.status !== 'signup') { await ctx.answerCallbackQuery({ text: '已不在报名阶段' }); return; }
+  const players = db.listPlayers(gameId);
+  const rule = db.getRule(game.ruleId);
+  if (!rule) { await ctx.answerCallbackQuery({ text: '规则已删除' }); return; }
+  if (players.length < rule.definition.minPlayers) {
+    await ctx.answerCallbackQuery({ text: `至少需要 ${rule.definition.minPlayers} 位玩家（当前 ${players.length} 人）`, show_alert: true });
+    return;
+  }
+  if (players.length > rule.definition.maxPlayers) {
+    await ctx.answerCallbackQuery({ text: `最多 ${rule.definition.maxPlayers} 位玩家`, show_alert: true });
+    return;
+  }
+  beginGame(game, rule.definition);
+  db.recordEvent(gameId, ctx.from.id, 'begin', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+  push(game);
+  await refreshSignupMessage(game);
+  await ctx.answerCallbackQuery();
+  await sendStatus(chatIdOf(ctx), gameId);
+});
+
+bot.callbackQuery(/^pickChoice:([0-9a-f]{8}):(\d+)$/, async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  const gameId = ctx.match[1];
+  const optIdx = Number(ctx.match[2]);
+  const game = db.getGame(gameId);
+  if (!game) { await ctx.answerCallbackQuery({ text: '对局不存在' }); return; }
+  const rule = db.getRule(game.ruleId);
+  if (!rule) { await ctx.answerCallbackQuery({ text: '规则已删除' }); return; }
+  const phase = game.state.phase;
+  if (phase.kind !== 'choice') { await ctx.answerCallbackQuery({ text: '当前不在选择阶段' }); return; }
+  if (phase.pickedBy !== null && phase.pickedBy !== ctx.from.id) {
+    await ctx.answerCallbackQuery({ text: '不是你的回合', show_alert: true });
+    return;
+  }
+  const isAdmin = await isTelegramGroupAdmin(ctx.chat!.id, ctx.from.id);
+  if (phase.pickedBy === null && !isAdmin) {
+    await ctx.answerCallbackQuery({ text: '需要管理员或被指定玩家点击', show_alert: true });
+    return;
+  }
+  try {
+    const message = performChoice(game, rule.definition, ctx.from.id, optIdx, isAdmin);
+    push(game);
+    await ctx.answerCallbackQuery({ text: message });
+    await sendStatus(game.chatId, gameId);
+  } catch (e) {
+    await ctx.answerCallbackQuery({ text: (e as Error).message, show_alert: true });
+  }
+});
+
+bot.callbackQuery(/^next:([0-9a-f]{8})$/, async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  await requireGroupAdmin(ctx);
+  await withAdminGame(ctx, (game, rule) => {
+    applyNext(game, rule.definition, ctx.from!.id);
+    db.recordEvent(game.gameId, ctx.from!.id, 'next', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+  });
+});
+
+bot.callbackQuery(/^skip:([0-9a-f]{8})$/, async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  await requireGroupAdmin(ctx);
+  await withAdminGame(ctx, (game, rule) => {
+    applySkip(game, rule.definition);
+    db.recordEvent(game.gameId, ctx.from!.id, 'skip', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+  });
+});
+
+bot.callbackQuery(/^undo:([0-9a-f]{8})$/, async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  await requireGroupAdmin(ctx);
+  await withAdminGame(ctx, (game, rule) => {
+    performUndo(game, rule.definition, ctx.from!.id);
+  });
+});
+
+bot.callbackQuery(/^end:([0-9a-f]{8})$/, async ctx => {
+  if (!isGroup(ctx) || !ctx.from) return;
+  await requireGroupAdmin(ctx);
+  await withAdminGame(ctx, (game) => {
+    game.status = 'ended'; game.endedAt = Date.now();
+    db.recordEvent(game.gameId, ctx.from!.id, 'end', {});
+  });
+});
+
+bot.callbackQuery(/^sign:([0-9a-f]{8}):(\d+)$/, async ctx => {
+  if (!isGroup(ctx)) return;
+  const gameId = ctx.match[1];
+  const page = Math.max(1, Number(ctx.match[2]));
+  const game = db.getGame(gameId);
+  if (!game) { await ctx.answerCallbackQuery({ text: '对局不存在' }); return; }
+  const rule = db.getRule(game.ruleId);
+  const players = db.listPlayers(gameId);
+  const { text, totalPages } = renderSignupPage(game, rule?.definition, players, page);
+  try {
+    await ctx.answerCallbackQuery();
+    await bot.api.editMessageText(game.chatId, ctx.callbackQuery.message!.message_id, text,
+      { parse_mode: 'HTML', reply_markup: signupKeyboard(game, page) });
+  } catch (e) { console.warn('[sign]', (e as Error).message); }
+});
+
+const STATIC_FILES: Record<string, string> = {
+  '/': 'index.html',
+  '/index.html': 'index.html',
+  '/app.js': 'app.js',
+  '/style.css': 'style.css'
+};
+const STATIC_MIME: Record<string, string> = {
+  'index.html': 'text/html',
+  'app.js': 'application/javascript',
+  'style.css': 'text/css'
+};
+
+const server = createServer(async (req, res) => {
+  try {
+    if (!req.url) { res.writeHead(404); res.end(); return; }
+    const url = new URL(req.url, `http://localhost`);
+    if (url.pathname in STATIC_FILES) {
+      const filename = STATIC_FILES[url.pathname];
+      const buf = readFileSync(join(process.cwd(), 'public', filename));
+      res.writeHead(200, {
+        'content-type': `${STATIC_MIME[filename]}; charset=utf-8`,
+        'cache-control': 'no-store, no-cache, must-revalidate'
+      });
+      res.end(buf);
+      return;
+    }
+    if (url.pathname.startsWith('/api/')) {
+      await handleApi(req, res, url);
+      return;
+    }
+    res.writeHead(404); res.end();
+  } catch (e) {
+    console.error('[http]', e);
+    res.writeHead(500); res.end(String(e));
+  }
+});
+
+async function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+
+async function handleApi(req: IncomingMessage, res: any, url: URL): Promise<void> {
+  const setJson = (code: number, body: unknown) => {
+    res.writeHead(code, { 'content-type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(body));
+  };
+  const initData = url.searchParams.get('initData') ?? (req.headers['x-init-data'] as string | undefined) ?? '';
+  let userId: number;
+  try { userId = verifyInitData(initData, token!).id; }
+  catch (e) { setJson(401, { error: (e as Error).message }); return; }
+  db.touchUser(userId);
+
+  const m = url.pathname.match(/^\/api\/(.+)$/);
+  if (!m) { setJson(404, { error: 'not found' }); return; }
+  const path = m[1];
+
+  if (path === 'rules' && req.method === 'GET') {
+    setJson(200, { rules: db.listRules(userId).map(serializeRule) });
+    return;
+  }
+  const ruleGet = path.match(/^rules\/([0-9a-f]{8})$/);
+  if (ruleGet) {
+    const rule = db.getRuleByUser(ruleGet[1], userId);
+    if (!rule) { setJson(404, { error: 'not found' }); return; }
+    if (req.method === 'GET') { setJson(200, serializeRule(rule)); return; }
+    if (req.method === 'DELETE') {
+      if (db.deleteRule(ruleGet[1], userId)) setJson(200, { ok: true });
+      else setJson(404, { error: 'not found' });
+      return;
+    }
+  }
+  const gameMatch = path.match(/^games\/([0-9a-f]{8})$/);
+  if (gameMatch && req.method === 'GET') {
+    const game = db.getGame(gameMatch[1]);
+    if (!game) { setJson(404, { error: 'not found' }); return; }
+    const rule = db.getRule(game.ruleId);
+    const players = db.listPlayers(game.gameId);
+    const isAdmin = await isTelegramGroupAdmin(game.chatId, userId);
+    setJson(200, snapshot(game, rule?.definition, players, userId, isAdmin));
+    return;
+  }
+  const actionMatch = path.match(/^games\/([0-9a-f]{8})\/(join|leave|next|skip|undo|end|choice)$/);
+  if (actionMatch) {
+    const [, gameId, action] = actionMatch;
+    const game = db.getGame(gameId);
+    if (!game) { setJson(404, { error: 'not found' }); return; }
+    const rule = db.getRule(game.ruleId);
+    if (!rule) { setJson(404, { error: 'rule missing' }); return; }
+    const isAdmin = await isTelegramGroupAdmin(game.chatId, userId);
+    try {
+      if (action === 'join') {
+        if (game.status !== 'signup') throw Error('不再接受报名');
+        db.addPlayer(gameId, userId);
+        db.recordEvent(gameId, userId, 'join', {});
+      } else if (action === 'leave') {
+        if (game.status !== 'signup') throw Error('已开始的对局不能退出');
+        db.removePlayer(gameId, userId);
+        db.recordEvent(gameId, userId, 'leave', {});
+      } else if (action === 'next') {
+        if (!isAdmin) throw Error('仅群管理员');
+        applyNext(game, rule.definition, userId);
+        db.recordEvent(gameId, userId, 'next', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+      } else if (action === 'skip') {
+        if (!isAdmin) throw Error('仅群管理员');
+        applySkip(game, rule.definition);
+        db.recordEvent(gameId, userId, 'skip', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+      } else if (action === 'undo') {
+        if (!isAdmin) throw Error('仅群管理员');
+        performUndo(game, rule.definition, userId);
+      } else if (action === 'end') {
+        if (!isAdmin) throw Error('仅群管理员');
+        game.status = 'ended'; game.endedAt = Date.now();
+        db.recordEvent(gameId, userId, 'end', {});
+      } else if (action === 'choice') {
+        const raw = await readBody(req);
+        let body: { optionIdx?: number } = {};
+        try { body = JSON.parse(raw || '{}') as { optionIdx?: number }; } catch { body = {}; }
+        const optIdx = Number(body.optionIdx);
+        if (!Number.isInteger(optIdx) || optIdx < 0) throw Error('optionIdx 无效');
+        const message = performChoice(game, rule.definition, userId, optIdx, isAdmin);
+        notifyGroup(game, 'choice', userId).catch(e => console.error('[notify]', (e as Error).message));
+        setJson(200, { ok: true, message });
+        push(game);
+        return;
+      }
+      push(game);
+      notifyGroup(game, action, userId).catch(e => console.error('[notify]', (e as Error).message));
+      const players = db.listPlayers(gameId);
+      setJson(200, snapshot(game, rule.definition, players, userId, isAdmin));
+    } catch (e) { setJson(400, { error: (e as Error).message }); }
+    return;
+  }
+  setJson(404, { error: 'unknown route' });
+}
+
+function serializeRule(r: RuleRecord) {
+  return {
+    ruleId: r.ruleId, name: r.name, definition: r.definition,
+    createdAt: r.createdAt, updatedAt: r.updatedAt
+  };
+}
+
+const wss = new WebSocketServer({ noServer: true });
+server.on('upgrade', (req, socket, head) => {
+  const url = new URL(req.url ?? '/', 'http://localhost');
+  const deny = (code: number, reason: string) => {
+    console.warn('[ws] upgrade denied:', code, reason);
+    const body = reason;
+    socket.write(`HTTP/1.1 ${code} ${reason}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: ${Buffer.byteLength(body)}\r\nConnection: close\r\n\r\n${body}`);
+    socket.destroy();
+  };
+  if (url.pathname !== '/ws') { deny(404, 'Not Found'); return; }
+  const initData = url.searchParams.get('initData') ?? '';
+  const gameId = url.searchParams.get('game') ?? '';
+  if (!gameId) { deny(400, 'Missing game'); return; }
+  let userId: number;
+  try { userId = verifyInitData(initData, token!).id; }
+  catch (e) { deny(401, `initData invalid: ${(e as Error).message}`); return; }
+  wss.handleUpgrade(req, socket, head, ws => {
+    if (!wsByGame.has(gameId)) wsByGame.set(gameId, new Set());
+    wsByGame.get(gameId)!.add(ws);
+    const game = db.getGame(gameId);
+    if (game) {
+      const rule = db.getRule(game.ruleId);
+      const players = db.listPlayers(gameId);
+      ws.send(JSON.stringify({
+        type: 'state',
+        snapshot: snapshot(game, rule?.definition, players, userId, false)
+      }));
+    }
+    ws.on('close', () => { wsByGame.get(gameId)?.delete(ws); });
+  });
+});
+
+server.listen(port, () => console.log(`Mini App listening on :${port}`));
+bot.start();

@@ -1,0 +1,28 @@
+{
+  "version": "1.5.0",
+  "name": "篮球赛（投篮赌注）",
+  "description": "篮球 emoji 模拟投篮，命中数决定喝多少。固定 8 轮后结束。命中 4-5 分安全过关，1-3 分要喝。",
+  "defaultEmoji": "🏀",
+  "minPlayers": 1,
+  "maxPlayers": 8,
+  "rounds": [
+    {
+      "name": "分组投篮赛（循环 8 圈）",
+      "loop": true,
+      "maxLoops": 8,
+      "steps": [
+        { "type": "roll", "label": "🏀 投一次", "assignment": "next_player" },
+        {
+          "type": "punish",
+          "label": "按命中数喝",
+          "defaultText": "安全过关（4-5 分）",
+          "ladder": [
+            { "at": 1, "text": "🏀 1 分：喝一口" },
+            { "at": 2, "text": "🏀 2 分：喝两口" },
+            { "at": 3, "text": "🏀 3 分：喝一杯" }
+          ]
+        }
+      ]
+    }
+  ]
+}

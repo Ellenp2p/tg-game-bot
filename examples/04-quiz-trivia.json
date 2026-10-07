@@ -1,0 +1,50 @@
+{
+  "version": "1.5.0",
+  "name": "知识抢答",
+  "description": "纯问答版（无色子）：每轮提一道题，玩家抢答；抢答错的人接受惩罚。晋级题最多 8 圈。",
+  "minPlayers": 2,
+  "maxPlayers": 12,
+  "rounds": [
+    {
+      "name": "热身题",
+      "loop": false,
+      "steps": [
+        {
+          "type": "text",
+          "label": "答题时间",
+          "prompt": "题目：世界上最高的山是什么？\n抢答请直接发到群里。"
+        },
+        {
+          "type": "punish",
+          "label": "答错的人的惩罚",
+          "defaultText": "喝一口",
+          "ladder": [
+            { "at": 2, "text": "喝一杯" },
+            { "at": 4, "text": "做 10 个俯卧撑" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "晋级题（循环 8 圈）",
+      "loop": true,
+      "maxLoops": 8,
+      "steps": [
+        {
+          "type": "text",
+          "label": "知识问答",
+          "prompt": "出题者请出一道中等难度题。玩家在群里抢答。"
+        },
+        {
+          "type": "punish",
+          "label": "答错升级",
+          "defaultText": "再答一道题",
+          "ladder": [
+            { "at": 2, "text": "喝两杯" },
+            { "at": 3, "text": "表演一段广告" }
+          ]
+        }
+      ]
+    }
+  ]
+}

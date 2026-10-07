@@ -1,0 +1,71 @@
+{
+  "version": "1.5.0",
+  "name": "你说我猜（比手画脚）",
+  "description": "纯文字版你画我猜。色子决定谁来表演，玩家只能用文字描述（不能说出关键词），其他人猜。适合 4-8 人。晋级轮最多 8 圈。",
+  "defaultEmoji": "🎲",
+  "minPlayers": 4,
+  "maxPlayers": 8,
+  "rounds": [
+    {
+      "name": "热身轮",
+      "loop": false,
+      "steps": [
+        { "type": "roll", "label": "🎲 谁先表演", "assignment": "next_player" },
+        {
+          "type": "text",
+          "label": "抽题",
+          "prompt": "管理员给你一个词，你只能用文字描述它（不能说词里的字）。\n\n示例词：\n· 圣诞老人 → \"一个穿红衣服的胖老头……\"\n· 自拍 → \"对着镜子做表情……\"\n\n其他人猜。"
+        },
+        {
+          "type": "punish",
+          "label": "猜中/超时",
+          "defaultText": "下一位继续表演",
+          "ladder": [
+            { "at": 2, "text": "猜中了表演者喝一口庆祝" },
+            { "at": 3, "text": "超时没猜中，表演者喝一口" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "晋级轮（循环 8 圈）",
+      "loop": true,
+      "maxLoops": 8,
+      "steps": [
+        { "type": "roll", "label": "🎲 下一位表演者", "assignment": "next_player" },
+        {
+          "type": "text",
+          "label": "抽题（难度升级）",
+          "prompt": "管理员给一个成语或抽象概念。只能用文字描述，不能说出任何关键词。\n\n难度提示：\n· 可以用比喻、举例、场景\n· 不能直接说词\n· 越难描述越好笑"
+        },
+        {
+          "type": "choice",
+          "label": "猜对了吗",
+          "prompt": "其他人猜中了吗？",
+          "options": [
+            { "text": "✅ 猜中了", "goto": { "roundIdx": 1, "stepIdx": 4 } },
+            { "text": "❌ 没猜中", "goto": "next" }
+          ]
+        },
+        {
+          "type": "punish",
+          "label": "没猜中的惩罚",
+          "defaultText": "表演者喝一口",
+          "ladder": [
+            { "at": 2, "text": "换更难一个词再来" },
+            { "at": 3, "text": "表演者喝两杯，猜的人喝一口" },
+            { "at": 5, "text": "表演者用方言重新描述一遍" }
+          ]
+        },
+        {
+          "type": "punish",
+          "label": "猜中的奖励",
+          "defaultText": "表演者喝一口庆祝",
+          "ladder": [
+            { "at": 2, "text": "表演者选下一个人来表演" }
+          ]
+        }
+      ]
+    }
+  ]
+}

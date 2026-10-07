@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>游戏实时视图</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/style.css">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <script>
+    (function () {
+      const v = Date.now();
+      const s = document.createElement('script');
+      s.src = '/app.js?v=' + v;
+      s.defer = true;
+      document.head.appendChild(s);
+      const l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = '/style.css?v=' + v;
+      document.head.appendChild(l);
+    })();
+  </script>
+</head>
+<body><main>
+  <header>
+    <div class="headerTop">
+      <div class="eyebrow">PARTY GAME</div>
+      <label class="perspectiveToggle" id="perspectiveWrap" hidden>
+        <input type="checkbox" id="perspectiveToggle"> 管理员视角
+      </label>
+    </div>
+    <h1 id="title">正在连接…</h1>
+    <p id="subtitle"></p>
+  </header>
+  <div id="notice" role="status"></div>
+  <pre id="debug" style="font-size:11px;color:#888;white-space:pre-wrap;margin:8px 0;"></pre>
+  <section id="stepCard" class="stepCard" hidden>
+    <div class="roundName" id="roundName"></div>
+    <div class="stepLabel" id="stepLabel"></div>
+    <div class="stepBody" id="stepBody"></div>
+  </section>
+  <section id="diceCard" class="diceCard" hidden>
+    <div class="diceBox" id="diceBox">🎲</div>
+    <div class="diceMeta" id="diceMeta"></div>
+  </section>
+  <section id="players" hidden>
+    <div class="playerCount">
+      <div class="countNum" id="playerCountNum">0</div>
+      <div class="countLabel">人报名</div>
+    </div>
+    <h2>玩家</h2>
+    <ol id="playerList"></ol>
+  </section>
+  <section id="actions" hidden>
+    <div class="actions" id="actionButtons"></div>
+  </section>
+  <footer id="footer"></footer>
+</main></body>
+</html>

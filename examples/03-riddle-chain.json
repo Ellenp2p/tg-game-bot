@@ -1,0 +1,55 @@
+{
+  "version": "1.5.0",
+  "name": "谜语接龙",
+  "description": "色子决定出题顺序，玩家轮流答题；答错升级惩罚。适合 4-8 人。晋级轮最多 10 圈。",
+  "minPlayers": 4,
+  "maxPlayers": 8,
+  "rounds": [
+    {
+      "name": "热身轮",
+      "loop": false,
+      "defaultEmoji": "🎲",
+      "steps": [
+        { "type": "roll", "label": "🎲 谁先出第一题", "assignment": "next_player" },
+        {
+          "type": "text",
+          "label": "出题",
+          "prompt": "你出一个简单的谜语（不超过 30 字）。其他人用 /answer 抢答。"
+        },
+        {
+          "type": "punish",
+          "label": "答错的人接受惩罚",
+          "defaultText": "喝一口",
+          "ladder": [
+            { "at": 2, "text": "喝一杯" },
+            { "at": 4, "text": "学动物叫" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "晋级轮（循环 10 圈）",
+      "loop": true,
+      "maxLoops": 10,
+      "defaultEmoji": "🎲",
+      "steps": [
+        { "type": "roll", "label": "🎲 谁来答题", "assignment": "next_player" },
+        {
+          "type": "text",
+          "label": "答谜语",
+          "prompt": "上一位玩家出一道难题（10 字以上）。"
+        },
+        {
+          "type": "punish",
+          "label": "答错升级",
+          "defaultText": "学群里某人的口头禅",
+          "ladder": [
+            { "at": 2, "text": "发一条朋友圈（管理员展示手机）" },
+            { "at": 3, "text": "模仿名场面 30 秒" },
+            { "at": 5, "text": "表演才艺" }
+          ]
+        }
+      ]
+    }
+  ]
+}

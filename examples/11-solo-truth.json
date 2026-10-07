@@ -1,0 +1,41 @@
+{
+  "version": "1.5.0",
+  "name": "单人真心话",
+  "description": "适合自己跟自己玩的真心话（无外来输入，掷🎲 决定题号 + 是否要惩罚）。考验自我诚实度。最多跑 20 圈。",
+  "minPlayers": 1,
+  "maxPlayers": 1,
+  "rounds": [
+    {
+      "name": "真心话轮（最多 20 圈）",
+      "loop": true,
+      "maxLoops": 20,
+      "defaultEmoji": "🎲",
+      "steps": [
+        { "type": "roll", "label": "🎲 真心话题号", "assignment": "next_player" },
+        {
+          "type": "text",
+          "label": "回答真心话",
+          "prompt": "掷到的骰数 → 对应问题：\n\n🎲 1 — 你最近撒的最大的谎是什么？\n🎲 2 — 你暗恋过谁？\n🎲 3 — 你做过最尴尬的事？\n🎲 4 — 你最后悔没做的事是什么？\n🎲 5 — 你最想删掉的聊天记录是什么？\n🎲 6 — 你现在最想对某人说的话（不用真说，但心里默念）"
+        },
+        {
+          "type": "choice",
+          "label": "选择命运",
+          "options": [
+            { "text": "✅ 回答了/放过自己", "goto": "next" },
+            { "text": "❌ 想惩罚自己", "goto": { "roundIdx": 0, "stepIdx": 3 } }
+          ]
+        },
+        {
+          "type": "punish",
+          "label": "自我惩罚",
+          "defaultText": "做 5 个深呼吸",
+          "ladder": [
+            { "at": 2, "text": "做 10 个俯卧撑" },
+            { "at": 4, "text": "出门跑一圈" },
+            { "at": 6, "text": "关掉手机 30 分钟" }
+          ]
+        }
+      ]
+    }
+  ]
+}
