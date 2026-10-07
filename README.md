@@ -58,7 +58,7 @@ pnpm start
 |---|---|
 | `/newrule` | 上传新规则（粘 JSON） |
 | `/editrule` | 编辑已有规则 |
-| `/rules` | 列出规则 |
+| `/rules` | 打开规则管理面板（按钮操作 + 分页） |
 | `/rule <id8>` | 查看规则详情 |
 | `/deleterule` | 删除规则 |
 

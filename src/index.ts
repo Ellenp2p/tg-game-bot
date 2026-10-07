@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Bot, InlineKeyboard, type BotError, type Context } from 'grammy';
+import { Bot, InlineKeyboard, InputFile, type BotError, type Context } from 'grammy';
 import { createServer, type IncomingMessage } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -335,7 +335,7 @@ const commandsZh = [
   { command: 'help', description: '查看所有命令' },
   { command: 'newrule', description: '开始创建规则（下一步发 JSON）' },
   { command: 'editrule', description: '编辑规则 /editrule 编号' },
-  { command: 'rules', description: '列出我的规则' },
+  { command: 'rules', description: '管理我的规则（按钮面板）' },
   { command: 'rule', description: '查看规则 /rule 编号' },
   { command: 'deleterule', description: '删除规则 /deleterule 编号' },
   { command: 'cancel', description: '取消当前创建/编辑' },
@@ -363,22 +363,85 @@ const commandsZh = [
   } catch (e) { console.error('[setMyCommands/menu]', (e as Error).message); }
 })();
 
+const RULE_PAGE_SIZE = 5;
+
+function ruleListPage(userId: number, pageRaw: number): { text: string; keyboard: InlineKeyboard } {
+  const rules = db.listRules(userId);
+  const totalPages = Math.max(1, Math.ceil(rules.length / RULE_PAGE_SIZE));
+  const page = Math.min(Math.max(1, Math.floor(pageRaw) || 1), totalPages);
+  const startIdx = (page - 1) * RULE_PAGE_SIZE;
+  const pageRules = rules.slice(startIdx, startIdx + RULE_PAGE_SIZE);
+  const kb = new InlineKeyboard();
+  for (const r of pageRules) {
+    kb.text(`📜 ${r.name}`.slice(0, 40), `rview:${r.ruleId}`).row();
+  }
+  if (totalPages > 1) {
+    if (page > 1) kb.text('◀ 上一页', `rlist:${page - 1}`);
+    if (page < totalPages) kb.text('下一页 ▶', `rlist:${page + 1}`);
+    kb.row();
+  }
+  kb.text('➕ 新建规则', 'rnew');
+  const text = rules.length
+    ? `🗂 <b>我的规则</b>（共 ${rules.length} 条）· 第 ${page}/${totalPages} 页\n\n点规则名可查看 / 编辑 / 删除，也可继续用 /newrule /rule /deleterule。`
+    : '🗂 <b>我的规则</b>\n\n你还没有规则，点下方「➕ 新建规则」开始创建。';
+  return { text, keyboard: kb };
+}
+
+function ruleDetailText(rule: RuleRecord): string {
+  const d = rule.definition;
+  return `📜 <b>${html(rule.name)}</b>\n` +
+    `🆔 <code>${rule.ruleId}</code>\n` +
+    `📊 ${d.rounds.length} 轮 / ${totalSteps(d)} 步 · 默认 ${d.defaultEmoji ?? '🎲'} · 人数 ${d.minPlayers}-${d.maxPlayers}\n\n` +
+    `在群里 /startgame 选择它即可开局。`;
+}
+
+function ruleDetailKeyboard(ruleId: string): InlineKeyboard {
+  return new InlineKeyboard()
+    .text('✏️ 编辑', `redit:${ruleId}`)
+    .text('🗑 删除', `rdel:${ruleId}`).row()
+    .text('📄 查看 JSON', `rjson:${ruleId}`)
+    .text('⬅️ 返回列表', 'rlist:1');
+}
+
+function ruleDeleteKeyboard(ruleId: string): InlineKeyboard {
+  return new InlineKeyboard()
+    .text('✅ 确认删除', `rdelok:${ruleId}`)
+    .text('⬅️ 取消', `rview:${ruleId}`);
+}
+
+/** 就地编辑当前面板；消息未变化或无法编辑时静默降级 */
+async function safeEdit(ctx: Context, text: string, keyboard?: InlineKeyboard): Promise<void> {
+  try {
+    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: keyboard });
+  } catch (e) {
+    const msg = (e as Error).message || '';
+    if (msg.includes('message is not modified')) return;
+    try {
+      await ctx.reply(text, { parse_mode: 'HTML', reply_markup: keyboard });
+    } catch { /* ignore */ }
+  }
+}
+
 bot.command('start', async ctx => {
   if (!ctx.from) return;
   db.touchUser(ctx.from.id);
-  await ctx.reply(
+  const text =
     '欢迎使用游戏主理人。\n\n' +
     '私聊用法：\n' +
     '· /newrule <名称> — 创建规则\n' +
-    '· /rules — 列出我的规则\n' +
+    '· /rules — 打开规则面板（按钮操作 / 分页）\n' +
     '· /rule <编号> — 查看规则\n' +
     '· /deleterule <编号> — 删除规则\n\n' +
     '群内用法（任何群管理员）：\n' +
     '· /startgame — 选择我的规则开局\n' +
     '· /joingame / /leavegame — 报名\n' +
     '· /begin / /next / /skip / /undo / /endgame\n\n' +
-    '/help 查看完整说明'
-  );
+    '/help 查看完整说明';
+  if (isPrivate(ctx)) {
+    await ctx.reply(text, { reply_markup: new InlineKeyboard().text('🗂 管理我的规则', 'rlist:1') });
+  } else {
+    await ctx.reply(text);
+  }
 });
 
 bot.command('help', async ctx => {
@@ -406,9 +469,9 @@ bot.command('help', async ctx => {
   await ctx.reply(
     '<b>游戏主理人 · 命令一览</b>\n\n' +
     '<b>━━━ 规则（私聊）━━━</b>\n' +
+    '/rules — 打开规则面板（点击查看 / 编辑 / 删除，支持分页）\n' +
     '/newrule — 创建规则（下一步发 JSON，<code>name</code> 字段为规则名）\n' +
     '/editrule <code>编号</code> — 重新编辑规则\n' +
-    '/rules — 列出我的规则\n' +
     '/rule <code>编号</code> — 查看规则 JSON\n' +
     '/deleterule <code>编号</code> — 删除规则\n' +
     '/cancel — 取消当前创建/编辑\n\n' +
@@ -479,13 +542,8 @@ bot.command('cancel', async ctx => {
 
 bot.command('rules', async ctx => {
   if (!isPrivate(ctx) || !ctx.from) return;
-  const list = db.listRules(ctx.from.id);
-  if (!list.length) {
-    await ctx.reply('你还没有规则。私聊 /newrule 名称 开始创建。');
-    return;
-  }
-  const lines = list.map(r => `· <code>${r.ruleId}</code> ${html(r.name)}（${r.definition.rounds.length} 轮 / ${totalSteps(r.definition)} 步）`);
-  await ctx.reply('<b>我的规则</b>\n\n' + lines.join('\n') + '\n\n查看：/rule 编号　删除：/deleterule 编号', { parse_mode: 'HTML' });
+  const { text, keyboard } = ruleListPage(ctx.from.id, 1);
+  await ctx.reply(text, { parse_mode: 'HTML', reply_markup: keyboard });
 });
 
 function totalSteps(d: RuleDefinition): number {
@@ -511,6 +569,87 @@ bot.command('deleterule', async ctx => {
   const ok = db.deleteRule(ruleId, ctx.from.id);
   if (!ok) throw Error('找不到规则或权限不足');
   await ctx.reply('已删除。');
+});
+
+bot.callbackQuery(/^rlist:(\d+)$/, async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) return;
+  const page = Number(ctx.match[1]) || 1;
+  const { text, keyboard } = ruleListPage(ctx.from.id, page);
+  await ctx.answerCallbackQuery();
+  await safeEdit(ctx, text, keyboard);
+});
+
+bot.callbackQuery('rnew', async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) return;
+  db.touchUser(ctx.from.id);
+  pending.set(`${ctx.from.id}`, { kind: 'create-rule', userId: ctx.from.id });
+  await ctx.answerCallbackQuery();
+  await ctx.reply(
+    '好的，请把规则 JSON 发给我（<code>name</code> 字段为规则名）。\n结构见 /help。\n取消：/cancel',
+    { parse_mode: 'HTML' }
+  );
+});
+
+bot.callbackQuery(/^rview:([0-9a-f]{8})$/, async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) return;
+  const rule = db.getRuleByUser(ctx.match[1], ctx.from.id);
+  if (!rule) { await ctx.answerCallbackQuery({ text: '规则不存在或无权访问', show_alert: true }); return; }
+  await ctx.answerCallbackQuery();
+  await safeEdit(ctx, ruleDetailText(rule), ruleDetailKeyboard(rule.ruleId));
+});
+
+bot.callbackQuery(/^rjson:([0-9a-f]{8})$/, async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) return;
+  const rule = db.getRuleByUser(ctx.match[1], ctx.from.id);
+  if (!rule) { await ctx.answerCallbackQuery({ text: '规则不存在或无权访问', show_alert: true }); return; }
+  await ctx.answerCallbackQuery();
+  const json = JSON.stringify(rule.definition, null, 2);
+  const body = `<b>${html(rule.name)}</b> · <code>${rule.ruleId}</code>\n\n<pre>${html(json)}</pre>`;
+  const kb = new InlineKeyboard().text('⬅️ 返回', `rview:${rule.ruleId}`).text('🗑 删除', `rdel:${rule.ruleId}`);
+  if (body.length <= 4000) {
+    await safeEdit(ctx, body, kb);
+  } else {
+    try {
+      await ctx.replyWithDocument(new InputFile(Buffer.from(json, 'utf8'), `rule-${rule.ruleId}.json`), {
+        caption: `${rule.name} · ${rule.ruleId}（JSON 太长，以文件发送）`,
+        reply_markup: kb
+      });
+    } catch { await ctx.reply('JSON 太长且发送文件失败，请用 /rule 查看。'); }
+  }
+});
+
+bot.callbackQuery(/^redit:([0-9a-f]{8})$/, async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) return;
+  const rule = db.getRuleByUser(ctx.match[1], ctx.from.id);
+  if (!rule) { await ctx.answerCallbackQuery({ text: '规则不存在或无权访问', show_alert: true }); return; }
+  pending.set(`${ctx.from.id}`, { kind: 'edit-rule', userId: ctx.from.id, ruleId: rule.ruleId });
+  await ctx.answerCallbackQuery();
+  await ctx.reply(
+    `当前 JSON：\n<pre>${html(JSON.stringify(rule.definition, null, 2))}</pre>\n\n` +
+    `把新 JSON 发给我即可覆盖；名称会沿用当前的：${html(rule.name)}\n取消：/cancel`,
+    { parse_mode: 'HTML' }
+  );
+});
+
+bot.callbackQuery(/^rdel:([0-9a-f]{8})$/, async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) return;
+  const rule = db.getRuleByUser(ctx.match[1], ctx.from.id);
+  if (!rule) { await ctx.answerCallbackQuery({ text: '规则不存在或无权访问', show_alert: true }); return; }
+  await ctx.answerCallbackQuery();
+  await safeEdit(
+    ctx,
+    `⚠️ 确定删除「<b>${html(rule.name)}</b>」(<code>${rule.ruleId}</code>)？\n此操作不可恢复。`,
+    ruleDeleteKeyboard(rule.ruleId)
+  );
+});
+
+bot.callbackQuery(/^rdelok:([0-9a-f]{8})$/, async ctx => {
+  if (!isPrivate(ctx) || !ctx.from) return;
+  const ok = db.deleteRule(ctx.match[1], ctx.from.id);
+  if (!ok) { await ctx.answerCallbackQuery({ text: '删除失败或无权操作', show_alert: true }); return; }
+  await ctx.answerCallbackQuery({ text: '已删除' });
+  const { text, keyboard } = ruleListPage(ctx.from.id, 1);
+  await safeEdit(ctx, text, keyboard);
 });
 
 bot.command('startgame', async ctx => {
@@ -683,12 +822,12 @@ bot.on('message:text', async ctx => {
     const name = def.name?.trim() || '未命名';
     const rule = db.createRule(ctx.from.id, name, def);
     pending.delete(`${ctx.from.id}`);
-    await ctx.reply(`已创建规则 <code>${rule.ruleId}</code> ${html(rule.name)}。\n查看：/rule ${rule.ruleId}`, { parse_mode: 'HTML' });
+    await ctx.reply('✅ 已创建\n\n' + ruleDetailText(rule), { parse_mode: 'HTML', reply_markup: ruleDetailKeyboard(rule.ruleId) });
   } else {
-    const rule = db.updateRule(p.ruleId!, ctx.from.id, db.getRuleByUser(p.ruleId!, ctx.from.id)?.name ?? def.name, def);
+    const updated = db.updateRule(p.ruleId!, ctx.from.id, db.getRuleByUser(p.ruleId!, ctx.from.id)?.name ?? def.name, def);
     pending.delete(`${ctx.from.id}`);
-    if (!rule) throw Error('更新失败');
-    await ctx.reply(`已更新规则 <code>${rule.ruleId}</code>。`, { parse_mode: 'HTML' });
+    if (!updated) throw Error('更新失败');
+    await ctx.reply('✅ 已更新\n\n' + ruleDetailText(updated), { parse_mode: 'HTML', reply_markup: ruleDetailKeyboard(updated.ruleId) });
   }
 });
 

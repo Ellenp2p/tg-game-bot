@@ -25,6 +25,7 @@ Telegram 群内游戏主理人 bot（grammy + better-sqlite3 + 原生 ws）。
 ### 命令清单
 
 - 私聊：`/start /help /newrule /editrule /rules /rule /deleterule /cancel`
+  - `/rules` 打开**按钮式规则面板**（分页列表 → 详情 → 编辑/删除/查看 JSON），`/start` 也有入口按钮；所有命令依旧可用
 - 群内：`/startgame /joingame /leavegame /begin /next /skip /undo /endgame /status /play`
 
 ## 调试技巧
