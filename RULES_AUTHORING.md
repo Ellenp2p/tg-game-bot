@@ -8,7 +8,7 @@
 
 ```json
 {
-  "version": "1.6.0",
+  "version": "1.7.0",
   "name": "我的规则",
   ...
 }
@@ -20,13 +20,13 @@
 
 当引擎升级时，旧规则会被照常加载，但任何不支持的字段会被忽略。要迁移旧规则，先读取，再用新版字段重写，把 `version` 改成新版本号。
 
-**当前 `CURRENT_RULE_SCHEMA_VERSION` = `1.6.0`**（新增：`showdown` 全员比大小/收集步骤；`branch` 条件跳转步骤；命名"结果槽" + 文案模板占位符；`roll.assignment` 支持 `winner`/`loser`/`actor`；`choice.chooser`；`text`/`punish.showActor`；`branch` 条件支持按最近一次单掷点数 `dice`）
+**当前 `CURRENT_RULE_SCHEMA_VERSION` = `1.7.0`**（在 1.6.0 的 `showdown`/`branch` 基础上，新增：`roll.draw` 抽签步；`goto: "end"` 结束当前轮；`text`/`punish` 的 `next` 显式跳转；`branch.cases` 上限 8→64；`round.steps` 上限 40→80）
 
 ## 顶层结构
 
 ```json
 {
-  "version": "1.5.0",
+  "version": "1.7.0",
   "name": "规则名（≤80字）",
   "description": "玩家在 /startgame 选规则时看到的描述（≤500字）",
   "minPlayers": 2,                 // 可选，1-100；本规则最少需要几个人开（默认 2）
@@ -49,7 +49,7 @@
   "loop": false,                // true = 本轮跑完后回到本轮 step 0；false = 进入下一轮
   "maxLoops": 3,                // 可选，配合 loop:true；本轮最多循环 N 次后退出
   "defaultEmoji": "🎲",         // 可选，本轮所有 roll step 的默认 emoji
-  "steps": [ /* 至少 1 个 step，最多 40 个 */ ]
+  "steps": [ /* 至少 1 个 step，最多 80 个 */ ]
 }
 ```
 
@@ -112,10 +112,13 @@ step.emoji > round.defaultEmoji > rule.defaultEmoji > '🎲'
   - `emoji`（可选）：本步骤使用的表情。缺省时按上面三层优先级回退到 `'🎲'`。支持的取值：`🎲 🎯 🏀 ⚽ 🎰 🎳`
     - 各 emoji 的取值范围：🎲/🎯/🎳 都是 1-6；🏀/⚽ 是 1-5；🎰 是 1-64
     - 玩家发错 emoji 或超过取值范围 → 引擎拒绝并提示
-  - `assignment`（可选）：`'next_player' | 'self' | 'any'`，默认 `'next_player'`。引擎据此设置 `phase.expectedPlayerId`，不是当前回合的玩家掷 emoji 会被引擎拒绝
+  - `assignment`（可选）：`'next_player' | 'self' | 'any' | 'winner' | 'loser' | 'actor'`，默认 `'next_player'`。引擎据此设置 `phase.expectedPlayerId`，不是当前回合的玩家掷 emoji 会被引擎拒绝
     - **`'next_player'`（默认）**：按加入顺序轮换。A 掷完骰子后，B 接力；B 掷完后 C 接力；循环回 A。每个轮 round 起点的初始「第一人」是加入顺序的第一位
     - **`self`**：一直是上一个掷骰子的玩家掷。适合「单人对线」/「独人挑战」类规则
     - **`any`**：任何人可以掷，不锁定。适合「抢答」「自由抢答」类规则
+    - **`winner` / `loser`**：由结果槽里的赢家 / 输家掷（配 `actorSlot` 指定槽名，默认 `last`；见第 8 节）
+    - **`actor`**：由当前主角掷
+  - `draw`（可选）：抽签配置。掷完骰子后按点数落到 `1..count` 号，再跳转到 `targets[号-1]`。详见「🎰 抽签策略」
 
 **何时用不同 emoji**：
 
@@ -147,6 +150,8 @@ nextRollerId([], anything)       → null // 没人，锁空（应该在报名�
 - 上一个 `roll` 阶段掷出 🎲 的那个人会被记到 `phase.pickedBy`
 - choice 阶段只有 `pickedBy` 可以选；其他玩家误点 → toast「不是你的回合」
 - choice 之后无论选什么，`state.lastRollerId` 都会更新成选 choice 的那个人 — 也就是说**下一个 roll 步骤默认会让 choice 的玩家继续掷**（除非用 `assignment: 'next_player'` 强制轮换）
+
+**跳转与结束（1.7.0）**：所有 `goto` 现在支持三种写法 —— `"next"`（下一步）、`{ "roundIdx": N, "stepIdx": M }`（任意坐标）、**`"end"`（结束当前轮）**。`choice` 的 option、`branch` 的 case/default 都能用 `"end"`。另外 `text` / `punish` 新增可选字段 **`next`**（同样是 `"next"` / `"end"` / 坐标），让"这个结果步执行完就结束本轮"不必再多写一个 branch。
 
 ## 🎰 老虎机（🎰）解码
 
@@ -350,6 +355,8 @@ state.results["rank"] = {
 | `{actor}` | 当前主角 |
 | `{dice}` | 最近一次单掷 `roll` 的点数 |
 | `{roller}` | 最近一次单掷 `roll` 的人（@mention） |
+| `{draw}` | 最近一次 `roll.draw` 抽中的编号 |
+| `{draw.名}` | 命名抽签槽的编号（`draw.store`） |
 | `{rank.winner}` `{score.ranking}` | 命名槽写法（无前缀 = `last`） |
 
 - 群消息里玩家显示为 @mention；Mini App 用纯文本名
@@ -375,7 +382,7 @@ state.results["rank"] = {
 
 ## 🎰 抽签策略：用老虎机做「任意 N 选一」
 
-需要一个"从 N 个选项里随机抽一个"的机制（抽盲盒、抽卡、抽惩罚…）时，用 **🎰（1–64 均匀）** + `branch` 分段就能实现，**N ≤ 64 任意**。
+需要一个"从 N 个选项里随机抽一个"的机制（抽盲盒、抽卡、抽惩罚…）时，**推荐直接用 `roll.draw`**——引擎内部就用下面第 1 节的映射数学，一步搞定，N ≤ 64 任意。不想用 `draw` 的话，也可以「`roll` + `branch` 分段」手写（第 4 节）。
 
 ### 1. 映射数学（等距分段）
 
@@ -401,29 +408,31 @@ rem  = 64 % N                                 // 余数，分给前 rem 段
 | 4 / 8 / 16 / 32 / 64 | 🎰 | ✅ 整除 |
 | 其他（7,9,10,11,12,…63） | 🎰 | 近似（偏差 ≤ 1/64） |
 
-### 3. `branch` 链式表达
+### 3. 方式 A：`roll.draw`（推荐，一步）
 
-`branch` 每个 step **最多 8 个 case**，条件是对**最近一次单掷** `dice` 的**单次比较**：
-
-- 用 `{ "check": "dice", "op": "lte", "value": t }`，阈值**升序**排列（首个命中即跳）
-- 每段最多放 8 个阈值，`default` 指向**下一段 branch**
-- 最后一段的 `default` 指向第 N 个结果
-- 段数 `G = ceil((N-1) / 8)`
+给 `roll` 挂 `draw`，掷完骰子后自动按点数落到 `1..count` 号并跳转到对应目标：
 
 ```jsonc
-// 前提：上一步必须是 roll（🎰），且中间没有再插 roll
-{ "type": "roll", "label": "抽签", "emoji": "🎰" },
-{ "type": "branch", "label": "选结果 1-8", "cases": [
-  { "if": { "check": "dice", "op": "lte", "value": t1 }, "goto": <结果1> },
-  { "if": { "check": "dice", "op": "lte", "value": t2 }, "goto": <结果2> }
-  /* …最多 8 条… */
-], "default": <第2段 branch> },
-{ "type": "branch", "label": "选结果 9-16", "cases": [ /* … */ ], "default": <结果N> }
+{
+  "type": "roll", "label": "抽签（N=16）", "emoji": "🎰", "assignment": "winner",
+  "draw": {
+    "count": 16,
+    "uniform": "equal",      // equal 等距分段（默认）/ exact 拒绝重掷（严格均匀）
+    "store": "box",          // 可选：抽中编号存槽，供 {draw} / {draw.box} 引用
+    "targets": [ /* 长度必须 === count：第 i 项是抽到 i 号的去向 */ ]
+  }
+}
 ```
 
-### 4. 生成器（把任意 N 变成 branch 步骤）
+- `targets[i]` 是**抽到 i+1 号**时的去向，支持 `"next"` / `"end"` / `{ roundIdx, stepIdx }`
+- 抽中编号 → `{draw}`（最近一次）；命名槽 → `{draw.box}`
+- `count` 必须 ≤ 该 emoji 的点数上限（🎰=64、🎲=6…）
 
-约定布局：选取步占 `S..S+G-1`（G 段 branch），结果步紧接占 `S+G..S+G+N-1`。
+### 4. 方式 B：手写 `branch` 分段（等价，不想用 draw 时）
+
+`branch` 每步最多 64 个 case（1.7.0 起），条件是对**最近一次单掷** `dice` 的**单次比较**。用 `{ "check": "dice", "op": "lte", "value": t }` 阈值**升序**排列（首个命中即跳），`default` 指向下一段；段数 `G = ceil((N-1)/64)`。
+
+下面这个生成器把任意 N 变成 branch 步骤（按 8 个一组分段，更保守）。约定布局：选取步占 `S..S+G-1`（G 段 branch），结果步紧接占 `S+G..S+G+N-1`。
 
 ```js
 // 返回 G 个 branch 步骤，按顺序插到 round.steps 的第 S 个位置起
@@ -450,29 +459,21 @@ function drawStrategy(N, roundIdx, S) {
 
 ### 5. 例子：16 个盲盒（N=16，完全均匀）
 
-64 / 16 = 4，阈值 4,8,12,…,60 共 15 个 → 2 段 branch：
+`64 / 16 = 4`，每号 4 个值，完全均匀。用 `draw` 一步（`targets` 指向 16 个结果步）：
 
 ```jsonc
-{ "type": "roll", "label": "抽盲盒", "assignment": "winner", "emoji": "🎰" },
-{ "type": "branch", "label": "选盒 1-8", "cases": [
-  { "if": { "check": "dice", "op": "lte", "value": 4 },  "goto": <盒1> },
-  { "if": { "check": "dice", "op": "lte", "value": 8 },  "goto": <盒2> },
-  { "if": { "check": "dice", "op": "lte", "value": 12 }, "goto": <盒3> },
-  { "if": { "check": "dice", "op": "lte", "value": 16 }, "goto": <盒4> },
-  { "if": { "check": "dice", "op": "lte", "value": 20 }, "goto": <盒5> },
-  { "if": { "check": "dice", "op": "lte", "value": 24 }, "goto": <盒6> },
-  { "if": { "check": "dice", "op": "lte", "value": 28 }, "goto": <盒7> },
-  { "if": { "check": "dice", "op": "lte", "value": 32 }, "goto": <盒8> }
-], "default": <第2段 branch> },
-{ "type": "branch", "label": "选盒 9-16", "cases": [
-  { "if": { "check": "dice", "op": "lte", "value": 36 }, "goto": <盒9> },
-  /* 40 / 44 / 48 / 52 / 56 / 60 */
-], "default": <盒16> }
+{ "type": "roll", "label": "抽盲盒", "emoji": "🎰", "assignment": "winner",
+  "draw": { "count": 16, "uniform": "exact", "store": "box",
+    "targets": [ <盒1>, <盒2>, /* … */ <盒16> ] } },
+{ "type": "text", "label": "盒 1", "prompt": "盲盒 1：…", "next": "end" }
+/* 每个结果步用 next:"end" 结束本轮，不必再挂 branch */
 ```
+
+手写 `branch` 版（2 段，阈值 4/8/…/60）用第 4 节生成器也能做，但 `draw` 干净得多。
 
 ### 6. 严格均匀：拒绝重掷（可选）
 
-当 `64 % N != 0` 而要零偏差：取 `M = N * floor(64/N)`（≤64 的最大 N 倍数），**只接受 `v <= M`**，否则回到 `roll` 步重掷。接受后的分段是**等宽**的：宽度 `w = M / N`，阈值 `w, 2w, …`。
+用 `draw` 时直接写 `"uniform": "exact"` 就是这套逻辑，引擎自动处理。手写 `branch` 的话：当 `64 % N != 0` 而要零偏差，取 `M = N * floor(64/N)`（≤64 的最大 N 倍数），**只接受 `v <= M`**，否则回到 `roll` 步重掷。接受后的分段是**等宽**的：宽度 `w = M / N`，阈值 `w, 2w, …`。
 
 以 **N=10** 为例：`w = 6`、`M = 60`，阈值 6,12,…,54（等宽 6），掷到 61–64 就重掷：
 
@@ -492,22 +493,23 @@ function drawStrategy(N, roundIdx, S) {
 
 ### 7. 坑（务必避开）
 
-1. `dice` 读的是**最近一次单掷**，`roll` 之后必须**紧接** `branch`，中间别再插 roll。
-2. `branch` 每步 ≤ 8 个 case → 大 N 必须链式多段（N=64 要 8 段）。
-3. 引擎**没有"跳到轮末"**，每个结果步后面还要挂一个 `default` 指向越界坐标（轮末）的 branch；N 大时步数会逼近上限（40/轮）。
-4. **N 上限 64**。要更多得连掷两颗再组合，当前引擎只暴露"最近一颗"，暂不支持。
-5. 抽中编号目前没有占位符，每个结果要各写一个 `text`/`punish` 步承接。
+1. `dice` 读的是**最近一次单掷**；用「roll + branch」手写时，`roll` 之后必须**紧接** `branch`，中间别再插 roll。（用 `draw` 则没这个问题）
+2. `branch` 每步 ≤ **64** 个 case（1.7.0 起），`round` 每轮 ≤ **80** 个 step。
+3. 结果步结束本轮：`choice`/`branch` 的 `goto` 或 `text`/`punish` 的 `next` 写 `"end"` 即可（1.7.0 起），不必再挂样板 branch。
+4. **N 上限 64**（单骰）。要更多得连掷两颗再组合，当前引擎只暴露"最近一颗"，暂不支持。
+5. `draw.count` 必须 ≤ 该 emoji 点数上限（🎰=64、🎲=6…），否则运行时会报错。
 
-### 8. 未来可加的原语（当前未实现，先别用）
+### 8. 相关原语（1.7.0 已实现）
 
-- `goto: "end"`：结束当前轮，省掉每个结果步后面的样板 branch。
-- `draw` 抽签步：`{ "type": "draw", "emoji": "🎰", "count": 16, "targets": [16 个 goto], "store": "box" }`，一步顶掉整条 branch 链。
+- `roll.draw`：抽签步（`count` / `targets` / `store` / `uniform`）。
+- `goto: "end"`：结束当前轮。
+- `text` / `punish` 的 `next`：显式跳转（含 `"end"`）。
 
 ## 完整示例：真心话大冒险
 
 ```json
 {
-  "version": "1.6.0",
+  "version": "1.7.0",
   "name": "真心话大冒险",
   "description": "经典派对游戏。色子决定谁来答题，玩家在 choice 阶段二选一答或罚。",
   "rounds": [
@@ -696,7 +698,7 @@ function drawStrategy(N, roundIdx, S) {
 8. **`showdown` 未掷满被 `/next` 强制结算时**，未掷玩家按 0 分计（`accumulate` 时保留其历史总分）
 9. **模板占位符在结果槽不存在时原样保留**：如未开过 showdown 就写 `{winner}`，群里会显示 `{winner}`
 10. **`branch` 自环/回跳**：靠 `maxHits`（默认 50）兜底，超过后强制前进
-11. **`branch` 每步最多 8 个 case**：较大 N 的抽签要链式多段（见「🎰 抽签策略：用老虎机做「任意 N 选一」」）
+11. **`branch` 每步最多 64 个 case、`round` 每轮最多 80 个 step**：大 N 抽签优先用 `roll.draw`（见「🎰 抽签策略」）
 
 ## AI 设计规则时的自检清单
 
@@ -709,15 +711,15 @@ function drawStrategy(N, roundIdx, S) {
 5. **punish ladder 是否按 at 升序**？引擎按 `at <= hitCount` 取最大，所以乱序也能工作，但为了可读性建议升序
 6. **text 步骤是否依赖前面的色子/选择**？如果是，需要配合 choice 在前面
 7. **choice 选项的 goto 是否都指向有效坐标**？比如 `{ "roundIdx": 0, "stepIdx": 5 }` 但 round 只有 4 个 step → 会越过 round 边界进入下一轮（这是允许的，但要确认意图）
-8. **规则总步数 ≤ 40 × 20 = 800**？超过会被 zod 拒绝
-9. **version 字段是否填了当前引擎的 CURRENT_RULE_SCHEMA_VERSION（1.6.0）**？不填会被填默认值，但显式填更好
+8. **规则总步数 ≤ 80 × 20 = 1600**？超过会被 zod 拒绝
+9. **version 字段是否填了当前引擎的 CURRENT_RULE_SCHEMA_VERSION（1.7.0）**？不填会被填默认值，但显式填更好
 10. **`step.roll.assignment` 是否考虑过**？默认 `next_player` 适合绝大多数规则；`self` 适合独人挑战；`any` 适合抢答；`winner`/`loser`/`actor` 用于结果驱动
 11. **用了 `showdown` 后，结果槽名是否明确**？多场比大小记得用不同的 `as`，否则默认槽 `last` 会被覆盖
 12. **`{winner}`/`{loser}` 等占位符只在 showdown 结算后才有效**？前面没有 showdown 时用会原样显示
 13. **`branch` 的 `cases` 是否有明确的兜底 `default`**？回跳/自环要设 `maxHits`
 14. **`showdown.actor` / `choice.chooser` / `roll.assignment` 引用的是哪个槽**？跨多个结果槽时用 `actorSlot`/`chooserSlot` 指明确
 15. **`showdown` 的 `order` 与 `tie` 是否符合玩法**？比大用 `high`、比小用 `low`；要唯一赢家优先用 `tie: 'first'`
-16. **要不要「N 选一」抽签**？N ≤ 64 用 🎰 + `branch` 分段（见「🎰 抽签策略」）：`64 % N == 0` 精确，否则偏差 ≤ 1/64；大 N 记得链式多段 + 每个结果步后的轮末 branch
+16. **要不要「N 选一」抽签**？优先用 `roll.draw`（`count` + `targets`，N ≤ 64；`uniform:'exact'` 严格均匀）；结果步结束本轮用 `next`/`goto` 写 `"end"`
 
 ## 完整示例库
 
@@ -731,6 +733,7 @@ function drawStrategy(N, roundIdx, S) {
 - `15-showdown-series.json` — 三局积分·最低分喝（showdown accumulate + 命名槽）
 - `16-showdown-chooser.json` — 比大小·赢家点菜（showdown actor + choice chooser + branch）
 - `17-dice-branch-board.json` — 掷骰子走格子（branch 的 dice 条件 + {dice}/{roller}）
+- `18-draw-lucky.json` — 十六格抽奖（`roll.draw` 抽签 + `goto:"end"` + `text.next`）
 
 ## 字段约束速查
 
@@ -747,34 +750,40 @@ function drawStrategy(N, roundIdx, S) {
 | `round.loop` | boolean | 否（默认 false） | — |
 | `round.maxLoops` | int | 否 | 1–100 |
 | `round.defaultEmoji` | enum | 否 | `🎲`/`🎯`/`🏀`/`⚽`/`🎰`/`🎳` |
-| `round.steps` | array | 是 | 1–40 项 |
+| `round.steps` | array | 是 | 1–80 项 |
 | `step.type` | enum | 是 | `roll`/`text`/`punish`/`choice`/`showdown`/`branch` |
 | `step.label` | string | 是 | 1–200 字（支持模板占位符） |
 | `roll.emoji` | enum | 否（默认 `🎲`） | `🎲`/`🎯`/`🏀`/`⚽`/`🎰`/`🎳` |
 | `roll.assignment` | enum | 否（默认 `next_player`） | `next_player`/`self`/`any`/`winner`/`loser`/`actor` |
 | `roll.actorSlot` | string | 否 | 结果槽名（`winner`/`loser` 时用，默认 `last`） |
+| `roll.draw.count` | int | 是（有 `draw` 时） | 2–64（且 ≤ emoji 点数上限） |
+| `roll.draw.targets` | array | 是（有 `draw` 时） | 长度必须 = `count`，每项 `"next"`/`"end"`/坐标 |
+| `roll.draw.store` | string | 否 | 结果槽名，存抽中编号，供 `{draw.名}` 引用 |
+| `roll.draw.uniform` | enum | 否（默认 `equal`） | `equal` 等距分段 / `exact` 拒绝重掷 |
 | `text.prompt` | string | 否 | 1–1000 字（支持模板占位符） |
 | `text.mode` | enum | 否 | `manual`（默认）/`auto` |
 | `text.showActor` | boolean | 否（默认 false） | `true` = 正文前显示「👉 主角：@X」 |
+| `text.next` | union | 否 | `"next"`/`"end"`/坐标（显式跳转） |
 | `punish.defaultText` | string | 是 | 1–500 字（支持模板占位符） |
 | `punish.ladder` | array | 否（默认空） | 0–N 项 `{ at: 1–1000, text: 1–500 }` |
 | `punish.showActor` | boolean | 否（默认 false） | 同 `text.showActor` |
+| `punish.next` | union | 否 | 同 `text.next` |
 | `choice.prompt` | string | 否 | 0–500 字（支持模板占位符） |
 | `choice.options` | array | 是 | 2–6 项 |
 | `choice.chooser` | enum | 否（默认 `last_roller`） | `last_roller`/`winner`/`loser`/`actor`/`any` |
 | `choice.chooserSlot` | string | 否 | 结果槽名（`winner`/`loser` 时用，默认 `last`） |
 | `option.text` | string | 是 | 1–80 字（支持模板占位符） |
-| `option.goto` | union | 是 | `"next"` 或 `{ roundIdx: ≥0, stepIdx: ≥0 }` |
+| `option.goto` | union | 是 | `"next"`/`"end"`/`{ roundIdx: ≥0, stepIdx: ≥0 }` |
 | `showdown.emoji` | enum | 否（默认 `🎲`） | 同 `roll.emoji` |
 | `showdown.order` | enum | 否（默认 `high`） | `high`/`low`/`none` |
 | `showdown.tie` | enum | 否（默认 `keep`） | `keep`/`first` |
 | `showdown.as` | string | 否（默认 `last`） | `[a-z][a-z0-9_]{0,19}` |
 | `showdown.accumulate` | boolean | 否（默认 false） | `true` = 多次结算累加成分数 |
 | `showdown.actor` | enum | 否（默认 `none`） | `winner`/`loser`/`none` |
-| `branch.cases` | array | 是 | 1–8 项 `{ if, goto }` |
-| `branch.default` | union | 否（默认 `"next"`） | 同 `goto` |
+| `branch.cases` | array | 是 | 1–64 项 `{ if, goto }` |
+| `branch.default` | union | 否（默认 `"next"`） | `"next"`/`"end"`/坐标 |
 | `branch.maxHits` | int | 否（默认 50） | 1–200 |
-| `condition.check` | enum | 是 | `tie`/`unique`/`any`/`all`/`rank`/`sum`/`count` |
+| `condition.check` | enum | 是 | `tie`/`unique`/`any`/`all`/`rank`/`sum`/`count`/`dice` |
 | `condition.slot` | string | 否（默认 `last`） | 结果槽名 |
 | `condition.op` | enum | `rank`/`sum`/`count` 时必填 | `gt`/`gte`/`lt`/`lte`/`eq`/`ne` |
 

@@ -279,7 +279,8 @@ function renderStatus(game: GameRecord, def: RuleDefinition | undefined, players
     const expected = phase.expectedPlayerId
       ? mentionHtml(phase.expectedPlayerId, displayName(phase.expectedPlayerId))
       : '任一玩家';
-    body += `\n\n等待 ${expected} 发送 ${phase.emoji}`;
+    const drawHint = step?.type === 'roll' && step.draw ? `（抽 1-${step.draw.count} 号）` : '';
+    body += `\n\n等待 ${expected} 发送 ${phase.emoji}${drawHint}`;
   } else if (phase.kind === 'text') {
     body += `\n\n${fmt(phase.text)}`;
   } else if (phase.kind === 'punish') {
@@ -892,6 +893,7 @@ function performUndo(game: GameRecord, definition: RuleDefinition, actorId: numb
     }
     case 'roll':
       game.state.lastDice = undefined;
+      game.state.lastDraw = undefined;
       game.state.pendingRolls = undefined;
       break;
     case 'showdown': {

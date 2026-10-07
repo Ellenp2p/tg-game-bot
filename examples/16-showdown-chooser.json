@@ -1,5 +1,5 @@
 {
-  "version": "1.6.0",
+  "version": "1.7.0",
   "name": "比大小·赢家点菜",
   "description": "全员掷一次，最大的人当主角，由他选择走『真心话』还是『大冒险』。演示 showdown actor=winner + choice chooser=winner + branch 收尾。",
   "defaultEmoji": "🎲",

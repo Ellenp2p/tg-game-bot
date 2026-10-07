@@ -9,6 +9,7 @@ export const DICE_EMOJI_MAX_VALUE: Record<DiceEmoji, number> = {
 
 export const choiceGoto = z.union([
   z.literal('next'),
+  z.literal('end'),
   z.object({ roundIdx: z.number().int().min(0), stepIdx: z.number().int().min(0) })
 ]);
 export type ChoiceGoto = z.infer<typeof choiceGoto>;
@@ -57,27 +58,45 @@ export const branchCase = z.object({
 });
 export type BranchCase = z.infer<typeof branchCase>;
 
+/**
+ * roll 的抽签配置：掷完骰子后按点数落到 1..count 号，再 goto 到 targets[bucket-1]。
+ * uniform: 'equal' 等距分段（偏差 ≤ 1/上限）；'exact' 拒绝重掷（超出整数倍范围就重抽）。
+ */
+export const drawConfig = z.object({
+  count: z.number().int().min(2).max(64),
+  targets: z.array(choiceGoto).min(2).max(64),
+  store: slotName.optional(),
+  uniform: z.enum(['equal', 'exact']).default('equal')
+}).refine(d => d.targets.length === d.count, {
+  message: 'draw.targets 长度必须等于 draw.count',
+  path: ['targets']
+});
+export type DrawConfig = z.infer<typeof drawConfig>;
+
 export const step = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('roll'),
     label: z.string().min(1).max(200),
     emoji: z.enum(SUPPORTED_DICE_EMOJIS).optional(),
     assignment: z.enum(['next_player', 'self', 'any', 'winner', 'loser', 'actor']).default('next_player'),
-    actorSlot: slotName.optional()
+    actorSlot: slotName.optional(),
+    draw: drawConfig.optional()
   }),
   z.object({
     type: z.literal('text'),
     label: z.string().min(1).max(200),
     prompt: z.string().min(1).max(1000).optional(),
     mode: z.enum(['manual', 'auto']).default('manual'),
-    showActor: z.boolean().default(false)
+    showActor: z.boolean().default(false),
+    next: choiceGoto.optional()
   }),
   z.object({
     type: z.literal('punish'),
     label: z.string().min(1).max(200),
     ladder: z.array(z.object({ at: z.number().int().min(1).max(1000), text: z.string().min(1).max(500) })).default([]),
     defaultText: z.string().min(1).max(500),
-    showActor: z.boolean().default(false)
+    showActor: z.boolean().default(false),
+    next: choiceGoto.optional()
   }),
   z.object({
     type: z.literal('choice'),
@@ -100,7 +119,7 @@ export const step = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('branch'),
     label: z.string().min(1).max(200),
-    cases: z.array(branchCase).min(1).max(8),
+    cases: z.array(branchCase).min(1).max(64),
     default: choiceGoto.default('next'),
     maxHits: z.number().int().min(1).max(200).default(50)
   })
@@ -115,11 +134,11 @@ export const round = z.object({
   loop: z.boolean().default(false),
   maxLoops: z.number().int().min(1).max(100).optional(),
   defaultEmoji: z.enum(SUPPORTED_DICE_EMOJIS).optional(),
-  steps: z.array(step).min(1).max(40)
+  steps: z.array(step).min(1).max(80)
 });
 export type Round = z.infer<typeof round>;
 
-export const CURRENT_RULE_SCHEMA_VERSION = '1.6.0';
+export const CURRENT_RULE_SCHEMA_VERSION = '1.7.0';
 
 export const ruleDefinition = z.object({
   version: z.string().regex(/^\d+\.\d+\.\d+$/).default(CURRENT_RULE_SCHEMA_VERSION),
@@ -247,6 +266,10 @@ export type GameState = {
   activeActorId?: number;
   /** showdown 看板消息 id（编辑同一条，避免刷屏） */
   showdownBoardMsgId?: number;
+  /** roll.draw 命中的编号（命名槽） */
+  draws?: Record<string, number>;
+  /** 最近一次 roll.draw 命中的编号 */
+  lastDraw?: number;
 };
 
 export type GameRecord = {

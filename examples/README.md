@@ -21,7 +21,7 @@
 
 ```json
 {
-  "version": "1.6.0",              // 可省略，自动填当前 CURRENT_RULE_SCHEMA_VERSION
+  "version": "1.7.0",              // 可省略，自动填当前 CURRENT_RULE_SCHEMA_VERSION
   "name": "规则名（必填）",
   "description": "简介（可选）",
   "defaultEmoji": "🎲",            // 可选，整局默认表情（被 round/step 覆盖）
@@ -103,7 +103,23 @@
 ], "default": "next" }
 ```
 
-条件见根目录 `RULES_AUTHORING.md` 第 6 节（`tie`/`unique`/`any`/`all`/`rank`/`sum`/`count`）。
+条件见根目录 `RULES_AUTHORING.md` 第 6 节（`tie`/`unique`/`any`/`all`/`rank`/`sum`/`count`/`dice`）。
+
+## 抽签（roll.draw）与结束本轮（goto "end"）
+
+给 `roll` 挂 `draw` 就能"抽 N 选一"：掷完骰子按点数落到 `1..count` 号，跳到 `targets[号-1]`。
+
+```json
+{ "type": "roll", "label": "抽奖", "emoji": "🎰", "draw": {
+  "count": 16, "uniform": "exact", "store": "box",
+  "targets": [ "next", "next", /* …共 16 项… */ "end" ]
+}}
+```
+
+- `targets` 长度必须 = `count`（2–64）；每项支持 `"next"` / `"end"` / `{roundIdx,stepIdx}`
+- 抽中编号：`{draw}`；命名槽：`{draw.box}`
+- `uniform`：`equal`（默认，等距分段）/ `exact`（拒绝重掷，严格均匀）
+- `goto` 和 `text`/`punish` 的 `next` 都支持 **`"end"`**（结束当前轮）
 
 ## 已有模板
 
@@ -126,6 +142,7 @@
 | `15-showdown-series.json` | 三局积分·最低分喝 | 2-8 | showdown accumulate 积分 + 命名结果槽 + 跨轮引用 |
 | `16-showdown-chooser.json` | 比大小·赢家点菜 | 2-8 | showdown actor=winner + choice chooser=winner + branch 收尾 |
 | `17-dice-branch-board.json` | 掷骰子走格子 | 2-8 | branch 的 dice 条件（按单掷点数分支）+ 模板 {dice}/{roller} |
+| `18-draw-lucky.json` | 十六格抽奖 | 2-8 | `roll.draw` 抽签（16 格均匀）+ `goto:"end"` + `text.next` |
 
 复制任一文件，改 `name`、改 `description`、改具体文案就能用。提交方式：
 

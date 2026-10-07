@@ -78,9 +78,9 @@ function driveUntil(game: GameRecord, def: RuleDefinition, players: GamePlayer[]
 const examples = loadAll();
 assert.ok(examples.length >= 10, `expected 10 examples, found ${examples.length}`);
 
-test('all examples: parse as v1.6.0', () => {
+test('all examples: parse as v1.7.0', () => {
   for (const { name, def } of examples) {
-    assert.equal(def.version, '1.6.0', `${name} version mismatch`);
+    assert.equal(def.version, '1.7.0', `${name} version mismatch`);
   }
 });
 

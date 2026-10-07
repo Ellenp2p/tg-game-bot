@@ -1,5 +1,5 @@
 {
-  "version": "1.6.0",
+  "version": "1.7.0",
   "name": "单人谜语闯关",
   "description": "单人猜谜语，按对/错升级或继续。出题 5 题后结束。",
   "minPlayers": 1,

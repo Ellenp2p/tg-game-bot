@@ -44,9 +44,31 @@ export function pickPunishText(step: Extract<Step, { type: 'punish' }>, hitCount
   return applicable[0]?.text ?? step.defaultText;
 }
 
-export function resolveChoiceGoto(goto: ChoiceGoto, roundIdx: number, stepIdx: number): { roundIdx: number; stepIdx: number } {
+function roundLenOf(definition: RuleDefinition, roundIdx: number): number {
+  return definition.rounds[roundIdx]?.steps.length ?? 0;
+}
+
+export function resolveChoiceGoto(goto: ChoiceGoto, roundIdx: number, stepIdx: number, roundLen: number): { roundIdx: number; stepIdx: number } {
   if (goto === 'next') return { roundIdx, stepIdx: stepIdx + 1 };
+  if (goto === 'end') return { roundIdx, stepIdx: roundLen }; // 一轮之末 → 触发轮结束逻辑
   return goto;
+}
+
+/** 把 1..sourceMax 的掷骰值映射到 1..count 号 */
+export function drawBucket(value: number, count: number, uniform: 'equal' | 'exact', sourceMax: number): number {
+  if (uniform === 'exact') {
+    const m = count * Math.floor(sourceMax / count);
+    const w = m / count;
+    const v = Math.max(1, Math.min(value, m));
+    return Math.floor((v - 1) / w) + 1;
+  }
+  const base = Math.floor(sourceMax / count);
+  const rem = sourceMax % count;
+  for (let i = 1; i <= count; i++) {
+    const t = i * base + Math.min(i, rem);
+    if (value <= t) return i;
+  }
+  return count;
 }
 
 /** 从结果槽里挑一个玩家（winner / loser），并列时取加入顺序最前者 */
@@ -130,11 +152,11 @@ function stepTo(game: GameRecord, definition: RuleDefinition, roundIdx: number, 
     if (hits <= step.maxHits) {
       for (const c of step.cases) {
         if (evaluateCondition(game, c.if)) {
-          target = resolveChoiceGoto(c.goto, roundIdx, stepIdx);
+          target = resolveChoiceGoto(c.goto, roundIdx, stepIdx, round.steps.length);
           break;
         }
       }
-      if (!target) target = resolveChoiceGoto(step.default, roundIdx, stepIdx);
+      if (!target) target = resolveChoiceGoto(step.default, roundIdx, stepIdx, round.steps.length);
     } else {
       // 超过安全次数：强制前进，避免分支自环死循环
       target = { roundIdx, stepIdx: stepIdx + 1 };
@@ -205,17 +227,48 @@ export function applyRoll(game: GameRecord, definition: RuleDefinition, userId: 
     throw Error(`${phase.emoji} 的点数范围是 1-${max}`);
   }
 
+  const step = findStep(definition, phase.roundIdx, phase.stepIdx);
+  if (!step || step.type !== 'roll') throw Error('找不到骰子步骤');
+  const sourceMax = DICE_EMOJI_MAX_VALUE[phase.emoji];
+  const slotSuffix = usedEmoji === '🎰'
+    ? (() => {
+        const d = decodeSlotValue(value);
+        const jp = isJackpot(value);
+        return `\n   ${SLOT_SYMBOL_LABEL[d.r1]} ${SLOT_SYMBOL_LABEL[d.r2]} ${SLOT_SYMBOL_LABEL[d.r3]}${jp ? ' 🎉 JACKPOT' : ''}`;
+      })()
+    : '';
+
+  // roll.draw：抽签（按点数落到 1..count 号，再跳转到对应目标）
+  if (step.draw) {
+    const draw = step.draw;
+    if (draw.count > sourceMax) throw Error(`draw.count=${draw.count} 超过 ${phase.emoji} 的点数上限 ${sourceMax}`);
+    if (draw.uniform === 'exact') {
+      const m = draw.count * Math.floor(sourceMax / draw.count);
+      if (value > m) {
+        const retry = `${usedEmoji} ${displayName(userId)} 掷出 ${value}，超出范围（只接受 1-${m}），请再抽一次。`;
+        game.state.lastMessage = retry;
+        return { message: retry, phase: game.state.phase };
+      }
+    }
+    const bucket = drawBucket(value, draw.count, draw.uniform, sourceMax);
+    game.state.lastDice = { userId, value, at: Date.now(), emoji: usedEmoji };
+    game.state.lastRollerId = userId;
+    game.state.activeActorId = userId;
+    game.state.lastDraw = bucket;
+    if (draw.store) game.state.draws = { ...(game.state.draws ?? {}), [draw.store]: bucket };
+    (game as GameRecord & { _players?: GamePlayer[] })._players = players;
+    const dmsg = `${usedEmoji} ${displayName(userId)} 抽到第 <b>${bucket}</b> 号（点数 ${value}）${slotSuffix}`;
+    game.state.lastMessage = dmsg;
+    const target = resolveChoiceGoto(draw.targets[bucket - 1] ?? 'next', phase.roundIdx, phase.stepIdx, roundLenOf(definition, phase.roundIdx));
+    advanceToStep(game, definition, target.roundIdx, target.stepIdx);
+    return { message: dmsg, phase: game.state.phase };
+  }
+
   game.state.lastDice = { userId, value, at: Date.now(), emoji: usedEmoji };
   game.state.lastRollerId = userId;
   game.state.activeActorId = userId;
   (game as GameRecord & { _players?: GamePlayer[] })._players = players;
-  const step = findStep(definition, phase.roundIdx, phase.stepIdx)!;
-  let message = `${usedEmoji} ${displayName(userId)} 掷出 ${value} — ${step.label}`;
-  if (usedEmoji === '🎰') {
-    const d = decodeSlotValue(value);
-    const jp = isJackpot(value);
-    message += `\n   ${SLOT_SYMBOL_LABEL[d.r1]} ${SLOT_SYMBOL_LABEL[d.r2]} ${SLOT_SYMBOL_LABEL[d.r3]}${jp ? ' 🎉 JACKPOT' : ''}`;
-  }
+  const message = `${usedEmoji} ${displayName(userId)} 掷出 ${value} — ${step.label}${slotSuffix}`;
   game.state.lastMessage = message;
   advanceToStep(game, definition, phase.roundIdx, phase.stepIdx + 1);
   return { message, phase: game.state.phase };
@@ -378,8 +431,14 @@ export function applyNext(game: GameRecord, definition: RuleDefinition, _userId:
   }
   if (phase.kind === 'choice') {
     if (!phase.options.length) throw Error('选项为空');
-    const target = resolveChoiceGoto(phase.options[0].goto, phase.roundIdx, phase.stepIdx);
+    const target = resolveChoiceGoto(phase.options[0].goto, phase.roundIdx, phase.stepIdx, roundLenOf(definition, phase.roundIdx));
     game.state.lastMessage = `👉 管理员强制选择「${phase.options[0].text}」`;
+    return advanceToStep(game, definition, target.roundIdx, target.stepIdx);
+  }
+  const step = findStep(definition, phase.roundIdx, phase.stepIdx);
+  const customNext = (step?.type === 'text' || step?.type === 'punish') ? step.next : undefined;
+  if (customNext) {
+    const target = resolveChoiceGoto(customNext, phase.roundIdx, phase.stepIdx, roundLenOf(definition, phase.roundIdx));
     return advanceToStep(game, definition, target.roundIdx, target.stepIdx);
   }
   return advanceToStep(game, definition, phase.roundIdx, phase.stepIdx + 1);
@@ -394,8 +453,14 @@ export function applySkip(game: GameRecord, definition: RuleDefinition): GamePha
   }
   if (phase.kind === 'choice') {
     if (!phase.options.length) throw Error('选项为空');
-    const target = resolveChoiceGoto(phase.options[0].goto, phase.roundIdx, phase.stepIdx);
+    const target = resolveChoiceGoto(phase.options[0].goto, phase.roundIdx, phase.stepIdx, roundLenOf(definition, phase.roundIdx));
     game.state.lastMessage = `👉 跳过选择，强制进入「${phase.options[0].text}」`;
+    return advanceToStep(game, definition, target.roundIdx, target.stepIdx);
+  }
+  const step = findStep(definition, phase.roundIdx, phase.stepIdx);
+  const customNext = (step?.type === 'text' || step?.type === 'punish') ? step.next : undefined;
+  if (customNext) {
+    const target = resolveChoiceGoto(customNext, phase.roundIdx, phase.stepIdx, roundLenOf(definition, phase.roundIdx));
     return advanceToStep(game, definition, target.roundIdx, target.stepIdx);
   }
   return advanceToStep(game, definition, phase.roundIdx, phase.stepIdx + 1);
@@ -407,7 +472,7 @@ export function applyChoice(game: GameRecord, definition: RuleDefinition, userId
   if (phase.pickedBy !== null && phase.pickedBy !== userId) throw Error('不是你的回合，请等待系统指定玩家');
   const opt = phase.options[optionIdx];
   if (!opt) throw Error('选项不存在');
-  const target = resolveChoiceGoto(opt.goto, phase.roundIdx, phase.stepIdx);
+  const target = resolveChoiceGoto(opt.goto, phase.roundIdx, phase.stepIdx, roundLenOf(definition, phase.roundIdx));
   const message = `👉 ${displayName(userId)} 选择了「${opt.text}」`;
   game.state.lastMessage = message;
   game.state.lastRollerId = userId;
@@ -445,6 +510,13 @@ function resolveTemplateToken(token: string, game: GameRecord, mode: 'html' | 'p
   if (!slot && sel === 'roller') {
     const id = game.state.lastDice?.userId;
     return id ? nameMention(id, mode) : null;
+  }
+  if (!slot && sel === 'draw') {
+    return game.state.lastDraw !== undefined ? String(game.state.lastDraw) : null;
+  }
+  if (slot === 'draw') {
+    const n = game.state.draws?.[sel];
+    return n !== undefined ? String(n) : null;
   }
 
   const key = slot ?? game.state.lastResultSlot ?? 'last';

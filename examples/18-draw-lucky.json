@@ -1,0 +1,49 @@
+{
+  "version": "1.7.0",
+  "name": "十六格抽奖",
+  "description": "用 roll.draw 一步抽 1-16 号格（🎰 完全均匀），按格号跳到不同奖项。演示 draw 抽签 + goto:\"end\" + text.next。",
+  "defaultEmoji": "🎰",
+  "minPlayers": 2,
+  "maxPlayers": 8,
+  "rounds": [
+    {
+      "name": "抽奖",
+      "loop": true,
+      "maxLoops": 5,
+      "steps": [
+        {
+          "type": "roll",
+          "label": "抽奖（1-16）",
+          "emoji": "🎰",
+          "assignment": "next_player",
+          "draw": {
+            "count": 16,
+            "uniform": "exact",
+            "store": "box",
+            "targets": [
+              { "roundIdx": 0, "stepIdx": 1 },
+              { "roundIdx": 0, "stepIdx": 1 },
+              { "roundIdx": 0, "stepIdx": 1 },
+              { "roundIdx": 0, "stepIdx": 1 },
+              { "roundIdx": 0, "stepIdx": 1 },
+              { "roundIdx": 0, "stepIdx": 1 },
+              { "roundIdx": 0, "stepIdx": 1 },
+              { "roundIdx": 0, "stepIdx": 1 },
+              { "roundIdx": 0, "stepIdx": 1 },
+              { "roundIdx": 0, "stepIdx": 1 },
+              { "roundIdx": 0, "stepIdx": 1 },
+              { "roundIdx": 0, "stepIdx": 1 },
+              { "roundIdx": 0, "stepIdx": 2 },
+              { "roundIdx": 0, "stepIdx": 2 },
+              { "roundIdx": 0, "stepIdx": 2 },
+              { "roundIdx": 0, "stepIdx": 3 }
+            ]
+          }
+        },
+        { "type": "text", "label": "普通奖", "prompt": "第 {draw} 号格：普通奖——喝一小口。", "next": "end" },
+        { "type": "text", "label": "好奖", "prompt": "第 {draw} 号格：好奖——指定一人喝一杯。", "next": "end" },
+        { "type": "text", "label": "头奖", "prompt": "第 {draw} 号格：头奖！带全场喊一句口号。", "next": "end" }
+      ]
+    }
+  ]
+}
