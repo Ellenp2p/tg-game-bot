@@ -1059,10 +1059,12 @@ async function resolvePendingRoll(gameId: string, expectedUserId: number, expect
   if (pending.kind === 'showdown' && phase0.kind === 'showdown' && matchesStep(phase0)) {
     let resultMessage: string;
     let settled = false;
+    let rerolled = false;
     try {
       const r = applyShowdownRoll(game, rule.definition, pending.userId, pending.value, players, pending.emoji);
       resultMessage = r.message;
       settled = r.settled;
+      rerolled = r.rerolled ?? false;
     } catch (e) {
       resultMessage = `骰子未接受：${(e as Error).message}`;
     }
@@ -1079,6 +1081,11 @@ async function resolvePendingRoll(gameId: string, expectedUserId: number, expect
         }
       } else {
         await bot.api.sendMessage(pending.chatId, resultMessage, { parse_mode: 'HTML' });
+      }
+      if (rerolled) {
+        // 平局重掷：把并列提示留在旧看板，另发一条新看板
+        game.state.showdownBoardMsgId = undefined;
+        db.updateGame(game);
       }
       if (game.status === 'ended') {
         await bot.api.sendMessage(pending.chatId, '🏁 对局已结束。');

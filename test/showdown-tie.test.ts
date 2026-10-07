@@ -65,11 +65,13 @@ test("tie:'reroll' 并列时清空本轮、不写结果、不推进", () => {
   applyShowdownRoll(g, def, 9001, 4, P, '🎲');
   const last = applyShowdownRoll(g, def, 9003, 1, P, '🎲');
   assert.equal(last.settled, true);
+  assert.equal(last.rerolled, true);
   assert.match(last.message, /并列/);
   assert.equal(g.state.phase.kind, 'showdown');
   assert.equal(g.state.phase.kind === 'showdown' && g.state.phase.rolls.length, 0);
   assert.equal(g.state.results, undefined);
-  assert.equal(g.state.showdownBoardMsgId, undefined);
+  // 引擎不碰展示字段（showdownBoardMsgId 由 index 决定），保留原值
+  assert.equal(g.state.showdownBoardMsgId, 12345);
   assert.equal(g.status, 'in_progress');
 });
 
@@ -79,6 +81,7 @@ test("tie:'reroll' 输家并列也触发重掷", () => {
   applyShowdownRoll(g, def, 9002, 6, P, '🎲');
   applyShowdownRoll(g, def, 9001, 4, P, '🎲');
   const last = applyShowdownRoll(g, def, 9003, 4, P, '🎲');
+  assert.equal(last.rerolled, true);
   assert.match(last.message, /并列/);
   assert.equal(g.state.phase.kind, 'showdown');
   assert.equal(g.state.phase.kind === 'showdown' && g.state.phase.rolls.length, 0);
@@ -94,6 +97,7 @@ test("tie:'reroll' 重掷后产生唯一赢家 → 正常结算推进", () => {
   applyShowdownRoll(g, def, 9001, 5, P, '🎲');
   const r = applyShowdownRoll(g, def, 9003, 3, P, '🎲');
   assert.equal(r.settled, true);
+  assert.equal(r.rerolled, false);
   assert.equal(g.state.phase.kind, 'text');
   assert.deepEqual(g.state.results!['last'].winners, [9001]);
   assert.equal(resolveActorPick(g, P, 'winner'), 9001);

@@ -58,7 +58,7 @@ SQLite 文件位置（默认）：`./data/bot.sqlite`（WAL 模式）。`.gitign
 
 | 文件 | 何时读 |
 |---|---|
-| [`RULES_AUTHORING.md`](RULES_AUTHORING.md) | **必读**。schema 字段约束、step 类型细节、AI 自检 16 条、已知引擎限制、🎰 抽签策略 |
+| [`RULES_AUTHORING.md`](RULES_AUTHORING.md) | **必读**。schema 字段约束、step 类型细节、AI 自检清单、已知引擎限制、🎰 抽签策略、**平台 vs 规则归因判据** |
 | [`examples/README.md`](examples/README.md) | 18 个规则的表格（人数 / 用到的特性），找最相近的模板 |
 | [`examples/*.json`](examples/) | 复制最相近的模板改写，保留 `version: "1.8.0"` |
 

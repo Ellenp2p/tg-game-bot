@@ -279,7 +279,7 @@ export function applyRoll(game: GameRecord, definition: RuleDefinition, userId: 
 /** showdown 收集一颗骰子；集齐后自动结算 */
 export function applyShowdownRoll(
   game: GameRecord, definition: RuleDefinition, userId: number, value: number, players: GamePlayer[], emoji?: DiceEmoji
-): { message: string; settled: boolean; phase: GamePhase } {
+): { message: string; settled: boolean; rerolled?: boolean; phase: GamePhase } {
   const phase = game.state.phase;
   if (phase.kind !== 'showdown') throw Error('当前不等待比大小');
   if (!players.some(p => p.userId === userId)) throw Error('只有已加入的玩家可以扔色子');
@@ -302,14 +302,15 @@ export function applyShowdownRoll(
   game.state.lastMessage = message;
 
   if (phase.rolls.length >= players.length) {
-    const finalMessage = settleShowdown(game, definition, players);
-    return { message: finalMessage, settled: true, phase: game.state.phase };
+    const { message: finalMessage, rerolled } = settleShowdown(game, definition, players);
+    return { message: finalMessage, settled: true, rerolled, phase: game.state.phase };
   }
   return { message, settled: false, phase: game.state.phase };
 }
 
-/** 结算 showdown：排序、写结果槽、按 actor 设置主角、推进到下一步 */
-export function settleShowdown(game: GameRecord, definition: RuleDefinition, players: GamePlayer[]): string {
+/** 结算 showdown：排序、写结果槽、按 actor 设置主角、推进到下一步。
+ *  返回 rerolled=true 表示本轮出现并列、已清空重掷（未写结果、未推进）；UI 由调用方决定。 */
+export function settleShowdown(game: GameRecord, definition: RuleDefinition, players: GamePlayer[]): { message: string; rerolled: boolean } {
   const phase = game.state.phase;
   if (phase.kind !== 'showdown') throw Error('当前不在比大小阶段');
   const step = findStep(definition, phase.roundIdx, phase.stepIdx);
@@ -363,10 +364,9 @@ export function settleShowdown(game: GameRecord, definition: RuleDefinition, pla
   // tie:'reroll'：赢家或输家出现并列 → 清空本轮重掷（不写结果槽、不推进）
   if (step.tie === 'reroll' && step.order !== 'none' && (winners.length > 1 || losers.length > 1)) {
     phase.rolls = [];
-    game.state.showdownBoardMsgId = undefined; // 让 sendStatus 另发看板，保留本条并列提示
     const notice = `🏆 比大小结果（${label}）\n${lines.join('\n')}\n\n⚠️ 最大/最小出现并列，请全员重新掷一次。`;
     game.state.lastMessage = notice;
-    return notice;
+    return { message: notice, rerolled: true };
   }
 
   const values = entries.map(e => e.value);
@@ -392,7 +392,7 @@ export function settleShowdown(game: GameRecord, definition: RuleDefinition, pla
   const message = `🏆 比大小结果（${label}）\n${lines.join('\n')}${extremes}`;
   game.state.lastMessage = message;
   advanceToStep(game, definition, phase.roundIdx, phase.stepIdx + 1);
-  return message;
+  return { message, rerolled: false };
 }
 
 function cmp(a: number, op: CompareOp, b: number): boolean {
