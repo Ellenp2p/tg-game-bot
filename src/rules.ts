@@ -1,8 +1,19 @@
-import type { GameRecord, GamePlayer, RuleDefinition, GamePhase, GameState, Step, ChoiceGoto, ChoiceOption, DiceEmoji } from './model.js';
-import { DICE_EMOJI_MAX_VALUE, resolveRollEmoji, decodeSlotValue, isJackpot, SLOT_SYMBOL_LABEL } from './model.js';
+import type {
+  GameRecord, GamePlayer, RuleDefinition, GamePhase, GameState, Step,
+  ChoiceGoto, ChoiceOption, DiceEmoji,
+  ShowdownResult, BranchConditionInput, BranchCondition, CompareOp
+} from './model.js';
+import {
+  DICE_EMOJI_MAX_VALUE, resolveRollEmoji, resolveShowdownEmoji,
+  decodeSlotValue, isJackpot, SLOT_SYMBOL_LABEL
+} from './model.js';
 
 export function displayName(userId: number): string {
   return `用户 #${String(userId).slice(-4)}`;
+}
+
+function playersOf(game: GameRecord): GamePlayer[] {
+  return (game as GameRecord & { _players?: GamePlayer[] })._players ?? [];
 }
 
 export function findStep(definition: RuleDefinition, roundIdx: number, stepIdx: number): Step | undefined {
@@ -38,6 +49,39 @@ export function resolveChoiceGoto(goto: ChoiceGoto, roundIdx: number, stepIdx: n
   return goto;
 }
 
+/** 从结果槽里挑一个玩家（winner / loser），并列时取加入顺序最前者 */
+export function resolveActorPick(
+  game: GameRecord,
+  players: GamePlayer[],
+  pick: 'winner' | 'loser',
+  slot?: string
+): number | null {
+  const key = slot ?? game.state.lastResultSlot ?? 'last';
+  const res = game.state.results?.[key];
+  if (!res) return null;
+  const ids = pick === 'winner' ? res.winners : res.losers;
+  if (!ids.length) return null;
+  const ordered = players.map(p => p.userId).filter(id => ids.includes(id));
+  return ordered[0] ?? ids[0] ?? null;
+}
+
+function resetToEnded(game: GameRecord): GamePhase {
+  game.status = 'ended';
+  game.endedAt = Date.now();
+  game.state = {
+    phase: { kind: 'signup' },
+    stepHitCounts: game.state.stepHitCounts,
+    loopCounters: game.state.loopCounters,
+    lastRollerId: game.state.lastRollerId,
+    lastDice: game.state.lastDice,
+    lastMessage: game.state.lastMessage,
+    results: game.state.results,
+    lastResultSlot: game.state.lastResultSlot,
+    activeActorId: game.state.activeActorId
+  };
+  return game.state.phase;
+}
+
 export function beginGame(game: GameRecord, definition: RuleDefinition): GamePhase {
   game.roundIdx = 0;
   game.stepIdx = 0;
@@ -46,22 +90,14 @@ export function beginGame(game: GameRecord, definition: RuleDefinition): GamePha
 }
 
 export function advanceToStep(game: GameRecord, definition: RuleDefinition, roundIdx: number, stepIdx: number): GamePhase {
-  const resetToEnded = () => {
-    game.status = 'ended';
-    game.endedAt = Date.now();
-    game.state = {
-      phase: { kind: 'signup' },
-      stepHitCounts: game.state.stepHitCounts,
-      loopCounters: game.state.loopCounters,
-      lastRollerId: game.state.lastRollerId,
-      lastDice: game.state.lastDice,
-      lastMessage: game.state.lastMessage
-    };
-    return game.state.phase;
-  };
+  return stepTo(game, definition, roundIdx, stepIdx, {});
+}
+
+/** guard 记录"本次推进链路"里每个 branch step 被访问的次数，用于拦截自环 */
+function stepTo(game: GameRecord, definition: RuleDefinition, roundIdx: number, stepIdx: number, guard: Record<string, number>): GamePhase {
   const round = definition.rounds[roundIdx];
   if (!round) {
-    return resetToEnded();
+    return resetToEnded(game);
   }
   const step = round.steps[stepIdx];
   if (!step) {
@@ -70,49 +106,86 @@ export function advanceToStep(game: GameRecord, definition: RuleDefinition, roun
       const newCount = (game.state.loopCounters[key] ?? 0) + 1;
       game.state.loopCounters = { ...game.state.loopCounters, [key]: newCount };
       if (round.maxLoops === undefined || newCount < round.maxLoops) {
-        return advanceToStep(game, definition, roundIdx, 0);
+        return stepTo(game, definition, roundIdx, 0, guard);
       }
       const nextRoundIdx = roundIdx + 1;
       if (definition.rounds[nextRoundIdx]) {
-        return advanceToStep(game, definition, nextRoundIdx, 0);
+        return stepTo(game, definition, nextRoundIdx, 0, guard);
       }
-      return resetToEnded();
+      return resetToEnded(game);
     }
     const nextRoundIdx = roundIdx + 1;
     if (definition.rounds[nextRoundIdx]) {
-      return advanceToStep(game, definition, nextRoundIdx, 0);
+      return stepTo(game, definition, nextRoundIdx, 0, guard);
     }
-    return resetToEnded();
+    return resetToEnded(game);
   }
+
+  // branch step：立即求值并跳转（不进入 resting phase）
+  if (step.type === 'branch') {
+    const key = stepKey(roundIdx, stepIdx);
+    const hits = (guard[key] ?? 0) + 1;
+    guard[key] = hits;
+    let target: { roundIdx: number; stepIdx: number } | null = null;
+    if (hits <= step.maxHits) {
+      for (const c of step.cases) {
+        if (evaluateCondition(game, c.if)) {
+          target = resolveChoiceGoto(c.goto, roundIdx, stepIdx);
+          break;
+        }
+      }
+      if (!target) target = resolveChoiceGoto(step.default, roundIdx, stepIdx);
+    } else {
+      // 超过安全次数：强制前进，避免分支自环死循环
+      target = { roundIdx, stepIdx: stepIdx + 1 };
+    }
+    return stepTo(game, definition, target.roundIdx, target.stepIdx, guard);
+  }
+
   game.roundIdx = roundIdx;
   game.stepIdx = stepIdx;
   game.status = 'in_progress';
 
   const key = stepKey(roundIdx, stepIdx);
   const hit = game.state.stepHitCounts[key] ?? 0;
+  const players = playersOf(game);
 
   if (step.type === 'roll') {
-    const players = (game as GameRecord & { _players?: GamePlayer[] })._players ?? [];
     let expectedPlayerId: number | null = null;
     if (step.assignment === 'next_player') {
       expectedPlayerId = nextRollerId(players, game.state.lastRollerId ?? null);
     } else if (step.assignment === 'self') {
       expectedPlayerId = game.state.lastRollerId ?? (players[0]?.userId ?? null);
+    } else if (step.assignment === 'winner' || step.assignment === 'loser') {
+      expectedPlayerId = resolveActorPick(game, players, step.assignment, step.actorSlot);
+    } else if (step.assignment === 'actor') {
+      expectedPlayerId = game.state.activeActorId ?? null;
     }
     game.state.phase = { kind: 'roll', stepIdx, roundIdx, expectedPlayerId, emoji: resolveRollEmoji(definition, round, step) };
   } else if (step.type === 'text') {
     game.state.phase = { kind: 'text', stepIdx, roundIdx, text: step.prompt ?? step.label };
   } else if (step.type === 'choice') {
-    game.state.phase = {
-      kind: 'choice',
-      stepIdx,
-      roundIdx,
-      options: step.options as ChoiceOption[],
-      pickedBy: game.state.lastDice?.userId ?? null
-    };
-  } else {
+    let pickedBy: number | null;
+    if (step.chooser === 'any') {
+      pickedBy = null;
+    } else if (step.chooser === 'winner' || step.chooser === 'loser') {
+      pickedBy = resolveActorPick(game, players, step.chooser, step.chooserSlot);
+    } else if (step.chooser === 'actor') {
+      pickedBy = game.state.activeActorId ?? null;
+    } else {
+      pickedBy = game.state.lastDice?.userId ?? null;
+    }
+    game.state.phase = { kind: 'choice', stepIdx, roundIdx, options: step.options as ChoiceOption[], pickedBy };
+  } else if (step.type === 'punish') {
     game.state.phase = { kind: 'punish', stepIdx, roundIdx, text: pickPunishText(step, hit + 1), hitCount: hit + 1 };
     game.state.stepHitCounts[key] = hit + 1;
+  } else {
+    // showdown
+    game.state.phase = {
+      kind: 'showdown', stepIdx, roundIdx,
+      emoji: resolveShowdownEmoji(definition, round, step),
+      order: step.order, tie: step.tie, slot: step.as ?? 'last', rolls: []
+    };
   }
   return game.state.phase;
 }
@@ -134,6 +207,7 @@ export function applyRoll(game: GameRecord, definition: RuleDefinition, userId: 
 
   game.state.lastDice = { userId, value, at: Date.now(), emoji: usedEmoji };
   game.state.lastRollerId = userId;
+  game.state.activeActorId = userId;
   (game as GameRecord & { _players?: GamePlayer[] })._players = players;
   const step = findStep(definition, phase.roundIdx, phase.stepIdx)!;
   let message = `${usedEmoji} ${displayName(userId)} 掷出 ${value} — ${step.label}`;
@@ -147,10 +221,161 @@ export function applyRoll(game: GameRecord, definition: RuleDefinition, userId: 
   return { message, phase: game.state.phase };
 }
 
-export function applyNext(game: GameRecord, definition: RuleDefinition, _userId: number): GamePhase {
+/** showdown 收集一颗骰子；集齐后自动结算 */
+export function applyShowdownRoll(
+  game: GameRecord, definition: RuleDefinition, userId: number, value: number, players: GamePlayer[], emoji?: DiceEmoji
+): { message: string; settled: boolean; phase: GamePhase } {
+  const phase = game.state.phase;
+  if (phase.kind !== 'showdown') throw Error('当前不等待比大小');
+  if (!players.some(p => p.userId === userId)) throw Error('只有已加入的玩家可以扔色子');
+  if (phase.rolls.some(r => r.userId === userId)) throw Error('你已经掷过了，等待其他玩家');
+  const usedEmoji: DiceEmoji = emoji ?? phase.emoji;
+  if (usedEmoji !== phase.emoji) throw Error(`本轮需要 ${phase.emoji}，你发的是 ${usedEmoji}`);
+  const max = DICE_EMOJI_MAX_VALUE[phase.emoji];
+  if (!Number.isInteger(value) || value < 1 || value > max) {
+    throw Error(`${phase.emoji} 的点数范围是 1-${max}`);
+  }
+
+  (game as GameRecord & { _players?: GamePlayer[] })._players = players;
+  phase.rolls.push({ userId, value, at: Date.now() });
+  let message = `${usedEmoji} ${displayName(userId)} 掷出 ${value}`;
+  if (usedEmoji === '🎰') {
+    const d = decodeSlotValue(value);
+    const jp = isJackpot(value);
+    message += `\n   ${SLOT_SYMBOL_LABEL[d.r1]} ${SLOT_SYMBOL_LABEL[d.r2]} ${SLOT_SYMBOL_LABEL[d.r3]}${jp ? ' 🎉 JACKPOT' : ''}`;
+  }
+  game.state.lastMessage = message;
+
+  if (phase.rolls.length >= players.length) {
+    const finalMessage = settleShowdown(game, definition, players);
+    return { message: finalMessage, settled: true, phase: game.state.phase };
+  }
+  return { message, settled: false, phase: game.state.phase };
+}
+
+/** 结算 showdown：排序、写结果槽、按 actor 设置主角、推进到下一步 */
+export function settleShowdown(game: GameRecord, definition: RuleDefinition, players: GamePlayer[]): string {
+  const phase = game.state.phase;
+  if (phase.kind !== 'showdown') throw Error('当前不在比大小阶段');
+  const step = findStep(definition, phase.roundIdx, phase.stepIdx);
+  if (!step || step.type !== 'showdown') throw Error('找不到比大小步骤');
+  const slot = step.as ?? 'last';
+
+  const totals: Record<string, number> = {};
+  if (step.accumulate) {
+    const prev = game.state.results?.[slot];
+    if (prev) for (const [u, v] of Object.entries(prev.totals)) totals[u] = v;
+  }
+  const firstAt: Record<string, number> = {};
+  for (const r of phase.rolls) {
+    totals[String(r.userId)] = (totals[String(r.userId)] ?? 0) + r.value;
+    if (firstAt[String(r.userId)] === undefined) firstAt[String(r.userId)] = r.at;
+  }
+
+  const entries = players.map(p => ({ userId: p.userId, value: totals[String(p.userId)] ?? 0 }));
+  const useFirstTie = step.tie === 'first' && !step.accumulate;
+  const sorted = [...entries].sort((a, b) => {
+    if (step.order === 'low') {
+      if (a.value !== b.value) return a.value - b.value;
+    } else if (step.order === 'high') {
+      if (a.value !== b.value) return b.value - a.value;
+    }
+    if (useFirstTie) {
+      const fa = firstAt[String(a.userId)] ?? Number.MAX_SAFE_INTEGER;
+      const fb = firstAt[String(b.userId)] ?? Number.MAX_SAFE_INTEGER;
+      if (fa !== fb) return fa - fb;
+    }
+    return a.userId - b.userId;
+  });
+
+  let winners: number[] = [];
+  let losers: number[] = [];
+  if (step.order !== 'none' && sorted.length) {
+    if (step.tie === 'first') {
+      winners = [sorted[0].userId];
+      losers = [sorted[sorted.length - 1].userId];
+    } else {
+      const top = sorted[0].value;
+      const bottom = sorted[sorted.length - 1].value;
+      winners = sorted.filter(e => e.value === top).map(e => e.userId);
+      losers = sorted.filter(e => e.value === bottom).map(e => e.userId);
+    }
+  }
+
+  const values = entries.map(e => e.value);
+  const result: ShowdownResult = {
+    order: step.order,
+    totals,
+    ranking: sorted,
+    winners,
+    losers,
+    sum: values.reduce((a, b) => a + b, 0),
+    max: values.length ? Math.max(...values) : 0,
+    min: values.length ? Math.min(...values) : 0
+  };
+  game.state.results = { ...(game.state.results ?? {}), [slot]: result };
+  game.state.lastResultSlot = slot;
+
+  if (step.actor === 'winner') game.state.activeActorId = winners[0];
+  else if (step.actor === 'loser') game.state.activeActorId = losers[0];
+
+  const label = step.order === 'high' ? '比大' : step.order === 'low' ? '比小' : '收集';
+  const lines = sorted.map((e, i) => `${i + 1}. ${displayName(e.userId)} → ${e.value}`);
+  const message = `🏆 比大小结果（${label}）\n${lines.join('\n')}`;
+  game.state.lastMessage = message;
+  advanceToStep(game, definition, phase.roundIdx, phase.stepIdx + 1);
+  return message;
+}
+
+function cmp(a: number, op: CompareOp, b: number): boolean {
+  switch (op) {
+    case 'gt': return a > b;
+    case 'gte': return a >= b;
+    case 'lt': return a < b;
+    case 'lte': return a <= b;
+    case 'eq': return a === b;
+    case 'ne': return a !== b;
+  }
+}
+
+/** 求值 branch 条件 */
+export function evaluateCondition(game: GameRecord, cond: BranchConditionInput): boolean {
+  const c: BranchCondition = typeof cond === 'string' ? { check: cond } : cond;
+  const key = ('slot' in c && c.slot) ? c.slot : (game.state.lastResultSlot ?? 'last');
+  const res = game.state.results?.[key];
+  switch (c.check) {
+    case 'tie': return !!res && res.winners.length > 1;
+    case 'unique': return !!res && res.winners.length === 1;
+    case 'any': return !!res && res.ranking.some(e => e.value === c.value);
+    case 'all': return !!res && res.ranking.length > 0 && res.ranking.every(e => e.value === c.value);
+    case 'rank': {
+      if (!res) return false;
+      const idx = c.pick > 0 ? c.pick - 1 : res.ranking.length + c.pick;
+      const e = res.ranking[idx];
+      return !!e && cmp(e.value, c.op, c.value);
+    }
+    case 'sum': return !!res && cmp(res.sum, c.op, c.value);
+    case 'count': return cmp(res?.ranking.length ?? 0, c.op, c.value);
+    case 'dice': {
+      const v = game.state.lastDice?.value;
+      return v !== undefined && cmp(v, c.op, c.value);
+    }
+  }
+}
+
+export function applyNext(game: GameRecord, definition: RuleDefinition, _userId: number, players?: GamePlayer[]): GamePhase {
   const phase = game.state.phase;
   if (phase.kind === 'signup') throw Error('报名阶段不能 /next');
   if (phase.kind === 'roll') throw Error('当前在等色子，等玩家掷 🎲 后再 /next');
+  if (phase.kind === 'showdown') {
+    const ps = players ?? playersOf(game);
+    if (!phase.rolls.length) {
+      return advanceToStep(game, definition, phase.roundIdx, phase.stepIdx + 1);
+    }
+    game.state.lastMessage = '👉 管理员强制结算比大小';
+    settleShowdown(game, definition, ps);
+    return game.state.phase;
+  }
   if (phase.kind === 'choice') {
     if (!phase.options.length) throw Error('选项为空');
     const target = resolveChoiceGoto(phase.options[0].goto, phase.roundIdx, phase.stepIdx);
@@ -164,6 +389,9 @@ export function applySkip(game: GameRecord, definition: RuleDefinition): GamePha
   const phase = game.state.phase;
   if (phase.kind === 'signup') throw Error('报名阶段不能 /skip');
   if (phase.kind === 'roll') throw Error('当前在等色子，无法跳过');
+  if (phase.kind === 'showdown') {
+    return advanceToStep(game, definition, phase.roundIdx, phase.stepIdx + 1);
+  }
   if (phase.kind === 'choice') {
     if (!phase.options.length) throw Error('选项为空');
     const target = resolveChoiceGoto(phase.options[0].goto, phase.roundIdx, phase.stepIdx);
@@ -183,8 +411,91 @@ export function applyChoice(game: GameRecord, definition: RuleDefinition, userId
   const message = `👉 ${displayName(userId)} 选择了「${opt.text}」`;
   game.state.lastMessage = message;
   game.state.lastRollerId = userId;
+  game.state.activeActorId = userId;
   advanceToStep(game, definition, target.roundIdx, target.stepIdx);
   return { message, phase: game.state.phase };
+}
+
+// ───────────────────────── 模板渲染 ─────────────────────────
+
+const TEMPLATE_RE = /\{([a-zA-Z0-9_.\-]+)\}/g;
+
+function escHtml(s: string): string {
+  return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+}
+
+function nameMention(userId: number, mode: 'html' | 'plain'): string {
+  const label = displayName(userId);
+  return mode === 'html' ? `<a href="tg://user?id=${userId}">${escHtml(label)}</a>` : label;
+}
+
+function resolveTemplateToken(token: string, game: GameRecord, mode: 'html' | 'plain'): string | null {
+  const dot = token.indexOf('.');
+  const slot = dot >= 0 ? token.slice(0, dot) : undefined;
+  const sel = dot >= 0 ? token.slice(dot + 1) : token;
+
+  if (sel === 'actor') {
+    const id = game.state.activeActorId;
+    return id ? nameMention(id, mode) : null;
+  }
+  if (!slot && sel === 'dice') {
+    const d = game.state.lastDice;
+    return d ? String(d.value) : null;
+  }
+  if (!slot && sel === 'roller') {
+    const id = game.state.lastDice?.userId;
+    return id ? nameMention(id, mode) : null;
+  }
+
+  const key = slot ?? game.state.lastResultSlot ?? 'last';
+  const res = game.state.results?.[key];
+  if (!res) return null;
+  switch (sel) {
+    case 'winner':
+    case 'winners':
+    case 'loser':
+    case 'losers': {
+      const ids = sel.startsWith('w') ? res.winners : res.losers;
+      return ids.length ? ids.map(id => nameMention(id, mode)).join('、') : null;
+    }
+    case 'ranking':
+      return res.ranking.map(e => `${nameMention(e.userId, mode)} ${e.value}`).join(' · ');
+    case 'sum': return String(res.sum);
+    case 'max': return String(res.max);
+    case 'min': return String(res.min);
+    case 'count': return String(res.ranking.length);
+    default: {
+      const m = /^rank(-?\d+)$/.exec(sel);
+      if (!m) return null;
+      const n = Number(m[1]);
+      const idx = n > 0 ? n - 1 : res.ranking.length + n;
+      const e = res.ranking[idx];
+      return e ? nameMention(e.userId, mode) : null;
+    }
+  }
+}
+
+/**
+ * 渲染文案模板。群消息用 'html'（字面段转义、玩家插入 @mention），
+ * Mini App 用 'plain'。无法识别的 token 原样保留。
+ */
+export function formatTemplate(text: string, game: GameRecord, mode: 'html' | 'plain'): string {
+  if (!text) return text;
+  if (!text.includes('{')) return mode === 'html' ? escHtml(text) : text;
+  let out = '';
+  let last = 0;
+  TEMPLATE_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = TEMPLATE_RE.exec(text))) {
+    const lit = text.slice(last, m.index);
+    out += mode === 'html' ? escHtml(lit) : lit;
+    const rep = resolveTemplateToken(m[1], game, mode);
+    out += rep ?? (mode === 'html' ? escHtml(m[0]) : m[0]);
+    last = m.index + m[0].length;
+  }
+  const tail = text.slice(last);
+  out += mode === 'html' ? escHtml(tail) : tail;
+  return out;
 }
 
 export function loopProgress(

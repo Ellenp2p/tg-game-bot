@@ -50,28 +50,32 @@ SQLite 文件位置（默认）：`./data/bot.sqlite`（WAL 模式）。`.gitign
 ## 规则设计（AI 翻译用 → JSON）
 
 > 任务：给定人类可读的规则描述，输出符合 schema 的 JSON。
-> 工作流：先读 [`RULES_AUTHORING.md`](RULES_AUTHORING.md)（完整 schema + step 类型 + AI 自检清单），再扫 [`examples/`](examples/)（13 个现成模板覆盖 1/2/N 人 / 单轮循环 / 多轮升级 / 选择岔路 / 篮球足球老虎机 / 真心话大冒险）。
+> 工作流：先读 [`RULES_AUTHORING.md`](RULES_AUTHORING.md)（完整 schema + step 类型 + AI 自检清单），再扫 [`examples/`](examples/)（17 个现成模板覆盖 1/2/N 人 / 单轮循环 / 多轮升级 / 选择岔路 / 篮球足球老虎机 / 真心话大冒险 / 全员比大小 / 按点数分支）。
 
 ### 入口三件套
 
 | 文件 | 何时读 |
 |---|---|
-| [`RULES_AUTHORING.md`](RULES_AUTHORING.md) | **必读**。schema 字段约束、step 类型细节、AI 自检 10 条、已知引擎限制 |
-| [`examples/README.md`](examples/README.md) | 13 个规则的表格（人数 / 用到的特性），找最相近的模板 |
-| [`examples/*.json`](examples/) | 复制最相近的模板改写，保留 `version: "1.5.0"` |
+| [`RULES_AUTHORING.md`](RULES_AUTHORING.md) | **必读**。schema 字段约束、step 类型细节、AI 自检 15 条、已知引擎限制 |
+| [`examples/README.md`](examples/README.md) | 17 个规则的表格（人数 / 用到的特性），找最相近的模板 |
+| [`examples/*.json`](examples/) | 复制最相近的模板改写，保留 `version: "1.6.0"` |
 
 ### 关键 schema 速记
 
-- 引擎当前 `CURRENT_RULE_SCHEMA_VERSION` = `1.5.0`
+- 引擎当前 `CURRENT_RULE_SCHEMA_VERSION` = `1.6.0`
   - 顶层：`name` / `description` / `minPlayers`(1-100, 默认 2) / `maxPlayers`(1-100, 默认 8) / `rounds[]`
   - `round`：`name` / `loop` / `maxLoops`(1-100, loop=true 时) / `defaultEmoji` / `steps[]`
-  - `step` 四种：`roll` / `text` / `punish` / `choice`
-    - `roll`：`label` / `emoji`(🎲 🎯 🏀 ⚽ 🎰 🎳) / `assignment`(next_player/self/any，默认 next_player)
-    - `text`：`label` / `prompt` / `mode`(manual，默认)
-    - `punish`：`label` / `defaultText` / `ladder[{at, text}]`
-    - `choice`：`label` / `prompt` / `options[{text, goto}]` — `goto` 是 `"next"` 或 `{roundIdx, stepIdx}`
+  - `step` 六种：`roll` / `text` / `punish` / `choice` / `showdown` / `branch`
+    - `roll`：`label` / `emoji`(🎲 🎯 🏀 ⚽ 🎰 🎳) / `assignment`(next_player/self/any/winner/loser/actor，默认 next_player) / `actorSlot`
+    - `text`：`label` / `prompt` / `mode`(manual，默认) / `showActor`
+    - `punish`：`label` / `defaultText` / `ladder[{at, text}]` / `showActor`
+    - `choice`：`label` / `prompt` / `options[{text, goto}]` / `chooser`(last_roller/winner/loser/actor/any) — `goto` 是 `"next"` 或 `{roundIdx, stepIdx}`
+    - `showdown`（全员比大小）：`label` / `emoji` / `order`(high/low/none) / `tie`(keep/first) / `as`(结果槽名) / `accumulate` / `actor`(winner/loser/none)
+    - `branch`（条件跳转）：`label` / `cases[{if, goto}]` / `default` / `maxHits`；`if` 支持 tie/unique/any/all/rank/sum/count/**dice**（最近一次单掷点数）
+  - 文案占位符：`{winner}` `{loser}` `{ranking}` `{rank1}` `{rank-1}` `{sum}` `{max}` `{min}` `{count}` `{actor}` `{dice}` `{roller}`，命名槽写法 `{score.winner}`
 - emoji 取值范围：🎲🎯🎳=1-6；🏀⚽=1-5；🎰=1-64
 - 引擎用 `state.lastRollerId` + `nextRollerId()` 自动轮换（assignment=next_player），单人场永远轮到自己
+- `showdown` 全员各掷一次后自动排序；结果存命名槽并可用 `{...}` 引用；`branch` 按条件跳转
 
 ### 修改 `CURRENT_RULE_SCHEMA_VERSION` 时
 

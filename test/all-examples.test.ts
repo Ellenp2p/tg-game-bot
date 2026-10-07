@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { ruleDefinition, type RuleDefinition, type DiceEmoji, DICE_EMOJI_MAX_VALUE, isJackpot } from '../src/model.js';
-import { beginGame, applyRoll, applyNext, applyChoice, applySkip, displayName, findStep, stepKey } from '../src/rules.js';
+import { beginGame, applyRoll, applyNext, applyChoice, applySkip, applyShowdownRoll, displayName, findStep, stepKey } from '../src/rules.js';
 import type { GameRecord, GamePlayer } from '../src/model.js';
 
 const EXAMPLES_DIR = join(process.cwd(), 'examples');
@@ -45,14 +45,22 @@ function driveRoll(game: GameRecord, def: RuleDefinition, players: GamePlayer[])
   applyRoll(game, def, userId, value, players, phase.emoji);
 }
 
-function driveUntil(game: GameRecord, def: RuleDefinition, players: GamePlayer[], maxSteps: number): { rolls: number; nexts: number; choices: number; skips: number; ended: boolean } {
-  let rolls = 0, nexts = 0, choices = 0, skips = 0;
+function driveUntil(game: GameRecord, def: RuleDefinition, players: GamePlayer[], maxSteps: number): { rolls: number; showdowns: number; nexts: number; choices: number; skips: number; ended: boolean } {
+  let rolls = 0, showdowns = 0, nexts = 0, choices = 0, skips = 0;
   for (let i = 0; i < maxSteps; i++) {
     if (game.status === 'ended') break;
     const phase = game.state.phase;
     if (phase.kind === 'roll') {
       driveRoll(game, def, players);
       rolls++;
+    } else if (phase.kind === 'showdown') {
+      // 全员各掷一次（用最小值 1）
+      for (const p of players) {
+        const cur = game.state.phase;
+        if (cur.kind !== 'showdown') break;
+        applyShowdownRoll(game, def, p.userId, Math.min(DICE_EMOJI_MAX_VALUE[cur.emoji], 1), players, cur.emoji);
+        showdowns++;
+      }
     } else if (phase.kind === 'signup') {
       break;
     } else if (phase.kind === 'choice') {
@@ -64,15 +72,15 @@ function driveUntil(game: GameRecord, def: RuleDefinition, players: GamePlayer[]
       nexts++;
     }
   }
-  return { rolls, nexts, choices, skips, ended: game.status === 'ended' };
+  return { rolls, showdowns, nexts, choices, skips, ended: game.status === 'ended' };
 }
 
 const examples = loadAll();
 assert.ok(examples.length >= 10, `expected 10 examples, found ${examples.length}`);
 
-test('all examples: parse as v1.5.0', () => {
+test('all examples: parse as v1.6.0', () => {
   for (const { name, def } of examples) {
-    assert.equal(def.version, '1.5.0', `${name} version mismatch`);
+    assert.equal(def.version, '1.6.0', `${name} version mismatch`);
   }
 });
 
@@ -118,7 +126,7 @@ test('all examples: complete playthrough ends within bounded steps', () => {
     const game = newGame(def, players);
     const r = driveUntil(game, def, players, totalSteps * (maxLoops + 5));
     assert.equal(r.ended, true, `${name} did not end within ${totalSteps * (maxLoops + 5)} steps`);
-    assert.ok(r.rolls + r.nexts + r.choices > 0, `${name} produced no actions`);
+    assert.ok(r.rolls + r.showdowns + r.nexts + r.choices > 0, `${name} produced no actions`);
   }
 });
 

@@ -1,0 +1,42 @@
+{
+  "version": "1.6.0",
+  "name": "掷骰子走格子",
+  "description": "经典棋盘玩法：每人轮流掷一次，按点数走不同分支——6 大吉、4-5 小吉、1-3 受罚。演示 branch 的 dice 条件（按最近一次单掷点数分支）。最多 6 轮。",
+  "defaultEmoji": "🎲",
+  "minPlayers": 2,
+  "maxPlayers": 8,
+  "rounds": [
+    {
+      "name": "掷骰子",
+      "loop": true,
+      "maxLoops": 6,
+      "steps": [
+        { "type": "roll", "label": "掷骰子", "assignment": "next_player" },
+        {
+          "type": "branch",
+          "label": "按点数分流",
+          "cases": [
+            { "if": { "check": "dice", "op": "eq", "value": 6 }, "goto": { "roundIdx": 0, "stepIdx": 2 } },
+            { "if": { "check": "dice", "op": "gte", "value": 4 }, "goto": { "roundIdx": 0, "stepIdx": 4 } }
+          ],
+          "default": { "roundIdx": 0, "stepIdx": 6 }
+        },
+        { "type": "text", "label": "大吉", "prompt": "🎉 {roller} 掷出 {dice}，大吉！全场敬一杯。" },
+        {
+          "type": "branch",
+          "label": "本轮结束",
+          "cases": [{ "if": { "check": "count", "op": "gte", "value": 1 }, "goto": { "roundIdx": 0, "stepIdx": 7 } }],
+          "default": "next"
+        },
+        { "type": "text", "label": "小吉", "prompt": "🙂 {roller} 掷出 {dice}，小吉，喝一小口。" },
+        {
+          "type": "branch",
+          "label": "本轮结束",
+          "cases": [{ "if": { "check": "count", "op": "gte", "value": 1 }, "goto": { "roundIdx": 0, "stepIdx": 7 } }],
+          "default": "next"
+        },
+        { "type": "punish", "label": "受罚", "showActor": true, "defaultText": "😵 {roller} 只掷出 {dice}，受罚：喝一杯！" }
+      ]
+    }
+  ]
+}

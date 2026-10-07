@@ -1,0 +1,34 @@
+{
+  "version": "1.6.0",
+  "name": "三局积分·最低分喝",
+  "description": "三局比大小累加总分（showdown accumulate + 命名结果槽 score），总分最高者点名，总分最低者喝酒。演示命名结果槽跨轮引用。",
+  "defaultEmoji": "🎲",
+  "minPlayers": 2,
+  "maxPlayers": 8,
+  "rounds": [
+    {
+      "name": "三局比大小",
+      "loop": true,
+      "maxLoops": 3,
+      "steps": [
+        { "type": "showdown", "label": "本局比大小", "order": "high", "accumulate": true, "as": "score" }
+      ]
+    },
+    {
+      "name": "结算",
+      "steps": [
+        {
+          "type": "text",
+          "label": "总积分",
+          "prompt": "三局总分：{score.ranking}\n最高：{score.winner}｜最低：{score.loser}\n请最高分点名，最低分接受惩罚。"
+        },
+        {
+          "type": "punish",
+          "label": "最低分惩罚",
+          "showActor": true,
+          "defaultText": "{score.loser} 三局总分最低，喝一杯！"
+        }
+      ]
+    }
+  ]
+}

@@ -88,6 +88,22 @@ function render(snap) {
       `<li>${i + 1}. ${esc(o.text)}</li>`
     ).join('');
     $('stepBody').innerHTML = `${head}<ol class="choice-options">${list}</ol>`;
+  } else if (snap.phase.kind === 'showdown') {
+    stepCard.hidden = false;
+    $('roundName').textContent = roundName;
+    $('stepLabel').innerHTML = `${esc(snap.phase.stepLabel || '比大小')} ${loopBadge(snap)}`;
+    const mode = snap.phase.order === 'low' ? '比小' : snap.phase.order === 'high' ? '比大' : '收集';
+    const rolls = snap.phase.rolls || [];
+    const pending = snap.phase.pending || [];
+    const rolledRows = rolls.map(r => {
+      const p = snap.players.find(pp => pp.userId === r.userId);
+      return `<li>✅ ${esc(viewerLabel(p))} → <b>${r.value}</b></li>`;
+    }).join('');
+    const pendingRows = pending.map(id => {
+      const p = snap.players.find(pp => pp.userId === id);
+      return `<li>⏳ ${esc(viewerLabel(p))}</li>`;
+    }).join('');
+    $('stepBody').innerHTML = `${snap.phase.emoji} ${mode} · 已掷 <b>${rolls.length}</b>/${snap.phase.total}<ul class="choice-options">${rolledRows}${pendingRows}</ul>`;
   } else {
     stepCard.hidden = true;
   }
@@ -115,7 +131,8 @@ function render(snap) {
   playersList.innerHTML = snap.players.length
     ? snap.players.map(p => {
         const isMe = p.userId === viewerId;
-        const isExpected = snap.phase.kind === 'roll' && snap.phase.expectedPlayerId === p.userId;
+        const isPending = snap.phase.kind === 'showdown' && (snap.phase.pending || []).includes(p.userId);
+        const isExpected = (snap.phase.kind === 'roll' && snap.phase.expectedPlayerId === p.userId) || isPending;
         return `<li class="${isMe ? 'me' : ''} ${isExpected ? 'expected' : ''}">${esc(p.label)}${isExpected ? ' 🎯' : ''}${isMe ? ' (你)' : ''}</li>`;
       }).join('')
     : '<li class="empty">暂无玩家</li>';
@@ -134,14 +151,23 @@ function render(snap) {
       buttons.push({ label: '▶ 开始', action: 'begin', kind: 'admin' });
     }
   } else if (snap.status === 'in_progress') {
-    if (snap.phase.kind === 'roll') {
-      const expected = snap.phase.expectedPlayerId === viewerId || snap.phase.expectedPlayerId === null;
+    if (snap.phase.kind === 'roll' || snap.phase.kind === 'showdown') {
       const isPlayer = snap.players.some(p => p.userId === viewerId);
-      if (expected && isPlayer) buttons.push({ label: '🎲 我扔（点我去群内发）', action: 'throw', kind: 'primary' });
+      let canThrow = false;
+      if (snap.phase.kind === 'roll') {
+        canThrow = snap.phase.expectedPlayerId === viewerId || snap.phase.expectedPlayerId === null;
+      } else {
+        canThrow = isPlayer && !(snap.phase.rolls || []).some(r => r.userId === viewerId);
+      }
+      if (canThrow && isPlayer) buttons.push({ label: `${snap.phase.emoji} 我扔（点我去群内发）`, action: 'throw', kind: 'primary' });
     }
     if (showAdmin) {
       if (snap.phase.kind === 'text' || snap.phase.kind === 'punish') {
         buttons.push({ label: '下一步', action: 'next', kind: 'admin' });
+        buttons.push({ label: '跳过', action: 'skip', kind: 'admin' });
+      }
+      if (snap.phase.kind === 'showdown') {
+        buttons.push({ label: '立即结算', action: 'next', kind: 'admin' });
         buttons.push({ label: '跳过', action: 'skip', kind: 'admin' });
       }
       buttons.push({ label: '撤销', action: 'undo', kind: 'admin' });

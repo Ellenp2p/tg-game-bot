@@ -12,6 +12,8 @@
 | `text` | 显示 prompt | 管理员 `/next` 或 Mini App「下一步」 |
 | `punish` | 显示惩罚（支持 ladder 升级） | 管理员 `/next` |
 | `choice` | 显示选项按钮 | 玩家点按钮（或管理员 `/next` 强制选第一个） |
+| `showdown` | 全员各发一次指定 emoji | 全员集齐自动结算（或管理员 `/next` 强制结算） |
+| `branch` | 进入即求值 | 自动跳转（不等待） |
 
 ## 字段约束速查
 
@@ -19,7 +21,7 @@
 
 ```json
 {
-  "version": "1.4.0",              // 可省略，自动填当前 CURRENT_RULE_SCHEMA_VERSION
+  "version": "1.6.0",              // 可省略，自动填当前 CURRENT_RULE_SCHEMA_VERSION
   "name": "规则名（必填）",
   "description": "简介（可选）",
   "defaultEmoji": "🎲",            // 可选，整局默认表情（被 round/step 覆盖）
@@ -77,7 +79,31 @@
 - `"next"` — 跳到下一步
 - `{ "roundIdx": N, "stepIdx": M }` — 跳到任意坐标
 
-只有上一个 `roll` 掷出 🎲 的玩家才能点（`phase.pickedBy`）。其他人误点会弹 toast。
+只有上一个 `roll` 掷出 🎲 的玩家才能点（`phase.pickedBy`）。其他人误点会弹 toast。可用 `chooser` 改成"赢家/输家/主角"来点。
+
+## showdown 步骤（全员比大小）
+
+```json
+{ "type": "showdown", "label": "全体比大小", "order": "high", "tie": "first", "as": "rank", "actor": "loser" }
+```
+
+- 进入后发一条看板：`✅ 已掷 ... / ⏳ 未掷 ...`，之后编辑同一条
+- 每位玩家各发一次指定 emoji；全员掷完自动排序结算
+- 结果存进命名槽（`as`，默认 `last`），后续文案可用 `{winner}` `{loser}` `{ranking}` `{rank1}` `{score.winner}` 等占位符
+- `order`: `high` 比大 / `low` 比小 / `none` 只收集
+- `accumulate: true` 把多局分数累加（积分赛）
+- `actor`: 结算后把主角设为 `winner`/`loser`，配合 `roll.assignment`/`choice.chooser` 让赢家/输家继续操作
+
+## branch 步骤（条件跳转）
+
+```json
+{ "type": "branch", "label": "判定", "cases": [
+  { "if": { "check": "any", "slot": "rank", "value": 6 }, "goto": { "roundIdx": 0, "stepIdx": 4 } },
+  { "if": "tie", "goto": "next" }
+], "default": "next" }
+```
+
+条件见根目录 `RULES_AUTHORING.md` 第 6 节（`tie`/`unique`/`any`/`all`/`rank`/`sum`/`count`）。
 
 ## 已有模板
 
@@ -96,6 +122,10 @@
 | `11-solo-truth.json` | 单人真心话 | 1 | roll 选题 + choice 答 or 罚 + ladder 升级 + maxLoops=20 |
 | `12-solo-dice-challenge.json` | 单人骰子挑战 | 1 | roll + ladder 6 级 + maxLoops=10 |
 | `13-solo-riddle.json` | 单人谜语闯关 | 1 | text 出题 + choice 答 or 罚 + ladder 升级 + maxLoops=5 |
+| `14-showdown-duel.json` | 比大小·输家喝 | 2-10 | showdown + 模板占位符 + branch 条件跳转 + maxLoops=5 |
+| `15-showdown-series.json` | 三局积分·最低分喝 | 2-8 | showdown accumulate 积分 + 命名结果槽 + 跨轮引用 |
+| `16-showdown-chooser.json` | 比大小·赢家点菜 | 2-8 | showdown actor=winner + choice chooser=winner + branch 收尾 |
+| `17-dice-branch-board.json` | 掷骰子走格子 | 2-8 | branch 的 dice 条件（按单掷点数分支）+ 模板 {dice}/{roller} |
 
 复制任一文件，改 `name`、改 `description`、改具体文案就能用。提交方式：
 

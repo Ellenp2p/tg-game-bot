@@ -19,33 +19,96 @@ export const choiceOption = z.object({
 });
 export type ChoiceOption = z.infer<typeof choiceOption>;
 
+/** 结果槽名：小写字母开头，可含数字/下划线，最长 20 */
+export const slotName = z.string().regex(/^[a-z][a-z0-9_]{0,19}$/, '结果槽名需匹配 [a-z][a-z0-9_]{0,19}');
+
+/** 比较运算符 */
+export const compareOp = z.enum(['gt', 'gte', 'lt', 'lte', 'eq', 'ne']);
+export type CompareOp = z.infer<typeof compareOp>;
+
+/** branch 的条件词表 */
+export const branchCondition = z.discriminatedUnion('check', [
+  z.object({ slot: slotName.optional(), check: z.literal('tie') }),
+  z.object({ slot: slotName.optional(), check: z.literal('unique') }),
+  z.object({ slot: slotName.optional(), check: z.literal('any'), value: z.number().int() }),
+  z.object({ slot: slotName.optional(), check: z.literal('all'), value: z.number().int() }),
+  z.object({
+    slot: slotName.optional(), check: z.literal('rank'),
+    pick: z.number().int().refine(n => n !== 0, { message: 'pick 不能为 0' }),
+    op: compareOp, value: z.number()
+  }),
+  z.object({ slot: slotName.optional(), check: z.literal('sum'), op: compareOp, value: z.number() }),
+  z.object({ slot: slotName.optional(), check: z.literal('count'), op: compareOp, value: z.number() }),
+  // 最近一次单掷 roll 的点数（state.lastDice.value）
+  z.object({ check: z.literal('dice'), op: compareOp, value: z.number() })
+]);
+export type BranchCondition = z.infer<typeof branchCondition>;
+
+/** 条件字符串糖：'tie' / 'unique' */
+export const branchConditionInput = z.union([
+  z.enum(['tie', 'unique']),
+  branchCondition
+]);
+export type BranchConditionInput = z.infer<typeof branchConditionInput>;
+
+export const branchCase = z.object({
+  if: branchConditionInput,
+  goto: choiceGoto
+});
+export type BranchCase = z.infer<typeof branchCase>;
+
 export const step = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('roll'),
     label: z.string().min(1).max(200),
     emoji: z.enum(SUPPORTED_DICE_EMOJIS).optional(),
-    assignment: z.enum(['next_player', 'self', 'any']).default('next_player')
+    assignment: z.enum(['next_player', 'self', 'any', 'winner', 'loser', 'actor']).default('next_player'),
+    actorSlot: slotName.optional()
   }),
   z.object({
     type: z.literal('text'),
     label: z.string().min(1).max(200),
     prompt: z.string().min(1).max(1000).optional(),
-    mode: z.enum(['manual', 'auto']).default('manual')
+    mode: z.enum(['manual', 'auto']).default('manual'),
+    showActor: z.boolean().default(false)
   }),
   z.object({
     type: z.literal('punish'),
     label: z.string().min(1).max(200),
     ladder: z.array(z.object({ at: z.number().int().min(1).max(1000), text: z.string().min(1).max(500) })).default([]),
-    defaultText: z.string().min(1).max(500)
+    defaultText: z.string().min(1).max(500),
+    showActor: z.boolean().default(false)
   }),
   z.object({
     type: z.literal('choice'),
     label: z.string().min(1).max(200),
     prompt: z.string().max(500).optional(),
-    options: z.array(choiceOption).min(2).max(6)
+    options: z.array(choiceOption).min(2).max(6),
+    chooser: z.enum(['last_roller', 'winner', 'loser', 'actor', 'any']).default('last_roller'),
+    chooserSlot: slotName.optional()
+  }),
+  z.object({
+    type: z.literal('showdown'),
+    label: z.string().min(1).max(200),
+    emoji: z.enum(SUPPORTED_DICE_EMOJIS).optional(),
+    order: z.enum(['high', 'low', 'none']).default('high'),
+    tie: z.enum(['keep', 'first']).default('keep'),
+    as: slotName.optional(),
+    accumulate: z.boolean().default(false),
+    actor: z.enum(['winner', 'loser', 'none']).default('none')
+  }),
+  z.object({
+    type: z.literal('branch'),
+    label: z.string().min(1).max(200),
+    cases: z.array(branchCase).min(1).max(8),
+    default: choiceGoto.default('next'),
+    maxHits: z.number().int().min(1).max(200).default(50)
   })
 ]);
 export type Step = z.infer<typeof step>;
+export type ShowdownStep = Extract<Step, { type: 'showdown' }>;
+export type BranchStep = Extract<Step, { type: 'branch' }>;
+export type RollStep = Extract<Step, { type: 'roll' }>;
 
 export const round = z.object({
   name: z.string().min(1).max(80),
@@ -56,7 +119,7 @@ export const round = z.object({
 });
 export type Round = z.infer<typeof round>;
 
-export const CURRENT_RULE_SCHEMA_VERSION = '1.5.0';
+export const CURRENT_RULE_SCHEMA_VERSION = '1.6.0';
 
 export const ruleDefinition = z.object({
   version: z.string().regex(/^\d+\.\d+\.\d+$/).default(CURRENT_RULE_SCHEMA_VERSION),
@@ -73,6 +136,10 @@ export const ruleDefinition = z.object({
 export type RuleDefinition = z.infer<typeof ruleDefinition>;
 
 export function resolveRollEmoji(def: RuleDefinition, round: Round, step: Extract<Step, { type: 'roll' }>): DiceEmoji {
+  return step.emoji ?? round.defaultEmoji ?? def.defaultEmoji ?? '🎲';
+}
+
+export function resolveShowdownEmoji(def: RuleDefinition, round: Round, step: ShowdownStep): DiceEmoji {
   return step.emoji ?? round.defaultEmoji ?? def.defaultEmoji ?? '🎲';
 }
 
@@ -120,12 +187,48 @@ export type GamePlayer = {
   joinedAt: number;
 };
 
+/** showdown 单次收集记录 */
+export type ShowdownRoll = { userId: number; value: number; at: number };
+
+export type ShowdownOrder = 'high' | 'low' | 'none';
+export type ShowdownTie = 'keep' | 'first';
+
+/** showdown 结算结果（存在命名结果槽里） */
+export type ShowdownResult = {
+  order: ShowdownOrder;
+  /** userId -> 本次值（accumulate 时为累计总分） */
+  totals: Record<string, number>;
+  /** 按 order 排好序的排名 */
+  ranking: { userId: number; value: number }[];
+  winners: number[];
+  losers: number[];
+  sum: number;
+  max: number;
+  min: number;
+};
+
+/** 尚未揭晓的骰子（按 userId 索引，支持多人并发） */
+export type PendingRoll = {
+  userId: number;
+  value: number;
+  chatId: number;
+  waitingMsgId: number;
+  emoji: DiceEmoji;
+  kind: 'roll' | 'showdown';
+  roundIdx: number;
+  stepIdx: number;
+};
+
 export type GamePhase =
   | { kind: 'signup' }
   | { kind: 'roll'; stepIdx: number; expectedPlayerId: number | null; roundIdx: number; emoji: DiceEmoji }
   | { kind: 'text'; stepIdx: number; roundIdx: number; text: string }
   | { kind: 'punish'; stepIdx: number; roundIdx: number; text: string; hitCount: number }
-  | { kind: 'choice'; stepIdx: number; roundIdx: number; options: ChoiceOption[]; pickedBy: number | null };
+  | { kind: 'choice'; stepIdx: number; roundIdx: number; options: ChoiceOption[]; pickedBy: number | null }
+  | {
+      kind: 'showdown'; stepIdx: number; roundIdx: number;
+      emoji: DiceEmoji; order: ShowdownOrder; tie: ShowdownTie; slot: string; rolls: ShowdownRoll[];
+    };
 
 export type GameState = {
   phase: GamePhase;
@@ -134,7 +237,16 @@ export type GameState = {
   lastRollerId?: number;
   lastDice?: { userId: number; value: number; at: number; emoji: DiceEmoji };
   lastMessage?: string;
-  pendingRoll?: { userId: number; value: number; chatId: number; waitingMsgId: number; emoji: DiceEmoji };
+  /** 未揭晓的骰子，按 userId -> pending */
+  pendingRolls?: Record<string, PendingRoll>;
+  /** 命名结果槽 */
+  results?: Record<string, ShowdownResult>;
+  /** 最近一次写入的结果槽名 */
+  lastResultSlot?: string;
+  /** 当前主角 */
+  activeActorId?: number;
+  /** showdown 看板消息 id（编辑同一条，避免刷屏） */
+  showdownBoardMsgId?: number;
 };
 
 export type GameRecord = {
@@ -153,7 +265,7 @@ export type GameRecord = {
 
 export type GameEventType =
   | 'create' | 'join' | 'leave' | 'begin'
-  | 'roll' | 'text' | 'punish' | 'choice'
+  | 'roll' | 'showdown' | 'text' | 'punish' | 'choice' | 'branch'
   | 'next' | 'undo' | 'skip' | 'end' | 'replace';
 
 export type GameEventRecord = {

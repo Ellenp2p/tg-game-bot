@@ -8,7 +8,7 @@
 
 ```json
 {
-  "version": "1.3.0",
+  "version": "1.6.0",
   "name": "我的规则",
   ...
 }
@@ -20,7 +20,7 @@
 
 当引擎升级时，旧规则会被照常加载，但任何不支持的字段会被忽略。要迁移旧规则，先读取，再用新版字段重写，把 `version` 改成新版本号。
 
-**当前 `CURRENT_RULE_SCHEMA_VERSION` = `1.5.0`**（新增：`rule.minPlayers` / `rule.maxPlayers` 人数上下限；`step.roll.assignment` 引擎现在会强制校验）
+**当前 `CURRENT_RULE_SCHEMA_VERSION` = `1.6.0`**（新增：`showdown` 全员比大小/收集步骤；`branch` 条件跳转步骤；命名"结果槽" + 文案模板占位符；`roll.assignment` 支持 `winner`/`loser`/`actor`；`choice.chooser`；`text`/`punish.showActor`；`branch` 条件支持按最近一次单掷点数 `dice`）
 
 ## 顶层结构
 
@@ -254,11 +254,130 @@ value = (r1-1) * 16 + (r2-1) * 4 + r3
 
 **典型用法**：在 `roll` 之后插入 `choice`，让玩家决定走 `text` 还是直接 `punish`。
 
+### 5. `showdown`（全员比大小 / 同时收集）★ 新增
+
+```json
+{
+  "type": "showdown",
+  "label": "全体比大小",
+  "emoji": "🎲",          // 可选，三层回退同 roll
+  "order": "high",       // high 降序 / low 升序 / none 只收集不排序
+  "tie": "keep",         // keep 并列保留 / first 先掷到者独赢
+  "as": "rank",          // 可选，结果槽名（小写标识符），默认 "last"
+  "accumulate": false,   // true = 多次结算累加成分数（积分赛）
+  "actor": "none"        // 结算后把「主角」设为 winner / loser / none（默认 none）
+}
+```
+
+- 进入此步后，群里发一条**看板**消息（之后编辑同一条，不刷屏）：
+  ```
+  📍 比大小 · 全体比大小
+  🎲 比大 · 已掷 1/3
+  ✅ @A → 4
+  ⏳ 未掷(2)：@B @C
+  ```
+- **每位玩家各发一次** `emoji`：重复发 / 非玩家 / 表情不符 / 超范围都会被拒绝
+- **全员掷完自动结算**：排序 → 写入结果槽 → 按 `actor` 设置主角 → 自动进入下一步
+- 管理员 `/next` = 立刻用当前已掷结果强制结算；`/skip` = 放弃本步；`/undo` = 撤掉最近一次收集
+- `order: 'none'`：只收集不排名（winners/losers 为空）
+- `accumulate: true`：每次结算把本局值**累加**进该槽总分，适合"三局积分赛"
+- `tie: 'first'`：并列时按"先掷到者"分出唯一第一名/末名；`accumulate` 时不按时间而按加入顺序兜底
+
+**结果槽数据**（存在命名槽里，默认槽 `"last"` 总指最近一次）：
+
+```
+state.results["rank"] = {
+  order, totals, ranking: [{userId, value}...],   // 已排序
+  winners: [...], losers: [...], sum, max, min
+}
+```
+
+### 6. `branch`（条件跳转）★ 新增
+
+```json
+{
+  "type": "branch",
+  "label": "封神判定",
+  "cases": [
+    { "if": { "check": "any", "slot": "rank", "value": 6 }, "goto": { "roundIdx": 0, "stepIdx": 4 } },
+    { "if": "tie", "goto": "next" }
+  ],
+  "default": "next",     // 无命中时的去向（同 goto 写法）
+  "maxHits": 50          // 安全阀：本步最多执行多少次，超出强制前进，防止自环死循环
+}
+```
+
+- `branch` **自动推进、不等待**：进入时立即按下表匹配 `cases`，命中即跳；否则走 `default`
+- `goto` / `default` 都用 `"next"` 或 `{ "roundIdx": N, "stepIdx": M }`
+- 典型用法：`showdown` 之后放一个 `branch`，按结果跳不同分支
+- 也可以按**最近一次单掷**的点数分支（经典棋盘玩法）：
+
+  ```jsonc
+  { "type": "roll", "label": "掷骰子" },
+  {
+    "type": "branch", "label": "按点数",
+    "cases": [
+      { "if": { "check": "dice", "op": "eq",  "value": 6 }, "goto": { "roundIdx": 0, "stepIdx": 3 } },
+      { "if": { "check": "dice", "op": "lte", "value": 2 }, "goto": { "roundIdx": 0, "stepIdx": 4 } }
+    ],
+    "default": "next"
+  }
+  ```
+
+**`if` 条件词表**（`op` ∈ `gt / gte / lt / lte / eq / ne`；`slot` 省略时用 `last`）：
+
+| check | 含义 | 需要的字段 |
+|---|---|---|
+| `tie` | 第 1 名并列（字符串糖：`"tie"`） | — |
+| `unique` | 无并列（字符串糖：`"unique"`） | — |
+| `any` | 有人掷出 `value` | `value` |
+| `all` | 所有人都是 `value` | `value` |
+| `rank` | 第 `pick` 名的值满足 `op value`（`pick` 负数从末位起） | `pick, op, value` |
+| `sum` | 总点数 `op value` | `op, value` |
+| `count` | 参与人数 `op value` | `op, value` |
+| `dice` | 最近一次单掷 `roll` 的点数 `op value`（还没掷过则 false） | `op, value` |
+
+### 7. 结果引用：文案模板占位符 ★ 新增
+
+以下字段都支持占位符：`label` / `text.prompt` / `punish.defaultText` / `punish.ladder[].text` / `choice.prompt` / `choice.options[].text`。
+
+| 写法 | 含义 |
+|---|---|
+| `{winner}` `{winners}` `{loser}` `{losers}` | 第 1 名 / 末位（并列用 `、` 连接） |
+| `{rank1}` `{rank2}` `{rank-1}` | 第 N 名（负数从末位起） |
+| `{ranking}` | `@A 6 · @B 4 · @C 2` |
+| `{sum}` `{max}` `{min}` `{count}` | 统计值 |
+| `{actor}` | 当前主角 |
+| `{dice}` | 最近一次单掷 `roll` 的点数 |
+| `{roller}` | 最近一次单掷 `roll` 的人（@mention） |
+| `{rank.winner}` `{score.ranking}` | 命名槽写法（无前缀 = `last`） |
+
+- 群消息里玩家显示为 @mention；Mini App 用纯文本名
+- 结果槽还不存在时，占位符**原样保留**（不会报错）
+- 例：`{ "defaultText": "{loser} 执行 {winner} 指定的惩罚。" }`
+
+### 8. 主角（actor）与结果驱动流程 ★ 新增
+
+引擎维护一个"当前主角" `state.activeActorId`：`roll` 揭晓 = 掷骰人；`showdown` 结算 = 按 `showdown.actor`；`choice` 选择 = 选择人。
+
+用它把排名接回流程：
+
+```jsonc
+// 让「赢家 / 输家 / 当前主角」来掷骰
+{ "type": "roll", "assignment": "winner", "actorSlot": "rank" }   // winner | loser | actor | next_player | self | any
+
+// 让「赢家 / 输家 / 当前主角」来选
+{ "type": "choice", "chooser": "winner", "chooserSlot": "rank", "options": [...] }  // last_roller(默认) | winner | loser | actor | any
+
+// text / punish 正文前显示「👉 主角：@X」
+{ "type": "punish", "showActor": true, "defaultText": "{actor} 喝一杯" }
+```
+
 ## 完整示例：真心话大冒险
 
 ```json
 {
-  "version": "1.2.0",
+  "version": "1.6.0",
   "name": "真心话大冒险",
   "description": "经典派对游戏。色子决定谁来答题，玩家在 choice 阶段二选一答或罚。",
   "rounds": [
@@ -383,14 +502,46 @@ value = (r1-1) * 16 + (r2-1) * 4 + r3
 ```
 → 管理员每答完一题就 `/next`，简单到极致
 
+### 模式 E：比大小定奖惩（showdown + 模板）
+
+```json
+{ "name": "比大小", "rounds": [{ "name": "R", "loop": true, "maxLoops": 5, "steps": [
+  { "type": "showdown", "label": "全体比大小", "order": "high", "tie": "first", "as": "rank", "actor": "loser" },
+  { "type": "text", "label": "赢家发令", "prompt": "排名：{ranking}\n{winner} 给 {loser} 派个惩罚。" },
+  { "type": "punish", "label": "输家执行", "showActor": true, "defaultText": "{loser} 执行 {winner} 的惩罚。" }
+]}]}
+```
+
+### 模式 F：按排名分支（showdown + branch）
+
+```json
+{ "type": "showdown", "label": "全体比大小", "as": "rank" },
+{ "type": "branch", "label": "判定", "cases": [
+    { "if": { "check": "any", "slot": "rank", "value": 6 }, "goto": { "roundIdx": 0, "stepIdx": 3 } },
+    { "if": "tie", "goto": "next" }
+  ], "default": "next" }
+```
+
+### 模式 G：三局积分（showdown accumulate + 命名槽）
+
+```json
+{ "name": "三局比大小", "loop": true, "maxLoops": 3, "steps": [
+  { "type": "showdown", "label": "本局", "order": "high", "accumulate": true, "as": "score" }
+]},
+{ "name": "结算", "steps": [
+  { "type": "text", "label": "总分", "prompt": "总分：{score.ranking}｜最低：{score.loser}" }
+]}
+```
+
 ## 操作矩阵（设计时要考虑）
 
 | 谁能做 | 操作 | 触发 |
 |---|---|---|
 | 玩家 | 发 🎲 表情 | roll 阶段 |
-| 玩家 | 点 choice 按钮 | choice 阶段（必须是 pickedBy） |
+| 玩家 | 发当前 emoji（各一次） | showdown 阶段 |
+| 玩家 | 点 choice 按钮 | choice 阶段（必须是 pickedBy / chooser 指定的人） |
 | 玩家 | 群里发言 / /joingame / /leavegame | 报名阶段 |
-| 管理员 | `/startgame` `/begin` `/next` `/skip` `/undo` `/endgame` | 全程 |
+| 管理员 | `/startgame` `/begin` `/next` `/skip` `/undo` `/endgame` | 全程（showdown 时 `/next` = 立即结算） |
 | 任何人 | `/status` `/play` | 全程（不改变状态） |
 
 ## 提交方式（用户视角）
@@ -408,8 +559,13 @@ value = (r1-1) * 16 + (r2-1) * 4 + r3
 1. **text 阶段没有 auto 模式**：必须管理员手动 `/next`
 2. **choice 选项里不能引用其他 step 的 label**：goto 只能用坐标或 `'next'`
 3. **punish ladder 只能升级不能降级**：hitCount 单调递增
-4. **`/undo` 不能跨 choice 跳转回更早的 step**（只能撤销最近一个事件）
-5. **`assignment` 只控制 roll 阶段**：choice / text / punish 阶段没有「轮到谁」的概念（`pickedBy` 在 choice 时才有意义）
+4. **`/undo` 不能跨 choice 跳转回更早的 step**（只能撤销最近一个事件；showdown 已结算时退回该步但清空本次收集）
+5. **`assignment` 只控制 roll 阶段**：choice 的"轮到谁"用 `chooser`
+6. **`showdown` 的收集介质是 Telegram dice**：目前只能收集 emoji 点数（不支持收集文字）
+7. **`branch` 条件只读结果槽或最近一次单掷**：词表见第 6 节（含 `dice`），暂不支持任意表达式
+8. **`showdown` 未掷满被 `/next` 强制结算时**，未掷玩家按 0 分计（`accumulate` 时保留其历史总分）
+9. **模板占位符在结果槽不存在时原样保留**：如未开过 showdown 就写 `{winner}`，群里会显示 `{winner}`
+10. **`branch` 自环/回跳**：靠 `maxHits`（默认 50）兜底，超过后强制前进
 
 ## AI 设计规则时的自检清单
 
@@ -423,8 +579,13 @@ value = (r1-1) * 16 + (r2-1) * 4 + r3
 6. **text 步骤是否依赖前面的色子/选择**？如果是，需要配合 choice 在前面
 7. **choice 选项的 goto 是否都指向有效坐标**？比如 `{ "roundIdx": 0, "stepIdx": 5 }` 但 round 只有 4 个 step → 会越过 round 边界进入下一轮（这是允许的，但要确认意图）
 8. **规则总步数 ≤ 40 × 20 = 800**？超过会被 zod 拒绝
-9. **version 字段是否填了当前引擎的 CURRENT_RULE_SCHEMA_VERSION（1.5.0）**？不填会被填默认值，但显式填更好
-10. **`step.roll.assignment` 是否考虑过**？默认 `next_player` 适合绝大多数规则；`self` 适合独人挑战；`any` 适合抢答
+9. **version 字段是否填了当前引擎的 CURRENT_RULE_SCHEMA_VERSION（1.6.0）**？不填会被填默认值，但显式填更好
+10. **`step.roll.assignment` 是否考虑过**？默认 `next_player` 适合绝大多数规则；`self` 适合独人挑战；`any` 适合抢答；`winner`/`loser`/`actor` 用于结果驱动
+11. **用了 `showdown` 后，结果槽名是否明确**？多场比大小记得用不同的 `as`，否则默认槽 `last` 会被覆盖
+12. **`{winner}`/`{loser}` 等占位符只在 showdown 结算后才有效**？前面没有 showdown 时用会原样显示
+13. **`branch` 的 `cases` 是否有明确的兜底 `default`**？回跳/自环要设 `maxHits`
+14. **`showdown.actor` / `choice.chooser` / `roll.assignment` 引用的是哪个槽**？跨多个结果槽时用 `actorSlot`/`chooserSlot` 指明确
+15. **`showdown` 的 `order` 与 `tie` 是否符合玩法**？比大用 `high`、比小用 `low`；要唯一赢家优先用 `tie: 'first'`
 
 ## 完整示例库
 
@@ -434,6 +595,10 @@ value = (r1-1) * 16 + (r2-1) * 4 + r3
 - `02-dice-punishment.json` — 色子惩罚
 - `03-riddle-chain.json` — 谜语链
 - `04-quiz-trivia.json` — 问答
+- `14-showdown-duel.json` — 比大小·输家喝（showdown + 模板 + branch）
+- `15-showdown-series.json` — 三局积分·最低分喝（showdown accumulate + 命名槽）
+- `16-showdown-chooser.json` — 比大小·赢家点菜（showdown actor + choice chooser + branch）
+- `17-dice-branch-board.json` — 掷骰子走格子（branch 的 dice 条件 + {dice}/{roller}）
 
 ## 字段约束速查
 
@@ -451,18 +616,35 @@ value = (r1-1) * 16 + (r2-1) * 4 + r3
 | `round.maxLoops` | int | 否 | 1–100 |
 | `round.defaultEmoji` | enum | 否 | `🎲`/`🎯`/`🏀`/`⚽`/`🎰`/`🎳` |
 | `round.steps` | array | 是 | 1–40 项 |
-| `step.type` | enum | 是 | `roll`/`text`/`punish`/`choice` |
-| `step.label` | string | 是 | 1–200 字 |
+| `step.type` | enum | 是 | `roll`/`text`/`punish`/`choice`/`showdown`/`branch` |
+| `step.label` | string | 是 | 1–200 字（支持模板占位符） |
 | `roll.emoji` | enum | 否（默认 `🎲`） | `🎲`/`🎯`/`🏀`/`⚽`/`🎰`/`🎳` |
-| `roll.assignment` | enum | 否（默认 `next_player`） | `next_player`/`self`/`any` |
-| `text.prompt` | string | 否 | 1–1000 字 |
+| `roll.assignment` | enum | 否（默认 `next_player`） | `next_player`/`self`/`any`/`winner`/`loser`/`actor` |
+| `roll.actorSlot` | string | 否 | 结果槽名（`winner`/`loser` 时用，默认 `last`） |
+| `text.prompt` | string | 否 | 1–1000 字（支持模板占位符） |
 | `text.mode` | enum | 否 | `manual`（默认）/`auto` |
-| `punish.defaultText` | string | 是 | 1–500 字 |
+| `text.showActor` | boolean | 否（默认 false） | `true` = 正文前显示「👉 主角：@X」 |
+| `punish.defaultText` | string | 是 | 1–500 字（支持模板占位符） |
 | `punish.ladder` | array | 否（默认空） | 0–N 项 `{ at: 1–1000, text: 1–500 }` |
-| `choice.prompt` | string | 否 | 0–500 字 |
+| `punish.showActor` | boolean | 否（默认 false） | 同 `text.showActor` |
+| `choice.prompt` | string | 否 | 0–500 字（支持模板占位符） |
 | `choice.options` | array | 是 | 2–6 项 |
-| `option.text` | string | 是 | 1–80 字 |
+| `choice.chooser` | enum | 否（默认 `last_roller`） | `last_roller`/`winner`/`loser`/`actor`/`any` |
+| `choice.chooserSlot` | string | 否 | 结果槽名（`winner`/`loser` 时用，默认 `last`） |
+| `option.text` | string | 是 | 1–80 字（支持模板占位符） |
 | `option.goto` | union | 是 | `"next"` 或 `{ roundIdx: ≥0, stepIdx: ≥0 }` |
+| `showdown.emoji` | enum | 否（默认 `🎲`） | 同 `roll.emoji` |
+| `showdown.order` | enum | 否（默认 `high`） | `high`/`low`/`none` |
+| `showdown.tie` | enum | 否（默认 `keep`） | `keep`/`first` |
+| `showdown.as` | string | 否（默认 `last`） | `[a-z][a-z0-9_]{0,19}` |
+| `showdown.accumulate` | boolean | 否（默认 false） | `true` = 多次结算累加成分数 |
+| `showdown.actor` | enum | 否（默认 `none`） | `winner`/`loser`/`none` |
+| `branch.cases` | array | 是 | 1–8 项 `{ if, goto }` |
+| `branch.default` | union | 否（默认 `"next"`） | 同 `goto` |
+| `branch.maxHits` | int | 否（默认 50） | 1–200 |
+| `condition.check` | enum | 是 | `tie`/`unique`/`any`/`all`/`rank`/`sum`/`count` |
+| `condition.slot` | string | 否（默认 `last`） | 结果槽名 |
+| `condition.op` | enum | `rank`/`sum`/`count` 时必填 | `gt`/`gte`/`lt`/`lte`/`eq`/`ne` |
 
 ### Emoji 取值范围
 
@@ -487,6 +669,7 @@ value = (r1-1) * 16 + (r2-1) * 4 + r3
 | `text` | `📍 <轮名> · <label>` + `prompt` 内容 | `[下一步] [跳过]` |
 | `punish` | `📍 <轮名> · <label>` + `🎯 惩罚：<text>（第 N 次）` | `[下一步] [跳过]` |
 | `choice` | `📍 <轮名> · <label>` + `请选择：\n1. <optA>\n2. <optB>` | 每个 option 一个按钮（pickedBy 校验） |
+| `showdown` | `📍 <轮名> · <label>` + `🎲 比大 · 已掷 k/N` + 已掷/未掷名单 | `[立即结算] [跳过]`（管理员） |
 | `ended` | `🏁 对局已结束` + 最后一帧信息 | 无 |
 
 **自动推进规则**：任何 phase 切换后引擎自动发送新状态消息，不用规则作者写。
@@ -500,10 +683,14 @@ value = (r1-1) * 16 + (r2-1) * 4 + r3
 | `/undo` | 回到上一步的 status |
 | `/endgame` | `🏁 对局已结束。` |
 | 玩家点 choice 按钮 | resultMessage + 新 phase 的 status |
+| 玩家在 showdown 掷骰 | 编辑看板（追加 ✅ / 结算为终榜） |
+| showdown 全员集齐 | resultMessage + 新 phase 的 status |
+| 进入 branch step | 立即求值跳转（不发独立消息） |
 | `/status` 命令 | 主动查询当前 phase 的 status |
 
 **按钮的权限**：所有 inline 按钮点了都会带 `ctx.from.id`，服务端校验：
 - `[下一步] [跳过]` 必须群管理员（`doAdmin` 校验）
+- `[立即结算] [跳过]`（showdown）必须群管理员
 - `[pickChoice]` 必须 `phase.pickedBy === null || phase.pickedBy === ctx.from.id`（避免别人误选）
 - `[加入] [退出报名]` 必须未加入/已加入
 - `[开始]` 必须群管理员 + 至少 1 个玩家
@@ -515,3 +702,6 @@ value = (r1-1) * 16 + (r2-1) * 4 + r3
 - 想做"按顺序轮到某玩家才能选" → `step.roll.assignment: 'next_player'`（引擎强制校验；其他人掷会收到「不是你的回合，请等待系统指定玩家」toast）
 - 想做"任何人抢答" → `step.roll.assignment: 'any'`
 - 想做"独人掷骰" → `step.roll.assignment: 'self'`
+- 想做"全员比大小" → 用 `showdown` step（见第 5 节），不要试图用 `roll` 硬凑
+- 想做"按排名分支/惩罚赢家输家" → 用 `showdown.as` 结果槽 + `{winner}/{loser}` 占位符 + `branch`
+- 想做"赢家/输家继续操作" → `roll.assignment: 'winner'` / `choice.chooser: 'loser'`

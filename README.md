@@ -6,8 +6,8 @@ Telegram 群内由管理员开对局 → 玩家掷色子 / 答题 / 受罚 → �
 
 ## 特性
 
-- **群内对局**：每个群独立的对局；多人轮换、惩罚 ladder 自动升级、可循环轮、可设置特定 step
-- **声明式规则**：JSON 描述游戏流程，4 种 step 类型（`roll` / `text` / `punish` / `choice`），13 个模板见 [`examples/`](examples/)
+- **群内对局**：每个群独立的对局；多人轮换、全员比大小、惩罚 ladder 自动升级、可循环轮、可设置特定 step
+- **声明式规则**：JSON 描述游戏流程，6 种 step 类型（`roll` / `text` / `punish` / `choice` / `showdown` / `branch`），17 个模板见 [`examples/`](examples/)
 - **多种 emoji**：🎲🎯🏀⚽🎰🎳（骰子 1-6、篮球足球 1-5、老虎机 1-64）
 - **实时视图**：Telegram Mini App（WebSocket 推送）— 玩家看到当前进度，管理员看到全员状态
 - **管理面板**：Mini App 提供报名 / 推进 / 跳过 / 撤销 / 结束 / 切换步骤
@@ -64,7 +64,9 @@ pnpm start
 
 ### 玩家操作
 
-到点轮到自己时，发对应 emoji（默认 🎲，根据规则也可能是 🏁🎯🏀⚽🎰🎳）。引擎 3.5 秒后自动公布结果并推进（或等管理员 `/next`）。
+到点轮到自己时，发对应 emoji（默认 🎲，根据规则也可能是 🎯🏀⚽🎰🎳）。引擎 3.5 秒后自动公布结果并推进（或等管理员 `/next`）。
+
+「比大小（`showdown`）」步骤则由**全员各发一次**：看板实时显示 ✅ 已掷 / ⏳ 未掷名单，全员集齐后自动排序结算。
 
 ## 文档
 
@@ -72,8 +74,8 @@ pnpm start
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | 项目说明、bot 语义、调试技巧、规则设计概览 |
 | [`RULES_AUTHORING.md`](RULES_AUTHORING.md) | **规则 JSON 完整 schema**，给设计者 / AI 用 |
-| [`examples/README.md`](examples/README.md) | 13 个规则的表格（人数 + 用到的特性） |
-| [`examples/*.json`](examples/) | 现成模板（真心话大冒险、骰子惩罚、谜语接龙、篮球三连冠、老虎机 JACKPOT 等） |
+| [`examples/README.md`](examples/README.md) | 17 个规则的表格（人数 + 用到的特性） |
+| [`examples/*.json`](examples/) | 现成模板（真心话大冒险、骰子惩罚、谜语接龙、篮球三连冠、老虎机 JACKPOT、比大小等） |
 
 ## 部署
 

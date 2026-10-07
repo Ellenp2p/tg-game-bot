@@ -1,0 +1,42 @@
+{
+  "version": "1.6.0",
+  "name": "比大小·输家喝",
+  "description": "全员各掷一次色子，最大的人指定惩罚，最小的人执行。有人掷出 6 会触发『封神』额外一杯。最多 5 轮。演示 showdown + 模板占位符 + branch 条件跳转。",
+  "defaultEmoji": "🎲",
+  "minPlayers": 2,
+  "maxPlayers": 10,
+  "rounds": [
+    {
+      "name": "比大小",
+      "loop": true,
+      "maxLoops": 5,
+      "steps": [
+        { "type": "showdown", "label": "全体比大小", "order": "high", "tie": "first", "as": "rank", "actor": "loser" },
+        {
+          "type": "text",
+          "label": "赢家发令",
+          "prompt": "本局排名：{ranking}\n最大的是 {winner}，输的是 {loser}。\n请 {winner} 给 {loser} 派一个惩罚，完成后点「下一步」。"
+        },
+        {
+          "type": "punish",
+          "label": "输家执行",
+          "showActor": true,
+          "defaultText": "{actor} 执行 {winner} 指定的惩罚。",
+          "ladder": [
+            { "at": 3, "text": "{loser} 直接喝一杯。" },
+            { "at": 5, "text": "{loser} 连喝两杯，{winner} 监酒。" }
+          ]
+        },
+        {
+          "type": "branch",
+          "label": "封神判定",
+          "cases": [
+            { "if": { "check": "any", "slot": "rank", "value": 6 }, "goto": { "roundIdx": 0, "stepIdx": 4 } }
+          ],
+          "default": { "roundIdx": 0, "stepIdx": 5 }
+        },
+        { "type": "text", "label": "有人掷出 6", "prompt": "有人掷出 6！{winner} 追加一杯，全场敬一个 🎉" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "version": "1.6.0",
+  "name": "比大小·赢家点菜",
+  "description": "全员掷一次，最大的人当主角，由他选择走『真心话』还是『大冒险』。演示 showdown actor=winner + choice chooser=winner + branch 收尾。",
+  "defaultEmoji": "🎲",
+  "minPlayers": 2,
+  "maxPlayers": 8,
+  "rounds": [
+    {
+      "name": "比大小·真心话大冒险",
+      "steps": [
+        { "type": "showdown", "label": "全体比大小", "order": "high", "tie": "first", "as": "rank", "actor": "winner" },
+        {
+          "type": "choice",
+          "label": "赢家点菜",
+          "chooser": "winner",
+          "options": [
+            { "text": "真心话", "goto": { "roundIdx": 0, "stepIdx": 2 } },
+            { "text": "大冒险", "goto": { "roundIdx": 0, "stepIdx": 4 } }
+          ]
+        },
+        { "type": "text", "label": "真心话", "prompt": "{winner} 被点名回答：你最近撒过最大的谎是什么？" },
+        {
+          "type": "branch",
+          "label": "本局结束",
+          "cases": [
+            { "if": { "check": "count", "op": "gte", "value": 1 }, "goto": { "roundIdx": 0, "stepIdx": 5 } }
+          ],
+          "default": "next"
+        },
+        { "type": "text", "label": "大冒险", "prompt": "{winner} 被点名完成：学一种动物叫 30 秒。" }
+      ]
+    }
+  ]
+}
