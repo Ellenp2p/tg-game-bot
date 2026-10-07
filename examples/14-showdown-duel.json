@@ -1,5 +1,5 @@
 {
-  "version": "1.7.0",
+  "version": "1.8.0",
   "name": "比大小·输家喝",
   "description": "全员各掷一次色子，最大的人指定惩罚，最小的人执行。有人掷出 6 会触发『封神』额外一杯。最多 5 轮。演示 showdown + 模板占位符 + branch 条件跳转。",
   "defaultEmoji": "🎲",

@@ -1,5 +1,5 @@
 {
-  "version": "1.7.0",
+  "version": "1.8.0",
   "name": "十六格抽奖",
   "description": "用 roll.draw 一步抽 1-16 号格（🎰 完全均匀），按格号跳到不同奖项。演示 draw 抽签 + goto:\"end\" + text.next。",
   "defaultEmoji": "🎰",

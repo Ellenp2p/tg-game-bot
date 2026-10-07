@@ -1,5 +1,5 @@
 {
-  "version": "1.7.0",
+  "version": "1.8.0",
   "name": "三局积分·最低分喝",
   "description": "三局比大小累加总分（showdown accumulate + 命名结果槽 score），总分最高者点名，总分最低者喝酒。演示命名结果槽跨轮引用。",
   "defaultEmoji": "🎲",

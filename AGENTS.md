@@ -60,11 +60,11 @@ SQLite 文件位置（默认）：`./data/bot.sqlite`（WAL 模式）。`.gitign
 |---|---|
 | [`RULES_AUTHORING.md`](RULES_AUTHORING.md) | **必读**。schema 字段约束、step 类型细节、AI 自检 16 条、已知引擎限制、🎰 抽签策略 |
 | [`examples/README.md`](examples/README.md) | 18 个规则的表格（人数 / 用到的特性），找最相近的模板 |
-| [`examples/*.json`](examples/) | 复制最相近的模板改写，保留 `version: "1.7.0"` |
+| [`examples/*.json`](examples/) | 复制最相近的模板改写，保留 `version: "1.8.0"` |
 
 ### 关键 schema 速记
 
-- 引擎当前 `CURRENT_RULE_SCHEMA_VERSION` = `1.7.0`
+- 引擎当前 `CURRENT_RULE_SCHEMA_VERSION` = `1.8.0`
   - 顶层：`name` / `description` / `minPlayers`(1-100, 默认 2) / `maxPlayers`(1-100, 默认 8) / `rounds[]`
   - `round`：`name` / `loop` / `maxLoops`(1-100, loop=true 时) / `defaultEmoji` / `steps[]`
   - `step` 六种：`roll` / `text` / `punish` / `choice` / `showdown` / `branch`
@@ -72,7 +72,7 @@ SQLite 文件位置（默认）：`./data/bot.sqlite`（WAL 模式）。`.gitign
     - `text`：`label` / `prompt` / `mode`(manual，默认) / `showActor`
     - `punish`：`label` / `defaultText` / `ladder[{at, text}]` / `showActor`
     - `choice`：`label` / `prompt` / `options[{text, goto}]` / `chooser`(last_roller/winner/loser/actor/any) — `goto` 是 `"next"` 或 `{roundIdx, stepIdx}`
-    - `showdown`（全员比大小）：`label` / `emoji` / `order`(high/low/none) / `tie`(keep/first) / `as`(结果槽名) / `accumulate` / `actor`(winner/loser/none)
+    - `showdown`（全员比大小）：`label` / `emoji` / `order`(high/low/none) / `tie`(keep/first/**reroll**) / `as`(结果槽名) / `accumulate` / `actor`(winner/loser/none)；并列时选人按名次顺序（与看板一致）
     - `branch`（条件跳转）：`label` / `cases[{if, goto}]` / `default` / `maxHits`；`if` 支持 tie/unique/any/all/rank/sum/count/**dice**（最近一次单掷点数）
     - `roll.draw`（N 选一抽签）：`count`(2-64) / `targets[count 个 goto]` / `store` / `uniform`(equal/exact)；`goto` 与 `text`/`punish` 的 `next` 都支持 `"end"`（结束当前轮）
   - 文案占位符：`{winner}` `{loser}` `{ranking}` `{rank1}` `{rank-1}` `{sum}` `{max}` `{min}` `{count}` `{actor}` `{dice}` `{roller}` `{draw}`，命名槽写法 `{score.winner}` `{draw.box}`

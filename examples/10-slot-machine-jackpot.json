@@ -1,5 +1,5 @@
 {
-  "version": "1.7.0",
+  "version": "1.8.0",
   "name": "老虎机抽奖",
   "description": "老虎机 emoji 抽奖。3 个 reel × {BAR,🍓,🍋,7} = 64 种组合；3 个相同 = JACKPOT（实际 1/16）。3 轮内先抽中 jackpot 的人获胜。本规则用 rule.defaultEmoji='🎰' 演示三层 emoji 默认值。",
   "defaultEmoji": "🎰",

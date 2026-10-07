@@ -8,7 +8,7 @@
 
 ```json
 {
-  "version": "1.7.0",
+  "version": "1.8.0",
   "name": "我的规则",
   ...
 }
@@ -20,13 +20,13 @@
 
 当引擎升级时，旧规则会被照常加载，但任何不支持的字段会被忽略。要迁移旧规则，先读取，再用新版字段重写，把 `version` 改成新版本号。
 
-**当前 `CURRENT_RULE_SCHEMA_VERSION` = `1.7.0`**（在 1.6.0 的 `showdown`/`branch` 基础上，新增：`roll.draw` 抽签步；`goto: "end"` 结束当前轮；`text`/`punish` 的 `next` 显式跳转；`branch.cases` 上限 8→64；`round.steps` 上限 40→80）
+**当前 `CURRENT_RULE_SCHEMA_VERSION` = `1.8.0`**（在 1.7.0 基础上，新增：`showdown.tie: "reroll"` 平局自动重掷；并列时选人改为按名次顺序（与看板一致）；比大小结果消息点名赢家/输家）
 
 ## 顶层结构
 
 ```json
 {
-  "version": "1.7.0",
+  "version": "1.8.0",
   "name": "规则名（≤80字）",
   "description": "玩家在 /startgame 选规则时看到的描述（≤500字）",
   "minPlayers": 2,                 // 可选，1-100；本规则最少需要几个人开（默认 2）
@@ -267,7 +267,7 @@ value = (r1-1) * 16 + (r2-1) * 4 + r3
   "label": "全体比大小",
   "emoji": "🎲",          // 可选，三层回退同 roll
   "order": "high",       // high 降序 / low 升序 / none 只收集不排序
-  "tie": "keep",         // keep 并列保留 / first 先掷到者独赢
+  "tie": "keep",         // keep 并列保留 / first 先掷到者独赢 / reroll 并列则本轮重掷
   "as": "rank",          // 可选，结果槽名（小写标识符），默认 "last"
   "accumulate": false,   // true = 多次结算累加成分数（积分赛）
   "actor": "none"        // 结算后把「主角」设为 winner / loser / none（默认 none）
@@ -287,6 +287,9 @@ value = (r1-1) * 16 + (r2-1) * 4 + r3
 - `order: 'none'`：只收集不排名（winners/losers 为空）
 - `accumulate: true`：每次结算把本局值**累加**进该槽总分，适合"三局积分赛"
 - `tie: 'first'`：并列时按"先掷到者"分出唯一第一名/末名；`accumulate` 时不按时间而按加入顺序兜底
+- `tie: 'reroll'`：赢家或输家**出现并列就本轮重掷**（清空已掷、看板重发，提示"请全员重新掷一次"），不写结果槽、不推进——适合"必须分出名次"的玩法
+- **并列时选人按名次顺序**：`roll.assignment: 'winner'/'loser'`、`choice.chooser` 会取**看板第 1 名**（不是加入顺序），保证"被叫的人 == 显示第一"
+- 结算消息末尾会自动点名：`👉 赢家：@A、@B ｜ 输家：@C`
 
 **结果槽数据**（存在命名槽里，默认槽 `"last"` 总指最近一次）：
 
@@ -509,7 +512,7 @@ function drawStrategy(N, roundIdx, S) {
 
 ```json
 {
-  "version": "1.7.0",
+  "version": "1.8.0",
   "name": "真心话大冒险",
   "description": "经典派对游戏。色子决定谁来答题，玩家在 choice 阶段二选一答或罚。",
   "rounds": [
@@ -712,7 +715,7 @@ function drawStrategy(N, roundIdx, S) {
 6. **text 步骤是否依赖前面的色子/选择**？如果是，需要配合 choice 在前面
 7. **choice 选项的 goto 是否都指向有效坐标**？比如 `{ "roundIdx": 0, "stepIdx": 5 }` 但 round 只有 4 个 step → 会越过 round 边界进入下一轮（这是允许的，但要确认意图）
 8. **规则总步数 ≤ 80 × 20 = 1600**？超过会被 zod 拒绝
-9. **version 字段是否填了当前引擎的 CURRENT_RULE_SCHEMA_VERSION（1.7.0）**？不填会被填默认值，但显式填更好
+9. **version 字段是否填了当前引擎的 CURRENT_RULE_SCHEMA_VERSION（1.8.0）**？不填会被填默认值，但显式填更好
 10. **`step.roll.assignment` 是否考虑过**？默认 `next_player` 适合绝大多数规则；`self` 适合独人挑战；`any` 适合抢答；`winner`/`loser`/`actor` 用于结果驱动
 11. **用了 `showdown` 后，结果槽名是否明确**？多场比大小记得用不同的 `as`，否则默认槽 `last` 会被覆盖
 12. **`{winner}`/`{loser}` 等占位符只在 showdown 结算后才有效**？前面没有 showdown 时用会原样显示
@@ -776,7 +779,7 @@ function drawStrategy(N, roundIdx, S) {
 | `option.goto` | union | 是 | `"next"`/`"end"`/`{ roundIdx: ≥0, stepIdx: ≥0 }` |
 | `showdown.emoji` | enum | 否（默认 `🎲`） | 同 `roll.emoji` |
 | `showdown.order` | enum | 否（默认 `high`） | `high`/`low`/`none` |
-| `showdown.tie` | enum | 否（默认 `keep`） | `keep`/`first` |
+| `showdown.tie` | enum | 否（默认 `keep`） | `keep`/`first`/`reroll` |
 | `showdown.as` | string | 否（默认 `last`） | `[a-z][a-z0-9_]{0,19}` |
 | `showdown.accumulate` | boolean | 否（默认 false） | `true` = 多次结算累加成分数 |
 | `showdown.actor` | enum | 否（默认 `none`） | `winner`/`loser`/`none` |

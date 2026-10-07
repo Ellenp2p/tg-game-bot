@@ -71,7 +71,7 @@ export function drawBucket(value: number, count: number, uniform: 'equal' | 'exa
   return count;
 }
 
-/** 从结果槽里挑一个玩家（winner / loser），并列时取加入顺序最前者 */
+/** 从结果槽里挑一个玩家（winner / loser），并列时按名次顺序取最前者（与看板显示一致） */
 export function resolveActorPick(
   game: GameRecord,
   players: GamePlayer[],
@@ -83,6 +83,8 @@ export function resolveActorPick(
   if (!res) return null;
   const ids = pick === 'winner' ? res.winners : res.losers;
   if (!ids.length) return null;
+  const byRanking = res.ranking.map(e => e.userId).filter(id => ids.includes(id));
+  if (byRanking.length) return byRanking[0];
   const ordered = players.map(p => p.userId).filter(id => ids.includes(id));
   return ordered[0] ?? ids[0] ?? null;
 }
@@ -355,6 +357,18 @@ export function settleShowdown(game: GameRecord, definition: RuleDefinition, pla
     }
   }
 
+  const label = step.order === 'high' ? '比大' : step.order === 'low' ? '比小' : '收集';
+  const lines = sorted.map((e, i) => `${i + 1}. ${displayName(e.userId)} → ${e.value}`);
+
+  // tie:'reroll'：赢家或输家出现并列 → 清空本轮重掷（不写结果槽、不推进）
+  if (step.tie === 'reroll' && step.order !== 'none' && (winners.length > 1 || losers.length > 1)) {
+    phase.rolls = [];
+    game.state.showdownBoardMsgId = undefined; // 让 sendStatus 另发看板，保留本条并列提示
+    const notice = `🏆 比大小结果（${label}）\n${lines.join('\n')}\n\n⚠️ 最大/最小出现并列，请全员重新掷一次。`;
+    game.state.lastMessage = notice;
+    return notice;
+  }
+
   const values = entries.map(e => e.value);
   const result: ShowdownResult = {
     order: step.order,
@@ -372,9 +386,10 @@ export function settleShowdown(game: GameRecord, definition: RuleDefinition, pla
   if (step.actor === 'winner') game.state.activeActorId = winners[0];
   else if (step.actor === 'loser') game.state.activeActorId = losers[0];
 
-  const label = step.order === 'high' ? '比大' : step.order === 'low' ? '比小' : '收集';
-  const lines = sorted.map((e, i) => `${i + 1}. ${displayName(e.userId)} → ${e.value}`);
-  const message = `🏆 比大小结果（${label}）\n${lines.join('\n')}`;
+  const extremes = step.order === 'none'
+    ? ''
+    : `\n\n👉 赢家：${winners.map(displayName).join('、') || '—'} ｜ 输家：${losers.map(displayName).join('、') || '—'}`;
+  const message = `🏆 比大小结果（${label}）\n${lines.join('\n')}${extremes}`;
   game.state.lastMessage = message;
   advanceToStep(game, definition, phase.roundIdx, phase.stepIdx + 1);
   return message;

@@ -21,7 +21,7 @@
 
 ```json
 {
-  "version": "1.7.0",              // 可省略，自动填当前 CURRENT_RULE_SCHEMA_VERSION
+  "version": "1.8.0",              // 可省略，自动填当前 CURRENT_RULE_SCHEMA_VERSION
   "name": "规则名（必填）",
   "description": "简介（可选）",
   "defaultEmoji": "🎲",            // 可选，整局默认表情（被 round/step 覆盖）

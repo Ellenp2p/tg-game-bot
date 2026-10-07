@@ -111,7 +111,7 @@ export const step = z.discriminatedUnion('type', [
     label: z.string().min(1).max(200),
     emoji: z.enum(SUPPORTED_DICE_EMOJIS).optional(),
     order: z.enum(['high', 'low', 'none']).default('high'),
-    tie: z.enum(['keep', 'first']).default('keep'),
+    tie: z.enum(['keep', 'first', 'reroll']).default('keep'),
     as: slotName.optional(),
     accumulate: z.boolean().default(false),
     actor: z.enum(['winner', 'loser', 'none']).default('none')
@@ -138,7 +138,7 @@ export const round = z.object({
 });
 export type Round = z.infer<typeof round>;
 
-export const CURRENT_RULE_SCHEMA_VERSION = '1.7.0';
+export const CURRENT_RULE_SCHEMA_VERSION = '1.8.0';
 
 export const ruleDefinition = z.object({
   version: z.string().regex(/^\d+\.\d+\.\d+$/).default(CURRENT_RULE_SCHEMA_VERSION),
@@ -210,7 +210,7 @@ export type GamePlayer = {
 export type ShowdownRoll = { userId: number; value: number; at: number };
 
 export type ShowdownOrder = 'high' | 'low' | 'none';
-export type ShowdownTie = 'keep' | 'first';
+export type ShowdownTie = 'keep' | 'first' | 'reroll';
 
 /** showdown 结算结果（存在命名结果槽里） */
 export type ShowdownResult = {
