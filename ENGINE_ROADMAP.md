@@ -131,7 +131,10 @@ type EngineCtx = { definition:RuleDefinition; now:()=>number; rng?:()=>number };
 - [x] S1 monorepo + engine 抽取（`packages/engine` 纯包 / `packages/bot` 适配器；测试归位：engine 86 + bot 43）
 - [x] S2 引擎 `run(game, intent, players)` 唯一入口（`machine.ts`；typed 错误 + 语义事件；spec 运行器已改走它；引擎测试 92）
       —— bot 的 handler 收口到 `run` 与后续事件/视图一起做（避免多套路径并存），并入 S3/S4
-- [ ] S3 事件化
+- [x] S3 事件化（引擎侧）
+      - bot **全部**引擎调用收口到 `run()`（12 处，grep 无残留）；typed 错误透传
+      - 引擎新增 `replay(makeInitial, def, players, intents)`（同序列必得同局 + 非法意图入 errors），+测试
+      - 既有 `game_events` 事件日志保留（undo 依赖其 payload）；「事件落库 + undo 改走 replay」留待后续
 - [ ] S4 View 抽取
 - [ ] S5 传输态外移
 - [ ] S6 边界固化 + 部署

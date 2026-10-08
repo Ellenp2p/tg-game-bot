@@ -10,9 +10,9 @@ import {
   ruleDefinition, type RuleDefinition, type RuleRecord, type GameRecord,
   type GamePlayer, type DiceEmoji, SUPPORTED_DICE_EMOJIS,
   type GamePhase, type GameStatus,
-  advanceToStep, applyNext, applyRoll, applySkip, applyChoice, beginGame,
-  applyShowdownRoll, displayName, findStep, initialState, loopProgress, formatTemplate,
-  decodeSlotValue, isJackpot, SLOT_SYMBOL_LABEL
+  advanceToStep, displayName, findStep, initialState, loopProgress, formatTemplate,
+  decodeSlotValue, isJackpot, SLOT_SYMBOL_LABEL,
+  run, type Intent as EngineIntent, type RunResult
 } from '@tg-game/engine';
 
 const token = process.env.BOT_TOKEN;
@@ -735,7 +735,7 @@ bot.command('begin', async ctx => {
   if (players.length < min) throw Error(`至少需要 ${min} 位玩家，当前 ${players.length} 人`);
   if (players.length > max) throw Error(`最多 ${max} 位玩家，当前 ${players.length} 人`);
   attachPlayers(game);
-  beginGame(game, rule.definition);
+  runOk(game, rule.definition, players, { type: 'begin', userId: ctx.from.id });
   db.recordEvent(game.gameId, ctx.from.id, 'begin', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   push(game);
   await sendStatus(chatIdOf(ctx), game.gameId);
@@ -747,7 +747,7 @@ bot.command('next', async ctx => {
   await doAdmin(ctx, async game => {
     const rule = db.getRule(game.ruleId);
     if (!rule) throw Error('规则不存在');
-    applyNext(game, rule.definition, ctx.from!.id);
+    runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'next', userId: ctx.from!.id });
     db.recordEvent(game.gameId, ctx.from!.id, 'next', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   });
 });
@@ -758,7 +758,7 @@ bot.command('skip', async ctx => {
   await doAdmin(ctx, async game => {
     const rule = db.getRule(game.ruleId);
     if (!rule) throw Error('规则不存在');
-    applySkip(game, rule.definition);
+    runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'skip', userId: ctx.from!.id });
     db.recordEvent(game.gameId, ctx.from!.id, 'skip', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   });
 });
@@ -889,6 +889,13 @@ function attachPlayers(game: GameRecord): void {
   (game as GameRecord & { _players?: GamePlayer[] })._players = db.listPlayers(game.gameId);
 }
 
+/** 引擎唯一入口；失败即抛（沿用 bot.catch 的错误提示），成功返回事件结果 */
+function runOk(game: GameRecord, definition: RuleDefinition, players: GamePlayer[], intent: EngineIntent): Extract<RunResult, { ok: true }> {
+  const r = run(game, definition, players, intent);
+  if (!r.ok) throw Error(r.text);
+  return r;
+}
+
 async function withAdminGame(ctx: Context, fn: (game: GameRecord, rule: RuleRecord) => void | Promise<void>): Promise<void> {
   const gameId = ctx.match![1];
   const game = db.getGame(gameId);
@@ -964,14 +971,14 @@ function performChoice(game: GameRecord, definition: RuleDefinition, userId: num
   if (phase.kind !== 'choice') throw Error('当前不在选择阶段');
   if (phase.pickedBy !== null && phase.pickedBy !== userId) throw Error('不是你的回合，请等待系统指定玩家');
   if (phase.pickedBy === null && !isAdmin) throw Error('需要管理员或被指定玩家点击');
-  const r = applyChoice(game, definition, userId, optIdx);
+  const r = runOk(game, definition, db.listPlayers(game.gameId), { type: 'choice', userId, optionIdx: optIdx });
   db.recordEvent(game.gameId, userId, 'choice', {
     optionIdx: optIdx,
     optionText: phase.options[optIdx]?.text,
     fromRoundIdx: phase.roundIdx,
     fromStepIdx: phase.stepIdx
   });
-  return r.message;
+  return r.message ?? '';
 }
 
 const DICE_ANIMATION_MS = 3500;
@@ -1059,10 +1066,14 @@ async function resolvePendingRoll(gameId: string, expectedUserId: number, expect
     let settled = false;
     let rerolled = false;
     try {
-      const r = applyShowdownRoll(game, rule.definition, pending.userId, pending.value, players, pending.emoji);
-      resultMessage = r.message;
-      settled = r.settled;
-      rerolled = r.rerolled ?? false;
+      const r = run(game, rule.definition, players, { type: 'showdownRoll', userId: pending.userId, value: pending.value, emoji: pending.emoji });
+      if (r.ok) {
+        resultMessage = r.message ?? '';
+        settled = r.events.some(e => e.type === 'showdownSettled' || e.type === 'showdownRerolled');
+        rerolled = r.events.some(e => e.type === 'showdownRerolled');
+      } else {
+        resultMessage = `骰子未接受：${r.text}`;
+      }
     } catch (e) {
       resultMessage = `骰子未接受：${(e as Error).message}`;
     }
@@ -1099,8 +1110,8 @@ async function resolvePendingRoll(gameId: string, expectedUserId: number, expect
   if (pending.kind === 'roll' && phase0.kind === 'roll' && matchesStep(phase0)) {
     let resultMessage: string;
     try {
-      const r = applyRoll(game, rule.definition, pending.userId, pending.value, players, pending.emoji);
-      resultMessage = r.message;
+      const r = run(game, rule.definition, players, { type: 'roll', userId: pending.userId, value: pending.value, emoji: pending.emoji });
+      resultMessage = r.ok ? (r.message ?? '') : `骰子未接受：${r.text}`;
     } catch (e) {
       resultMessage = `骰子未接受：${(e as Error).message}`;
     }
@@ -1174,7 +1185,7 @@ bot.callbackQuery(/^begin:([0-9a-f]{8})$/, async ctx => {
     return;
   }
   attachPlayers(game);
-  beginGame(game, rule.definition);
+  runOk(game, rule.definition, players, { type: 'begin', userId: ctx.from.id });
   db.recordEvent(gameId, ctx.from.id, 'begin', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   push(game);
   await refreshSignupMessage(game);
@@ -1215,7 +1226,7 @@ bot.callbackQuery(/^next:([0-9a-f]{8})$/, async ctx => {
   if (!isGroup(ctx) || !ctx.from) return;
   await requireGroupAdmin(ctx);
   await withAdminGame(ctx, (game, rule) => {
-    applyNext(game, rule.definition, ctx.from!.id);
+    runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'next', userId: ctx.from!.id });
     db.recordEvent(game.gameId, ctx.from!.id, 'next', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   });
 });
@@ -1224,7 +1235,7 @@ bot.callbackQuery(/^skip:([0-9a-f]{8})$/, async ctx => {
   if (!isGroup(ctx) || !ctx.from) return;
   await requireGroupAdmin(ctx);
   await withAdminGame(ctx, (game, rule) => {
-    applySkip(game, rule.definition);
+    runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'skip', userId: ctx.from!.id });
     db.recordEvent(game.gameId, ctx.from!.id, 'skip', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   });
 });
@@ -1368,11 +1379,11 @@ async function handleApi(req: IncomingMessage, res: any, url: URL): Promise<void
         db.recordEvent(gameId, userId, 'leave', {});
       } else if (action === 'next') {
         if (!isAdmin) throw Error('仅群管理员');
-        applyNext(game, rule.definition, userId);
+        runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'next', userId });
         db.recordEvent(gameId, userId, 'next', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
       } else if (action === 'skip') {
         if (!isAdmin) throw Error('仅群管理员');
-        applySkip(game, rule.definition);
+        runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'skip', userId });
         db.recordEvent(gameId, userId, 'skip', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
       } else if (action === 'undo') {
         if (!isAdmin) throw Error('仅群管理员');
