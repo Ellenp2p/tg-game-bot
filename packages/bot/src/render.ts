@@ -48,7 +48,7 @@ export function renderStatus(game: GameRecord, def: RuleDefinition | undefined, 
       ? mentionHtml(ph.expectedPlayerId, displayName(ph.expectedPlayerId))
       : '任一玩家';
     const hint = ph.drawHint ? `（抽 1-${ph.drawHint} 号）` : '';
-    body += `\n\n等待 ${expected} 发送 ${ph.emoji}${hint}`;
+    body += `\n\n等待 ${expected} 发送 <code>${ph.emoji}</code>${hint}`;
   } else if (ph.kind === 'text') {
     body += `\n\n${html(ph.text)}`;
   } else if (ph.kind === 'punish') {
@@ -66,7 +66,7 @@ export function renderStatus(game: GameRecord, def: RuleDefinition | undefined, 
       body += `\n⏳ 未掷(${ph.pending.length})：` + ph.pending.map(id => mentionHtml(id, displayName(id))).join(' ');
     }
     if (ph.rolls.length < ph.total) {
-      body += `\n\n等全员发送 ${ph.emoji}（管理员可「立即结算」/ /next）。`;
+      body += `\n\n等全员发送 <code>${ph.emoji}</code>（管理员可「立即结算」/ /next）。`;
     }
   }
 
