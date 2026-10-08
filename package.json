@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r build",
-    "test": "pnpm -r test && pnpm spec",
+    "test": "pnpm build && pnpm -r test && pnpm spec",
     "spec": "tsx scripts/spec.ts",
     "gen-specs": "tsx scripts/gen-specs.ts",
     "dev": "pnpm --filter @tg-game/bot dev",
