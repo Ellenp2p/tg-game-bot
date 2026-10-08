@@ -20,7 +20,10 @@ function roundNameOf(v: ReturnType<typeof buildView>): string {
  * 群里/私聊状态消息（HTML）。**由引擎 `buildView` 派生**，与 Mini App 共用同一视图：
  * 群消息 = View→HTML，Mini App = View→JSON，内容不会漂。
  */
-export function renderStatus(game: GameRecord, def: RuleDefinition | undefined, players: GamePlayer[]): string {
+export function renderStatus(
+  game: GameRecord, def: RuleDefinition | undefined, players: GamePlayer[],
+  pendingRolls: Array<{ userId: UserId; emoji: string }> = []
+): string {
   const v = buildView(game, def, players, '', false);
   const header = v.status === 'ended' ? '🏁 对局已结束\n\n' : '';
 
@@ -68,6 +71,12 @@ export function renderStatus(game: GameRecord, def: RuleDefinition | undefined, 
     if (ph.rolls.length < ph.total) {
       body += `\n\n等全员发送 <code>${ph.emoji}</code>（管理员可「立即结算」/ /next）。`;
     }
+  }
+
+  if (pendingRolls.length) {
+    body += '\n\n⏳ 掷骰中：' + pendingRolls
+      .map(p => `${mentionHtml(p.userId, displayName(p.userId))} 正在掷 ${p.emoji}…`)
+      .join('　');
   }
 
   const lr = v.lastResult as {

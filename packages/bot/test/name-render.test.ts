@@ -50,3 +50,16 @@ test('renderStatus：无 resolver 时回退「用户 #后4位」', () => {
   const text = renderStatus(g, def, players);
   assert.match(text, /用户 #9001/);
 });
+
+test('renderStatus：pending 显示「掷骰中」提示', () => {
+  setNameResolver(id => (id === '9001' ? '@alice' : '鲍勃'));
+  try {
+    const g = mk();
+    run(g, def, players, { type: 'begin', userId: '9001' });
+    const text = renderStatus(g, def, players, [{ userId: '9001', emoji: '🎲' }]);
+    assert.match(text, /⏳ 掷骰中：/);
+    assert.match(text, /@alice<\/a> 正在掷 🎲/);
+  } finally {
+    setNameResolver(null);
+  }
+});

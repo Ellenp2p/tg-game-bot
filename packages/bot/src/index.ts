@@ -217,17 +217,28 @@ function statusKeyboard(game: GameRecord, gameId: string, phase: GamePhase, stat
   return undefined;
 }
 
-async function sendStatus(chatId: number, gameId: string): Promise<void> {
+async function sendStatus(chatId: number, gameId: string, opts: { fresh?: boolean } = {}): Promise<void> {
   const game = db.getGame(gameId);
   if (!game) return;
   const rule = db.getRule(game.ruleId);
   const players = db.listPlayers(gameId);
   await warmNames(chatId, players.map(p => p.userId));
-  const text = renderStatus(game, rule?.definition, players);
+
+  // 报名阶段：与实时报名看板同源（含分页 + 加入/退出/开始/实时视图按钮）
+  if (game.status === 'signup') {
+    const { text } = renderSignupPage(game, rule?.definition, players, 1);
+    try {
+      await bot.api.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: signupKeyboard(game, 1) });
+    } catch (e) { console.warn('[status] send failed:', (e as Error).message); }
+    return;
+  }
+
+  const text = renderStatus(game, rule?.definition, players, pendingRollsOf(gameId));
   const kb = statusKeyboard(game, gameId, game.state.phase, game.status, players);
   const isShowdown = game.status !== 'ended' && game.state.phase.kind === 'showdown';
   const sess = session(gameId);
-  if (isShowdown && sess.boardMsgId) {
+  // showdown 阶段就地更新看板；/status 的 fresh 模式跳过，保证每次都有可见的新消息
+  if (isShowdown && sess.boardMsgId && !opts.fresh) {
     try {
       await bot.api.editMessageText(chatId, sess.boardMsgId, text, { parse_mode: 'HTML', reply_markup: kb });
       return;
@@ -248,7 +259,7 @@ async function sendStatus(chatId: number, gameId: string): Promise<void> {
       parse_mode: 'HTML',
       reply_markup: kb
     });
-    if (isShowdown) {
+    if (isShowdown && !opts.fresh) {
       sess.boardMsgId = sent.message_id;
     }
   } catch (e) {
@@ -748,13 +759,16 @@ bot.command('play', async ctx => {
 });
 
 bot.command('status', async ctx => {
-  if (!isGroup(ctx)) return;
+  if (!isGroup(ctx)) {
+    await ctx.reply('📊 /status 请在群里使用——它会显示本群当前对局的实时看板。');
+    return;
+  }
   const game = db.getActiveGameByChat(chatIdOf(ctx));
   if (!game) {
     await ctx.reply('📊 本群没有进行中的对局。');
     return;
   }
-  await sendStatus(chatIdOf(ctx), game.gameId);
+  await sendStatus(chatIdOf(ctx), game.gameId, { fresh: true });
 });
 
 /** 下载 Telegram 服务器上的文件（用户上传的 .json 规则） */
@@ -950,6 +964,9 @@ bot.on('message:dice', async ctx => {
     }
   };
   push(game);
+
+  // 群里看板也实时反映「掷骰中」：showdown 看板可就地更新；roll 阶段无看板，跳过
+  if (phase.kind === 'showdown') await sendStatus(chatIdOf(ctx), game.gameId);
 
   setTimeout(() => resolvePendingRoll(game.gameId, userId, ctx.message.dice!.value, emoji), DICE_ANIMATION_MS);
 });
