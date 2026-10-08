@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { verifyInitData } from './auth.js';
 import { Db } from './db.js';
-import { session } from './session.js';
+import { session, type PendingRoll } from './session.js';
 import { html, mentionHtml, renderStatus, linkifyNames, renderEntryCard } from './render.js';
 import {
   ruleDefinition, type RuleDefinition, type RuleRecord, type GameRecord,
@@ -322,9 +322,10 @@ async function sendStatus(chatId: number, gameId: string, opts: { fresh?: boolea
 
 async function notifyGroup(game: GameRecord, action: string, actorId: UserId): Promise<void> {
   const players = db.listPlayers(game.gameId);
-  if (action === 'join' || action === 'leave' || action === 'begin') {
+  if (action === 'join' || action === 'leave') {
     await refreshSignupMessage(game);
   }
+  if (action === 'begin') await convertPinnedToEntry(game);
   if (action === 'begin' || action === 'next' || action === 'skip' || action === 'choice' || action === 'undo') {
     await sendStatus(game.chatId, game.gameId);
   } else if (action === 'end') {
@@ -735,18 +736,10 @@ bot.command('begin', async ctx => {
   if (!isGroup(ctx) || !ctx.from) return;
   await requireGroupAdmin(ctx);
   const game = db.getActiveGameByChat(chatIdOf(ctx));
-  if (!game || game.status !== 'signup') throw Error('没有处于报名阶段的对局');
-  const players = db.listPlayers(game.gameId);
+  if (!game) throw Error('没有处于报名阶段的对局');
   const rule = db.getRule(game.ruleId);
   if (!rule) throw Error('规则不存在（可能被删除）');
-  const min = rule.definition.minPlayers;
-  const max = rule.definition.maxPlayers;
-  if (players.length < min) throw Error(`至少需要 ${min} 位玩家，当前 ${players.length} 人`);
-  if (players.length > max) throw Error(`最多 ${max} 位玩家，当前 ${players.length} 人`);
-  attachPlayers(game);
-  runOk(game, rule.definition, players, { type: 'begin', userId: userIdOf(ctx) });
-  db.recordEvent(game.gameId, userIdOf(ctx), 'begin', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
-  push(game);
+  startGame(game, rule.definition, userIdOf(ctx));
   await convertPinnedToEntry(game);
   await sendStatus(chatIdOf(ctx), game.gameId);
 });
@@ -940,6 +933,20 @@ function joinLeave(game: GameRecord, definition: RuleDefinition, userId: UserId,
   db.recordEvent(game.gameId, userId, kind, {});
 }
 
+/** 开局（/begin 命令、报名看板「开始」按钮、Mini App API 三处共用）：校验 + 引擎 begin + 记事件 */
+function startGame(game: GameRecord, definition: RuleDefinition, actorId: UserId): void {
+  if (game.status !== 'signup') throw Error('没有处于报名阶段的对局');
+  const players = db.listPlayers(game.gameId);
+  const min = definition.minPlayers;
+  const max = definition.maxPlayers;
+  if (players.length < min) throw Error(`至少需要 ${min} 位玩家，当前 ${players.length} 人`);
+  if (players.length > max) throw Error(`最多 ${max} 位玩家，当前 ${players.length} 人`);
+  attachPlayers(game);
+  runOk(game, definition, players, { type: 'begin', userId: actorId });
+  db.recordEvent(game.gameId, actorId, 'begin', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+  push(game);
+}
+
 async function withAdminGame(ctx: Context, fn: (game: GameRecord, rule: RuleRecord) => void | Promise<void>): Promise<void> {
   const gameId = ctx.match![1];
   const game = db.getGame(gameId);
@@ -1003,8 +1010,7 @@ bot.on('message:dice', async ctx => {
   if (!players.some(p => p.userId === userId)) return;
 
   const sess = session(game.gameId);
-  const pendingRolls = sess.pendingRolls;
-  if (pendingRolls[String(userId)]) {
+  if (sess.pendingRolls[String(userId)]) {
     await bot.api.sendMessage(chatIdOf(ctx), '⏳ 你的色子结果还没揭晓，请稍候。');
     return;
   }
@@ -1015,41 +1021,42 @@ bot.on('message:dice', async ctx => {
     return;
   }
 
-  let waitingMsgId = 0;
-  if (phase.kind === 'roll') {
-    const waiting = await bot.api.sendMessage(
-      chatIdOf(ctx),
-      `${emoji} ${mentionHtml(userId, displayName(userId))} 正在掷${emojiLabel(emoji)}…`,
-      { parse_mode: 'HTML' }
-    );
-    waitingMsgId = waiting.message_id;
-  }
-
-  sess.pendingRolls = {
-    ...pendingRolls,
-    [String(userId)]: {
-      userId,
-      value: ctx.message.dice.value,
-      chatId: chatIdOf(ctx),
-      waitingMsgId,
-      emoji,
-      kind: phase.kind,
-      roundIdx: phase.roundIdx,
-      stepIdx: phase.stepIdx
-    }
-  };
-  push(game);
-
-  // 群里看板也实时反映「掷骰中」：showdown 看板可就地更新；roll 阶段无看板，跳过
-  if (phase.kind === 'showdown') await sendStatus(chatIdOf(ctx), game.gameId);
-
-  setTimeout(() => resolvePendingRoll(game.gameId, userId, ctx.message.dice!.value, emoji), DICE_ANIMATION_MS);
+  const waitingMsgId = await sendRollWaiting(game, phase, userId, emoji);
+  await scheduleRoll(game, phase, userId, ctx.message.dice.value, emoji, waitingMsgId);
 });
 
 function emojiLabel(emoji: DiceEmoji): string {
   return ({
     '🎲': '色子', '🎯': '飞镖', '🏀': '篮球', '⚽': '足球', '🎰': '老虎机', '🎳': '保龄球'
   } as Record<DiceEmoji, string>)[emoji];
+}
+
+/** 掷骰阶段（roll / showdown） */
+type RollPhase = Extract<GamePhase, { kind: 'roll' | 'showdown' }>;
+
+/** roll 阶段：群里发「正在掷…」占位消息（稍后被编辑成结果）；showdown 返回 0（看板另刷） */
+async function sendRollWaiting(game: GameRecord, phase: RollPhase, userId: UserId, emoji: DiceEmoji): Promise<number> {
+  if (phase.kind !== 'roll') return 0;
+  const waiting = await bot.api.sendMessage(game.chatId,
+    `${emoji} ${mentionHtml(userId, displayName(userId))} 正在掷${emojiLabel(emoji)}…`,
+    { parse_mode: 'HTML' });
+  return waiting.message_id;
+}
+
+/** 登记 pending + 广播 +（showdown）刷新看板 + DICE_ANIMATION_MS 后揭晓。群内色子与网页掷骰共用。 */
+async function scheduleRoll(game: GameRecord, phase: RollPhase, userId: UserId, value: number, emoji: DiceEmoji, waitingMsgId: number): Promise<void> {
+  const sess = session(game.gameId);
+  sess.pendingRolls = {
+    ...sess.pendingRolls,
+    [String(userId)]: {
+      userId, value, chatId: game.chatId, waitingMsgId, emoji,
+      kind: phase.kind, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx
+    }
+  };
+  push(game);
+  // 群里看板也实时反映「掷骰中」：showdown 看板可就地更新；roll 阶段无看板，跳过
+  if (phase.kind === 'showdown') await sendStatus(game.chatId, game.gameId);
+  setTimeout(() => resolvePendingRoll(game.gameId, userId, value, emoji), DICE_ANIMATION_MS);
 }
 
 async function resolvePendingRoll(gameId: string, expectedUserId: UserId, expectedValue: number, expectedEmoji: DiceEmoji): Promise<void> {
@@ -1184,22 +1191,11 @@ bot.callbackQuery(/^begin:([0-9a-f]{8})$/, async ctx => {
   await requireGroupAdmin(ctx);
   const gameId = ctx.match[1];
   const game = db.getGame(gameId);
-  if (!game || game.status !== 'signup') { await ctx.answerCallbackQuery({ text: '已不在报名阶段' }); return; }
-  const players = db.listPlayers(gameId);
+  if (!game) { await ctx.answerCallbackQuery({ text: '对局不存在' }); return; }
   const rule = db.getRule(game.ruleId);
   if (!rule) { await ctx.answerCallbackQuery({ text: '规则已删除' }); return; }
-  if (players.length < rule.definition.minPlayers) {
-    await ctx.answerCallbackQuery({ text: `至少需要 ${rule.definition.minPlayers} 位玩家（当前 ${players.length} 人）`, show_alert: true });
-    return;
-  }
-  if (players.length > rule.definition.maxPlayers) {
-    await ctx.answerCallbackQuery({ text: `最多 ${rule.definition.maxPlayers} 位玩家`, show_alert: true });
-    return;
-  }
-  attachPlayers(game);
-  runOk(game, rule.definition, players, { type: 'begin', userId: userIdOf(ctx) });
-  db.recordEvent(gameId, userIdOf(ctx), 'begin', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
-  push(game);
+  try { startGame(game, rule.definition, userIdOf(ctx)); }
+  catch (e) { await ctx.answerCallbackQuery({ text: (e as Error).message, show_alert: true }); return; }
   await convertPinnedToEntry(game);
   await ctx.answerCallbackQuery();
   await sendStatus(chatIdOf(ctx), gameId);
@@ -1378,7 +1374,55 @@ async function handleApi(req: IncomingMessage, res: any, url: URL): Promise<void
     setJson(200, snapshot(game, rule?.definition, players, userId, isAdmin));
     return;
   }
-  const actionMatch = path.match(/^games\/([0-9a-f]{8})\/(join|leave|next|skip|undo|end|choice)$/);
+  const rollMatch = path.match(/^games\/([0-9a-f]{8})\/roll$/);
+  if (rollMatch && req.method === 'POST') {
+    const game = db.getGame(rollMatch[1]);
+    if (!game) { setJson(404, { error: 'not found' }); return; }
+    if (game.status !== 'in_progress') { setJson(400, { error: '当前不在进行中' }); return; }
+    const rule = db.getRule(game.ruleId);
+    if (!rule) { setJson(404, { error: 'rule missing' }); return; }
+    const players = db.listPlayers(game.gameId);
+    if (!players.some(p => p.userId === userId)) { setJson(403, { error: '你不在本局玩家中' }); return; }
+    const phase = game.state.phase;
+    if (phase.kind !== 'roll' && phase.kind !== 'showdown') { setJson(400, { error: '当前不能掷骰' }); return; }
+    if (phase.kind === 'roll') {
+      if (phase.expectedPlayerId !== null && phase.expectedPlayerId !== userId) { setJson(403, { error: '还没轮到你' }); return; }
+    } else if (phase.rolls.some(r => r.userId === userId)) {
+      setJson(400, { error: '你已经掷过了' }); return;
+    }
+    const sess = session(game.gameId);
+    if (sess.pendingRolls[String(userId)]) { setJson(409, { error: '掷骰中，请稍候' }); return; }
+
+    // 先占位：挡住连点 / 与群里掷骰并发，同时让 Mini App 立刻显示「掷骰中」
+    const reservation: PendingRoll = {
+      userId, value: 0, chatId: game.chatId, waitingMsgId: 0, emoji: phase.emoji,
+      kind: phase.kind, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx
+    };
+    sess.pendingRolls = { ...sess.pendingRolls, [String(userId)]: reservation };
+    push(game);
+
+    let waitingMsgId = 0;
+    try {
+      waitingMsgId = await sendRollWaiting(game, phase, userId, phase.emoji);
+      // bot 代掷：Telegram 原生随机，群里可见色子动画
+      const dice = await bot.api.sendDice(game.chatId, phase.emoji);
+      // undo 可能已清掉占位 → 丢弃本次，避免污染新状态
+      if (sess.pendingRolls[String(userId)] !== reservation) { setJson(409, { error: '掷骰已被撤销，请重新掷' }); return; }
+      await scheduleRoll(game, phase, userId, dice.dice.value, phase.emoji, waitingMsgId);
+      setJson(200, { ok: true });
+    } catch (e) {
+      if (sess.pendingRolls[String(userId)] === reservation) {
+        const rest = { ...sess.pendingRolls };
+        delete rest[String(userId)];
+        sess.pendingRolls = rest;
+        push(game);
+      }
+      if (waitingMsgId) await bot.api.deleteMessage(game.chatId, waitingMsgId).catch(() => {});
+      setJson(502, { error: `掷骰失败：${(e as Error).message}` });
+    }
+    return;
+  }
+  const actionMatch = path.match(/^games\/([0-9a-f]{8})\/(join|leave|begin|next|skip|undo|end|choice)$/);
   if (actionMatch) {
     const [, gameId, action] = actionMatch;
     const game = db.getGame(gameId);
@@ -1392,6 +1436,9 @@ async function handleApi(req: IncomingMessage, res: any, url: URL): Promise<void
         joinLeave(game, rule.definition, userId, 'join');
       } else if (action === 'leave') {
         joinLeave(game, rule.definition, userId, 'leave');
+      } else if (action === 'begin') {
+        if (!isAdmin) throw Error('仅群管理员');
+        startGame(game, rule.definition, userId);
       } else if (action === 'next') {
         if (!isAdmin) throw Error('仅群管理员');
         runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'next', userId });

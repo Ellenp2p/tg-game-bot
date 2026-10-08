@@ -10,6 +10,11 @@ function resolveGameId() {
 }
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
 const notice = t => { const el = $('notice'); el.textContent = t || ''; if (t) setTimeout(() => { if (el.textContent === t) el.textContent = ''; }, 4000); };
+/** 群聊深链（超级群 chatId 去掉 -100 前缀） */
+const groupLink = chatId => {
+  const s = String(chatId);
+  return `https://t.me/c/${s.startsWith('-100') ? s.slice(4) : s.replace(/^-/, '')}`;
+};
 
 let socket, lastSnap, currentGameId, viewerId;
 let myViewer = null; // 由 /api/games?initData 首次拿到；WS 广播不含 viewer，避免被覆盖
@@ -167,7 +172,10 @@ function render(snap) {
       } else {
         canThrow = isPlayer && !(snap.phase.rolls || []).some(r => r.userId === viewerId);
       }
-      if (canThrow && isPlayer && !viewerPending) buttons.push({ label: `${snap.phase.emoji} 我扔（点我去群内发）`, action: 'throw', kind: 'primary' });
+      if (canThrow && isPlayer && !viewerPending) {
+        buttons.push({ label: `${snap.phase.emoji} 我来掷`, action: 'roll', kind: 'primary' });
+        buttons.push({ label: '去群里掷', action: 'gotoGroup', kind: 'secondary' });
+      }
     }
     if (showAdmin) {
       if (snap.phase.kind === 'text' || snap.phase.kind === 'punish') {
@@ -198,7 +206,16 @@ function render(snap) {
     const idx = e.target.dataset?.i;
     if (idx === undefined) return;
     const b = buttons[Number(idx)];
-    if (b.action === 'throw') { tg?.openTelegramLink?.(`https://t.me/c/${snap.chatId}`); return; }
+    if (b.action === 'gotoGroup') { tg?.openTelegramLink?.(groupLink(snap.chatId)); return; }
+    if (b.action === 'roll') {
+      const btn = e.target;
+      if (btn.disabled) return;
+      btn.disabled = true;
+      api(`/api/games/${snap.gameId}/roll`, 'POST')
+        .then(() => notice('🎲 已掷骰，等待揭晓…'))
+        .catch(err => { btn.disabled = false; notice(err.message); });
+      return;
+    }
     if (b.action.startsWith('choice:')) {
       const optIdx = Number(b.action.slice(7));
       api(`/api/games/${snap.gameId}/choice`, 'POST', JSON.stringify({ optionIdx: optIdx })).then(render).catch(e => notice(e.message));
