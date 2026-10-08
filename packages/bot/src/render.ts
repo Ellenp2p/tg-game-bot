@@ -11,6 +11,28 @@ export function mentionHtml(id: UserId, label: string): string {
   return `<a href="tg://user?id=${id}">${html(label)}</a>`;
 }
 
+/**
+ * 把引擎纯文本消息里的玩家显示名替换成 Telegram mention 链接（与看板一致）。
+ * 按名字长度降序、用占位符中转，避免「Bob / Bobby」这类子串导致嵌套或误替换。
+ */
+export function linkifyNames(text: string, ids: UserId[]): string {
+  const candidates = ids
+    .map(id => ({ id, label: displayName(id) }))
+    .filter(n => n.label && text.includes(n.label))
+    .sort((a, b) => b.label.length - a.label.length);
+  let out = text;
+  const placed: Array<{ id: UserId; label: string; token: string }> = [];
+  candidates.forEach((n, i) => {
+    const parts = out.split(n.label);
+    if (parts.length === 1) return; // 已被更长名字的占位符吃掉，或此处无此名
+    const token = `\u0000${i}\u0000`;
+    out = parts.join(token);
+    placed.push({ id: n.id, label: n.label, token });
+  });
+  for (const p of placed) out = out.split(p.token).join(mentionHtml(p.id, p.label));
+  return out;
+}
+
 function roundNameOf(v: ReturnType<typeof buildView>): string {
   const rounds = (v.rule?.rounds as Array<{ name?: string }> | undefined) ?? [];
   return rounds[v.roundIdx]?.name ?? `第 ${v.roundIdx + 1} 轮`;

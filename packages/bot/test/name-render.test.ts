@@ -4,7 +4,7 @@ import {
   ruleDefinition, run, setNameResolver,
   type RuleDefinition, type GameRecord, type GamePlayer
 } from '@tg-game/engine';
-import { renderStatus } from '../src/render.js';
+import { renderStatus, linkifyNames } from '../src/render.js';
 
 const def: RuleDefinition = ruleDefinition.parse({
   name: 'R', minPlayers: 2, maxPlayers: 3, defaultEmoji: '🎲',
@@ -59,6 +59,19 @@ test('renderStatus：pending 显示「掷骰中」提示', () => {
     const text = renderStatus(g, def, players, [{ userId: '9001', emoji: '🎲' }]);
     assert.match(text, /⏳ 掷骰中：/);
     assert.match(text, /@alice<\/a> 正在掷 🎲/);
+  } finally {
+    setNameResolver(null);
+  }
+});
+
+test('linkifyNames：显示名换成 mention 链接，且同名子串不嵌套', () => {
+  setNameResolver(id => (id === '9002' ? 'Bobby' : 'Bob'));
+  try {
+    const out = linkifyNames('🎲 Bobby 掷出 2 — x，Bob 旁观', ['9001', '9002']);
+    assert.equal(
+      out,
+      '🎲 <a href="tg://user?id=9002">Bobby</a> 掷出 2 — x，<a href="tg://user?id=9001">Bob</a> 旁观'
+    );
   } finally {
     setNameResolver(null);
   }

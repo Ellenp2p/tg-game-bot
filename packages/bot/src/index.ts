@@ -8,7 +8,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { verifyInitData } from './auth.js';
 import { Db } from './db.js';
 import { session } from './session.js';
-import { html, mentionHtml, renderStatus } from './render.js';
+import { html, mentionHtml, renderStatus, linkifyNames } from './render.js';
 import {
   ruleDefinition, type RuleDefinition, type RuleRecord, type GameRecord,
   type GamePlayer, type DiceEmoji, SUPPORTED_DICE_EMOJIS,
@@ -1011,6 +1011,7 @@ async function resolvePendingRoll(gameId: string, expectedUserId: UserId, expect
     } catch (e) {
       resultMessage = `骰子未接受：${(e as Error).message}`;
     }
+    resultMessage = linkifyNames(resultMessage, players.map(p => p.userId));
     db.recordEvent(gameId, pending.userId, 'showdown', {
       value: pending.value, emoji: pending.emoji, roundIdx: pending.roundIdx, stepIdx: pending.stepIdx
     });
@@ -1052,7 +1053,8 @@ async function resolvePendingRoll(gameId: string, expectedUserId: UserId, expect
     push(game);
     // 只保留一条：把「正在掷…」消息就地改成引擎结果（含点数 + 步骤名），不再另发一条重复的「掷出 X」
     const shown = resultMessage
-      || `${pending.emoji} ${mentionHtml(pending.userId, displayName(pending.userId))} 掷出 <b>${pending.value}</b>`;
+      ? linkifyNames(resultMessage, players.map(p => p.userId))
+      : `${pending.emoji} ${mentionHtml(pending.userId, displayName(pending.userId))} 掷出 <b>${pending.value}</b>`;
     if (pending.waitingMsgId) {
       try {
         await bot.api.editMessageText(pending.chatId, pending.waitingMsgId, shown, { parse_mode: 'HTML' });
