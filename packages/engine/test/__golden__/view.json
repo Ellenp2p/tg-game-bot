@@ -1,0 +1,680 @@
+{
+  "signup": {
+    "gameId": "g",
+    "ruleId": "r",
+    "status": "signup",
+    "rule": {
+      "ruleId": "R",
+      "name": "R",
+      "rounds": [
+        {
+          "name": "第一轮",
+          "loop": true,
+          "maxLoops": 4,
+          "steps": [
+            {
+              "type": "roll",
+              "label": "掷色子",
+              "emoji": "🎲",
+              "assignment": "next_player"
+            },
+            {
+              "type": "text",
+              "label": "回答",
+              "prompt": "请回答 {dice}",
+              "mode": "manual",
+              "showActor": true
+            },
+            {
+              "type": "punish",
+              "label": "惩罚",
+              "ladder": [
+                {
+                  "at": 2,
+                  "text": "喝一杯"
+                }
+              ],
+              "defaultText": "喝一口",
+              "showActor": false
+            },
+            {
+              "type": "choice",
+              "label": "选择",
+              "prompt": "选一个",
+              "options": [
+                {
+                  "text": "A",
+                  "goto": "next"
+                },
+                {
+                  "text": "B",
+                  "goto": "next"
+                }
+              ],
+              "chooser": "last_roller"
+            },
+            {
+              "type": "showdown",
+              "label": "比大小",
+              "emoji": "🎲",
+              "order": "high",
+              "tie": "keep",
+              "accumulate": false,
+              "actor": "none"
+            }
+          ]
+        }
+      ]
+    },
+    "roundIdx": 0,
+    "stepIdx": 0,
+    "loopProgress": null,
+    "phase": {
+      "kind": "signup"
+    },
+    "players": [
+      {
+        "userId": 9001,
+        "label": "用户 #9001",
+        "isViewer": true
+      },
+      {
+        "userId": 9002,
+        "label": "用户 #9002",
+        "isViewer": false
+      },
+      {
+        "userId": 9003,
+        "label": "用户 #9003",
+        "isViewer": false
+      }
+    ],
+    "activeActorId": null,
+    "lastResult": null,
+    "lastDice": null,
+    "lastMessage": null,
+    "viewer": {
+      "id": 9001,
+      "isAdmin": false
+    }
+  },
+  "roll": {
+    "gameId": "g",
+    "ruleId": "r",
+    "status": "in_progress",
+    "rule": {
+      "ruleId": "R",
+      "name": "R",
+      "rounds": [
+        {
+          "name": "第一轮",
+          "loop": true,
+          "maxLoops": 4,
+          "steps": [
+            {
+              "type": "roll",
+              "label": "掷色子",
+              "emoji": "🎲",
+              "assignment": "next_player"
+            },
+            {
+              "type": "text",
+              "label": "回答",
+              "prompt": "请回答 {dice}",
+              "mode": "manual",
+              "showActor": true
+            },
+            {
+              "type": "punish",
+              "label": "惩罚",
+              "ladder": [
+                {
+                  "at": 2,
+                  "text": "喝一杯"
+                }
+              ],
+              "defaultText": "喝一口",
+              "showActor": false
+            },
+            {
+              "type": "choice",
+              "label": "选择",
+              "prompt": "选一个",
+              "options": [
+                {
+                  "text": "A",
+                  "goto": "next"
+                },
+                {
+                  "text": "B",
+                  "goto": "next"
+                }
+              ],
+              "chooser": "last_roller"
+            },
+            {
+              "type": "showdown",
+              "label": "比大小",
+              "emoji": "🎲",
+              "order": "high",
+              "tie": "keep",
+              "accumulate": false,
+              "actor": "none"
+            }
+          ]
+        }
+      ]
+    },
+    "roundIdx": 0,
+    "stepIdx": 0,
+    "loopProgress": {
+      "current": 1,
+      "total": 4
+    },
+    "phase": {
+      "kind": "roll",
+      "roundIdx": 0,
+      "stepIdx": 0,
+      "expectedPlayerId": 9001,
+      "emoji": "🎲",
+      "stepLabel": "掷色子"
+    },
+    "players": [
+      {
+        "userId": 9001,
+        "label": "用户 #9001",
+        "isViewer": true
+      },
+      {
+        "userId": 9002,
+        "label": "用户 #9002",
+        "isViewer": false
+      },
+      {
+        "userId": 9003,
+        "label": "用户 #9003",
+        "isViewer": false
+      }
+    ],
+    "activeActorId": null,
+    "lastResult": null,
+    "lastDice": null,
+    "lastMessage": null,
+    "viewer": {
+      "id": 9001,
+      "isAdmin": true
+    }
+  },
+  "text": {
+    "gameId": "g",
+    "ruleId": "r",
+    "status": "in_progress",
+    "rule": {
+      "ruleId": "R",
+      "name": "R",
+      "rounds": [
+        {
+          "name": "第一轮",
+          "loop": true,
+          "maxLoops": 4,
+          "steps": [
+            {
+              "type": "roll",
+              "label": "掷色子",
+              "emoji": "🎲",
+              "assignment": "next_player"
+            },
+            {
+              "type": "text",
+              "label": "回答",
+              "prompt": "请回答 {dice}",
+              "mode": "manual",
+              "showActor": true
+            },
+            {
+              "type": "punish",
+              "label": "惩罚",
+              "ladder": [
+                {
+                  "at": 2,
+                  "text": "喝一杯"
+                }
+              ],
+              "defaultText": "喝一口",
+              "showActor": false
+            },
+            {
+              "type": "choice",
+              "label": "选择",
+              "prompt": "选一个",
+              "options": [
+                {
+                  "text": "A",
+                  "goto": "next"
+                },
+                {
+                  "text": "B",
+                  "goto": "next"
+                }
+              ],
+              "chooser": "last_roller"
+            },
+            {
+              "type": "showdown",
+              "label": "比大小",
+              "emoji": "🎲",
+              "order": "high",
+              "tie": "keep",
+              "accumulate": false,
+              "actor": "none"
+            }
+          ]
+        }
+      ]
+    },
+    "roundIdx": 0,
+    "stepIdx": 1,
+    "loopProgress": {
+      "current": 1,
+      "total": 4
+    },
+    "phase": {
+      "kind": "text",
+      "roundIdx": 0,
+      "stepIdx": 1,
+      "text": "请回答 4",
+      "stepLabel": "回答"
+    },
+    "players": [
+      {
+        "userId": 9001,
+        "label": "用户 #9001",
+        "isViewer": false
+      },
+      {
+        "userId": 9002,
+        "label": "用户 #9002",
+        "isViewer": true
+      },
+      {
+        "userId": 9003,
+        "label": "用户 #9003",
+        "isViewer": false
+      }
+    ],
+    "activeActorId": 9001,
+    "lastResult": null,
+    "lastDice": {
+      "userId": 9001,
+      "value": 4,
+      "at": 0,
+      "emoji": "🎲",
+      "decoded": null
+    },
+    "lastMessage": "🎲 用户 #9001 掷出 4 — 掷色子",
+    "viewer": {
+      "id": 9002,
+      "isAdmin": false
+    }
+  },
+  "punish": {
+    "gameId": "g",
+    "ruleId": "r",
+    "status": "in_progress",
+    "rule": {
+      "ruleId": "R",
+      "name": "R",
+      "rounds": [
+        {
+          "name": "第一轮",
+          "loop": true,
+          "maxLoops": 4,
+          "steps": [
+            {
+              "type": "roll",
+              "label": "掷色子",
+              "emoji": "🎲",
+              "assignment": "next_player"
+            },
+            {
+              "type": "text",
+              "label": "回答",
+              "prompt": "请回答 {dice}",
+              "mode": "manual",
+              "showActor": true
+            },
+            {
+              "type": "punish",
+              "label": "惩罚",
+              "ladder": [
+                {
+                  "at": 2,
+                  "text": "喝一杯"
+                }
+              ],
+              "defaultText": "喝一口",
+              "showActor": false
+            },
+            {
+              "type": "choice",
+              "label": "选择",
+              "prompt": "选一个",
+              "options": [
+                {
+                  "text": "A",
+                  "goto": "next"
+                },
+                {
+                  "text": "B",
+                  "goto": "next"
+                }
+              ],
+              "chooser": "last_roller"
+            },
+            {
+              "type": "showdown",
+              "label": "比大小",
+              "emoji": "🎲",
+              "order": "high",
+              "tie": "keep",
+              "accumulate": false,
+              "actor": "none"
+            }
+          ]
+        }
+      ]
+    },
+    "roundIdx": 0,
+    "stepIdx": 2,
+    "loopProgress": {
+      "current": 1,
+      "total": 4
+    },
+    "phase": {
+      "kind": "punish",
+      "roundIdx": 0,
+      "stepIdx": 2,
+      "text": "喝一口",
+      "hitCount": 1,
+      "stepLabel": "惩罚"
+    },
+    "players": [
+      {
+        "userId": 9001,
+        "label": "用户 #9001",
+        "isViewer": true
+      },
+      {
+        "userId": 9002,
+        "label": "用户 #9002",
+        "isViewer": false
+      },
+      {
+        "userId": 9003,
+        "label": "用户 #9003",
+        "isViewer": false
+      }
+    ],
+    "activeActorId": 9001,
+    "lastResult": null,
+    "lastDice": {
+      "userId": 9001,
+      "value": 3,
+      "at": 0,
+      "emoji": "🎲",
+      "decoded": null
+    },
+    "lastMessage": "🎲 用户 #9001 掷出 3 — 掷色子",
+    "viewer": {
+      "id": 9001,
+      "isAdmin": true
+    }
+  },
+  "choice": {
+    "gameId": "g",
+    "ruleId": "r",
+    "status": "in_progress",
+    "rule": {
+      "ruleId": "R",
+      "name": "R",
+      "rounds": [
+        {
+          "name": "第一轮",
+          "loop": true,
+          "maxLoops": 4,
+          "steps": [
+            {
+              "type": "roll",
+              "label": "掷色子",
+              "emoji": "🎲",
+              "assignment": "next_player"
+            },
+            {
+              "type": "text",
+              "label": "回答",
+              "prompt": "请回答 {dice}",
+              "mode": "manual",
+              "showActor": true
+            },
+            {
+              "type": "punish",
+              "label": "惩罚",
+              "ladder": [
+                {
+                  "at": 2,
+                  "text": "喝一杯"
+                }
+              ],
+              "defaultText": "喝一口",
+              "showActor": false
+            },
+            {
+              "type": "choice",
+              "label": "选择",
+              "prompt": "选一个",
+              "options": [
+                {
+                  "text": "A",
+                  "goto": "next"
+                },
+                {
+                  "text": "B",
+                  "goto": "next"
+                }
+              ],
+              "chooser": "last_roller"
+            },
+            {
+              "type": "showdown",
+              "label": "比大小",
+              "emoji": "🎲",
+              "order": "high",
+              "tie": "keep",
+              "accumulate": false,
+              "actor": "none"
+            }
+          ]
+        }
+      ]
+    },
+    "roundIdx": 0,
+    "stepIdx": 3,
+    "loopProgress": {
+      "current": 1,
+      "total": 4
+    },
+    "phase": {
+      "kind": "choice",
+      "roundIdx": 0,
+      "stepIdx": 3,
+      "options": [
+        {
+          "text": "A",
+          "goto": "next"
+        },
+        {
+          "text": "B",
+          "goto": "next"
+        }
+      ],
+      "pickedBy": 9001,
+      "stepLabel": "选择"
+    },
+    "players": [
+      {
+        "userId": 9001,
+        "label": "用户 #9001",
+        "isViewer": true
+      },
+      {
+        "userId": 9002,
+        "label": "用户 #9002",
+        "isViewer": false
+      },
+      {
+        "userId": 9003,
+        "label": "用户 #9003",
+        "isViewer": false
+      }
+    ],
+    "activeActorId": 9001,
+    "lastResult": null,
+    "lastDice": {
+      "userId": 9001,
+      "value": 3,
+      "at": 0,
+      "emoji": "🎲",
+      "decoded": null
+    },
+    "lastMessage": "🎲 用户 #9001 掷出 3 — 掷色子",
+    "viewer": {
+      "id": 9001,
+      "isAdmin": true
+    }
+  },
+  "showdown": {
+    "gameId": "g",
+    "ruleId": "r",
+    "status": "in_progress",
+    "rule": {
+      "ruleId": "R",
+      "name": "R",
+      "rounds": [
+        {
+          "name": "第一轮",
+          "loop": true,
+          "maxLoops": 4,
+          "steps": [
+            {
+              "type": "roll",
+              "label": "掷色子",
+              "emoji": "🎲",
+              "assignment": "next_player"
+            },
+            {
+              "type": "text",
+              "label": "回答",
+              "prompt": "请回答 {dice}",
+              "mode": "manual",
+              "showActor": true
+            },
+            {
+              "type": "punish",
+              "label": "惩罚",
+              "ladder": [
+                {
+                  "at": 2,
+                  "text": "喝一杯"
+                }
+              ],
+              "defaultText": "喝一口",
+              "showActor": false
+            },
+            {
+              "type": "choice",
+              "label": "选择",
+              "prompt": "选一个",
+              "options": [
+                {
+                  "text": "A",
+                  "goto": "next"
+                },
+                {
+                  "text": "B",
+                  "goto": "next"
+                }
+              ],
+              "chooser": "last_roller"
+            },
+            {
+              "type": "showdown",
+              "label": "比大小",
+              "emoji": "🎲",
+              "order": "high",
+              "tie": "keep",
+              "accumulate": false,
+              "actor": "none"
+            }
+          ]
+        }
+      ]
+    },
+    "roundIdx": 0,
+    "stepIdx": 4,
+    "loopProgress": {
+      "current": 1,
+      "total": 4
+    },
+    "phase": {
+      "kind": "showdown",
+      "roundIdx": 0,
+      "stepIdx": 4,
+      "emoji": "🎲",
+      "order": "high",
+      "slot": "last",
+      "stepLabel": "比大小",
+      "rolls": [
+        {
+          "userId": 9001,
+          "value": 5
+        }
+      ],
+      "pending": [
+        9002,
+        9003
+      ],
+      "total": 3
+    },
+    "players": [
+      {
+        "userId": 9001,
+        "label": "用户 #9001",
+        "isViewer": false
+      },
+      {
+        "userId": 9002,
+        "label": "用户 #9002",
+        "isViewer": false
+      },
+      {
+        "userId": 9003,
+        "label": "用户 #9003",
+        "isViewer": true
+      }
+    ],
+    "activeActorId": 9001,
+    "lastResult": null,
+    "lastDice": {
+      "userId": 9001,
+      "value": 3,
+      "at": 0,
+      "emoji": "🎲",
+      "decoded": null
+    },
+    "lastMessage": "🎲 用户 #9001 掷出 5",
+    "viewer": {
+      "id": 9003,
+      "isAdmin": false
+    }
+  }
+}

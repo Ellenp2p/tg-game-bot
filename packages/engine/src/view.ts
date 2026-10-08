@@ -1,5 +1,5 @@
 import { decodeSlotValue } from './model.js';
-import type { RuleDefinition, GameRecord, GamePlayer } from './model.js';
+import type { RuleDefinition, Game, GamePlayer, UserId } from './model.js';
 import { findStep, formatTemplate, loopProgress } from './rules.js';
 import { displayName } from './names.js';
 
@@ -12,21 +12,19 @@ export type ViewPhase =
   | { kind: 'roll'; roundIdx: number; stepIdx: number; expectedPlayerId: number | null; emoji: string; stepLabel: string }
   | { kind: 'text'; roundIdx: number; stepIdx: number; text: string; stepLabel: string }
   | { kind: 'choice'; roundIdx: number; stepIdx: number; options: Array<Record<string, unknown>>; pickedBy: number | null; stepLabel: string }
-  | { kind: 'showdown'; roundIdx: number; stepIdx: number; emoji: string; order: string; slot: string; stepLabel: string; rolls: { userId: number; value: number }[]; pending: number[]; total: number }
+  | { kind: 'showdown'; roundIdx: number; stepIdx: number; emoji: string; order: string; slot: string; stepLabel: string; rolls: { userId: UserId; value: number }[]; pending: number[]; total: number }
   | { kind: 'punish'; roundIdx: number; stepIdx: number; text: string; hitCount: number; stepLabel: string };
 
 export type View = {
   gameId: string;
-  chatId: number;
   ruleId: string;
-  starterId: number;
   status: string;
   rule: { ruleId: string; name: string; rounds: unknown } | null;
   roundIdx: number;
   stepIdx: number;
   loopProgress: { current: number; total: number | null } | null;
   phase: ViewPhase;
-  players: Array<{ userId: number; label: string; isViewer: boolean }>;
+  players: Array<{ userId: UserId; label: string; isViewer: boolean }>;
   activeActorId: number | null;
   lastResult: unknown;
   lastDice: unknown;
@@ -36,7 +34,7 @@ export type View = {
 
 /** 由局面 + 规则 + 玩家（+ 观察者）构造视图。与 bot 的 snapshot 形状一致。 */
 export function buildView(
-  game: GameRecord,
+  game: Game,
   definition: RuleDefinition | undefined,
   players: GamePlayer[],
   viewerId: number,
@@ -49,9 +47,7 @@ export function buildView(
   const lastResult = game.state.lastResultSlot ? game.state.results?.[game.state.lastResultSlot] : undefined;
   return {
     gameId: game.gameId,
-    chatId: game.chatId,
     ruleId: game.ruleId,
-    starterId: game.starterId,
     status: game.status,
     rule: rule ? { ruleId: rule.name, name: rule.name, rounds: rule.rounds } : null,
     roundIdx: game.roundIdx,

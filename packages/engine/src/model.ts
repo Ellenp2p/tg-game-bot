@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+/**
+ * 玩家标识（不透明句柄）。当前为 `number`（Telegram 的 user id 就在安全整数内）。
+ * 若要接 Discord/网页（雪花 id 超安全整数），只需把这里改成 `string`，并在
+ * **适配器/DB 边界**做 number↔string 转换；引擎逻辑无需改动。
+ */
+export type UserId = number;
+
 export const SUPPORTED_DICE_EMOJIS = ['🎲', '🎯', '🏀', '⚽', '🎰', '🎳'] as const;
 export type DiceEmoji = typeof SUPPORTED_DICE_EMOJIS[number];
 
@@ -192,7 +199,7 @@ export function isJackpot(value: number): boolean {
 
 export type RuleRecord = {
   ruleId: string;
-  userId: number;
+  userId: UserId;
   name: string;
   definition: RuleDefinition;
   createdAt: number;
@@ -202,12 +209,12 @@ export type RuleRecord = {
 export type GameStatus = 'signup' | 'in_progress' | 'ended';
 
 export type GamePlayer = {
-  userId: number;
+  userId: UserId;
   joinedAt: number;
 };
 
 /** showdown 单次收集记录 */
-export type ShowdownRoll = { userId: number; value: number; at: number };
+export type ShowdownRoll = { userId: UserId; value: number; at: number };
 
 export type ShowdownOrder = 'high' | 'low' | 'none';
 export type ShowdownTie = 'keep' | 'first' | 'reroll';
@@ -218,9 +225,9 @@ export type ShowdownResult = {
   /** userId -> 本次值（accumulate 时为累计总分） */
   totals: Record<string, number>;
   /** 按 order 排好序的排名 */
-  ranking: { userId: number; value: number }[];
-  winners: number[];
-  losers: number[];
+  ranking: { userId: UserId; value: number }[];
+  winners: UserId[];
+  losers: UserId[];
   sum: number;
   max: number;
   min: number;
@@ -243,38 +250,43 @@ export type GameState = {
   phase: GamePhase;
   stepHitCounts: Record<string, number>;
   loopCounters: Record<string, number>;
-  lastRollerId?: number;
-  lastDice?: { userId: number; value: number; at: number; emoji: DiceEmoji };
+  lastRollerId?: UserId;
+  lastDice?: { userId: UserId; value: number; at: number; emoji: DiceEmoji };
   lastMessage?: string;
   /** 命名结果槽 */
   results?: Record<string, ShowdownResult>;
   /** 最近一次写入的结果槽名 */
   lastResultSlot?: string;
   /** 当前主角 */
-  activeActorId?: number;
+  activeActorId?: UserId;
   /** roll.draw 命中的编号（命名槽） */
   draws?: Record<string, number>;
   /** 最近一次 roll.draw 命中的编号 */
   lastDraw?: number;
 };
 
-export type GameRecord = {
+/** 引擎视角的对局：只有状态机需要的字段（无房间/消息/元数据）。 */
+export type Game = {
   gameId: string;
-  chatId: number;
   ruleId: string;
-  starterId: number;
   status: GameStatus;
   state: GameState;
   roundIdx: number;
   stepIdx: number;
-  createdAt: number;
   endedAt: number | null;
-  signupMsgId: number | null;
   /**
-   * 内存中的玩家列表（按加入顺序）。由适配器/引擎在调用时挂载，**不持久化**
+   * 内存中的玩家列表（按加入顺序）。由适配器在调用前挂载，**不持久化**
    * （持久化在 game_players 表；`db.listPlayers` 读取）。引擎据此做轮换/主角/结算。
    */
   players?: GamePlayer[];
+};
+
+/** 应用/持久化记录：引擎对局 `Game` + 传输与元数据（房间 id、消息 id、创建时间…）。 */
+export type GameRecord = Game & {
+  chatId: number;
+  starterId: UserId;
+  createdAt: number;
+  signupMsgId: number | null;
 };
 
 export type GameEventType =
@@ -285,14 +297,14 @@ export type GameEventType =
 export type GameEventRecord = {
   eventId: number;
   gameId: string;
-  userId: number;
+  userId: UserId;
   type: GameEventType;
   payload: Record<string, unknown>;
   createdAt: number;
 };
 
 export type UserRecord = {
-  userId: number;
+  userId: UserId;
   createdAt: number;
   lastSeenAt: number;
 };

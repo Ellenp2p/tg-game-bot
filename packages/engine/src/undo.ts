@@ -1,10 +1,10 @@
-import type { GameRecord, RuleDefinition, GameEventRecord } from './model.js';
+import type { Game, RuleDefinition, GameEventRecord, UserId } from './model.js';
 import { advanceToStep, initialState } from './rules.js';
 
 /** 撤销一个事件需要适配器额外做的副作用（DB / 传输态）。 */
 export type UndoEffect =
-  | { kind: 'add-player'; userId: number }
-  | { kind: 'remove-player'; userId: number }
+  | { kind: 'add-player'; userId: UserId }
+  | { kind: 'remove-player'; userId: UserId }
   | { kind: 'clear-pending-rolls' };
 
 /**
@@ -12,7 +12,7 @@ export type UndoEffect =
  * 返回适配器需要补做的副作用（玩家增删、清空未揭晓骰子）。
  * `game.players` 由调用方保证已挂载（join/leave 会用到）。
  */
-export function applyUndo(game: GameRecord, definition: RuleDefinition, event: GameEventRecord): UndoEffect | null {
+export function applyUndo(game: Game, definition: RuleDefinition, event: GameEventRecord): UndoEffect | null {
   switch (event.type) {
     case 'join':
       return { kind: 'remove-player', userId: event.userId };

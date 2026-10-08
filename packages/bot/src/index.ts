@@ -64,8 +64,8 @@ async function requireGroupAdmin(ctx: Context): Promise<void> {
 }
 
 function snapshot(game: GameRecord, definition: RuleDefinition | undefined, players: GamePlayer[], viewerId: number, isAdminViewer: boolean) {
-  // 视图构造已抽到引擎（packages/engine/src/view.ts），此处仅保留调用点
-  return buildView(game, definition, players, viewerId, isAdminViewer);
+  // 引擎视图 + 适配器补的传输字段（Mini App 用 chatId 做「去群里掷骰」）
+  return { ...buildView(game, definition, players, viewerId, isAdminViewer), chatId: game.chatId, starterId: game.starterId };
 }
 
 const wsByGame = new Map<string, Set<WebSocket>>();

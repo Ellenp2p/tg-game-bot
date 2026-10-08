@@ -1,4 +1,4 @@
-import type { RuleDefinition, GameRecord, GamePlayer, DiceEmoji, GamePhase } from './model.js';
+import type { RuleDefinition, Game, GamePlayer, DiceEmoji, GamePhase, UserId } from './model.js';
 import {
   beginGame, applyRoll, applyShowdownRoll, applyChoice, applyNext, applySkip, findStep
 } from './rules.js';
@@ -6,14 +6,14 @@ import { now } from './clock.js';
 
 /** 引擎唯一入口的输入：一个"意图"。 */
 export type Intent =
-  | { type: 'join'; userId: number }
-  | { type: 'leave'; userId: number }
-  | { type: 'begin'; userId: number }
-  | { type: 'roll'; userId: number; value: number; emoji: DiceEmoji }
-  | { type: 'showdownRoll'; userId: number; value: number; emoji: DiceEmoji }
-  | { type: 'choice'; userId: number; optionIdx: number }
-  | { type: 'next'; userId: number }
-  | { type: 'skip'; userId: number };
+  | { type: 'join'; userId: UserId }
+  | { type: 'leave'; userId: UserId }
+  | { type: 'begin'; userId: UserId }
+  | { type: 'roll'; userId: UserId; value: number; emoji: DiceEmoji }
+  | { type: 'showdownRoll'; userId: UserId; value: number; emoji: DiceEmoji }
+  | { type: 'choice'; userId: UserId; optionIdx: number }
+  | { type: 'next'; userId: UserId }
+  | { type: 'skip'; userId: UserId };
 
 export type EngineErrorCode =
   | 'NOT_A_PLAYER' | 'NOT_YOUR_TURN' | 'ALREADY_ROLLED' | 'WRONG_EMOJI'
@@ -50,7 +50,7 @@ function classify(message: string): EngineErrorCode {
 }
 
 /** 记录当前相位的事件（每次动作后调用）。 */
-function entered(game: GameRecord): EngineEvent[] {
+function entered(game: Game): EngineEvent[] {
   const out: EngineEvent[] = [
     { type: 'phaseEntered', phase: game.state.phase.kind, roundIdx: game.roundIdx, stepIdx: game.stepIdx }
   ];
@@ -63,7 +63,7 @@ function entered(game: GameRecord): EngineEvent[] {
  * 纯函数：不碰 DB / 网络 / 定时器；成功时原地更新 game 并返回事件流。
  */
 export function run(
-  game: GameRecord,
+  game: Game,
   definition: RuleDefinition,
   players: GamePlayer[],
   intent: Intent
@@ -134,6 +134,6 @@ export function run(
 }
 
 /** 相位快照（调试/断言用）。 */
-export function phaseOf(game: GameRecord): GamePhase {
+export function phaseOf(game: Game): GamePhase {
   return game.state.phase;
 }

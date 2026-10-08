@@ -1,6 +1,6 @@
 import type {
-  GameRecord, GamePlayer, RuleDefinition, GamePhase, GameState, Step,
-  ChoiceGoto, ChoiceOption, DiceEmoji,
+  Game, GamePlayer, RuleDefinition, GamePhase, GameState, Step,
+  ChoiceGoto, ChoiceOption, DiceEmoji, UserId,
   ShowdownResult, BranchConditionInput, BranchCondition, CompareOp
 } from './model.js';
 import {
@@ -10,7 +10,7 @@ import {
 import { now } from './clock.js';
 import { displayName } from './names.js';
 
-function playersOf(game: GameRecord): GamePlayer[] {
+function playersOf(game: Game): GamePlayer[] {
   return game.players ?? [];
 }
 
@@ -71,7 +71,7 @@ export function drawBucket(value: number, count: number, uniform: 'equal' | 'exa
 
 /** 从结果槽里挑一个玩家（winner / loser），并列时按名次顺序取最前者（与看板显示一致） */
 export function resolveActorPick(
-  game: GameRecord,
+  game: Game,
   players: GamePlayer[],
   pick: 'winner' | 'loser',
   slot?: string
@@ -87,7 +87,7 @@ export function resolveActorPick(
   return ordered[0] ?? ids[0] ?? null;
 }
 
-function resetToEnded(game: GameRecord): GamePhase {
+function resetToEnded(game: Game): GamePhase {
   game.status = 'ended';
   game.endedAt = now();
   game.state = {
@@ -104,19 +104,19 @@ function resetToEnded(game: GameRecord): GamePhase {
   return game.state.phase;
 }
 
-export function beginGame(game: GameRecord, definition: RuleDefinition): GamePhase {
+export function beginGame(game: Game, definition: RuleDefinition): GamePhase {
   game.roundIdx = 0;
   game.stepIdx = 0;
   game.state = initialState();
   return advanceToStep(game, definition, 0, 0);
 }
 
-export function advanceToStep(game: GameRecord, definition: RuleDefinition, roundIdx: number, stepIdx: number): GamePhase {
+export function advanceToStep(game: Game, definition: RuleDefinition, roundIdx: number, stepIdx: number): GamePhase {
   return stepTo(game, definition, roundIdx, stepIdx, {});
 }
 
 /** guard 记录"本次推进链路"里每个 branch step 被访问的次数，用于拦截自环 */
-function stepTo(game: GameRecord, definition: RuleDefinition, roundIdx: number, stepIdx: number, guard: Record<string, number>): GamePhase {
+function stepTo(game: Game, definition: RuleDefinition, roundIdx: number, stepIdx: number, guard: Record<string, number>): GamePhase {
   const round = definition.rounds[roundIdx];
   if (!round) {
     return resetToEnded(game);
@@ -212,7 +212,7 @@ function stepTo(game: GameRecord, definition: RuleDefinition, roundIdx: number, 
   return game.state.phase;
 }
 
-export function applyRoll(game: GameRecord, definition: RuleDefinition, userId: number, value: number, players: GamePlayer[], emoji?: DiceEmoji): { message: string; phase: GamePhase } {
+export function applyRoll(game: Game, definition: RuleDefinition, userId: UserId, value: number, players: GamePlayer[], emoji?: DiceEmoji): { message: string; phase: GamePhase } {
   const phase = game.state.phase;
   if (phase.kind !== 'roll') throw Error('当前不等待色子');
   if (phase.expectedPlayerId !== null && phase.expectedPlayerId !== userId) {
@@ -276,7 +276,7 @@ export function applyRoll(game: GameRecord, definition: RuleDefinition, userId: 
 
 /** showdown 收集一颗骰子；集齐后自动结算 */
 export function applyShowdownRoll(
-  game: GameRecord, definition: RuleDefinition, userId: number, value: number, players: GamePlayer[], emoji?: DiceEmoji
+  game: Game, definition: RuleDefinition, userId: UserId, value: number, players: GamePlayer[], emoji?: DiceEmoji
 ): { message: string; settled: boolean; rerolled?: boolean; phase: GamePhase } {
   const phase = game.state.phase;
   if (phase.kind !== 'showdown') throw Error('当前不等待比大小');
@@ -308,7 +308,7 @@ export function applyShowdownRoll(
 
 /** 结算 showdown：排序、写结果槽、按 actor 设置主角、推进到下一步。
  *  返回 rerolled=true 表示本轮出现并列、已清空重掷（未写结果、未推进）；UI 由调用方决定。 */
-export function settleShowdown(game: GameRecord, definition: RuleDefinition, players: GamePlayer[]): { message: string; rerolled: boolean } {
+export function settleShowdown(game: Game, definition: RuleDefinition, players: GamePlayer[]): { message: string; rerolled: boolean } {
   const phase = game.state.phase;
   if (phase.kind !== 'showdown') throw Error('当前不在比大小阶段');
   const step = findStep(definition, phase.roundIdx, phase.stepIdx);
@@ -405,7 +405,7 @@ function cmp(a: number, op: CompareOp, b: number): boolean {
 }
 
 /** 求值 branch 条件 */
-export function evaluateCondition(game: GameRecord, cond: BranchConditionInput): boolean {
+export function evaluateCondition(game: Game, cond: BranchConditionInput): boolean {
   const c: BranchCondition = typeof cond === 'string' ? { check: cond } : cond;
   const key = ('slot' in c && c.slot) ? c.slot : (game.state.lastResultSlot ?? 'last');
   const res = game.state.results?.[key];
@@ -429,7 +429,7 @@ export function evaluateCondition(game: GameRecord, cond: BranchConditionInput):
   }
 }
 
-export function applyNext(game: GameRecord, definition: RuleDefinition, _userId: number, players?: GamePlayer[]): GamePhase {
+export function applyNext(game: Game, definition: RuleDefinition, _userId: UserId, players?: GamePlayer[]): GamePhase {
   const phase = game.state.phase;
   if (phase.kind === 'signup') throw Error('报名阶段不能 /next');
   if (phase.kind === 'roll') throw Error('当前在等色子，等玩家掷 🎲 后再 /next');
@@ -457,7 +457,7 @@ export function applyNext(game: GameRecord, definition: RuleDefinition, _userId:
   return advanceToStep(game, definition, phase.roundIdx, phase.stepIdx + 1);
 }
 
-export function applySkip(game: GameRecord, definition: RuleDefinition): GamePhase {
+export function applySkip(game: Game, definition: RuleDefinition): GamePhase {
   const phase = game.state.phase;
   if (phase.kind === 'signup') throw Error('报名阶段不能 /skip');
   if (phase.kind === 'roll') throw Error('当前在等色子，无法跳过');
@@ -479,7 +479,7 @@ export function applySkip(game: GameRecord, definition: RuleDefinition): GamePha
   return advanceToStep(game, definition, phase.roundIdx, phase.stepIdx + 1);
 }
 
-export function applyChoice(game: GameRecord, definition: RuleDefinition, userId: number, optionIdx: number): { message: string; phase: GamePhase } {
+export function applyChoice(game: Game, definition: RuleDefinition, userId: UserId, optionIdx: number): { message: string; phase: GamePhase } {
   const phase = game.state.phase;
   if (phase.kind !== 'choice') throw Error('当前不在选择阶段');
   if (phase.pickedBy !== null && phase.pickedBy !== userId) throw Error('不是你的回合，请等待系统指定玩家');
@@ -502,12 +502,12 @@ function escHtml(s: string): string {
   return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
-function nameMention(userId: number, mode: 'html' | 'plain'): string {
+function nameMention(userId: UserId, mode: 'html' | 'plain'): string {
   const label = displayName(userId);
   return mode === 'html' ? `<a href="tg://user?id=${userId}">${escHtml(label)}</a>` : label;
 }
 
-function resolveTemplateToken(token: string, game: GameRecord, mode: 'html' | 'plain'): string | null {
+function resolveTemplateToken(token: string, game: Game, mode: 'html' | 'plain'): string | null {
   const dot = token.indexOf('.');
   const slot = dot >= 0 ? token.slice(0, dot) : undefined;
   const sel = dot >= 0 ? token.slice(dot + 1) : token;
@@ -564,7 +564,7 @@ function resolveTemplateToken(token: string, game: GameRecord, mode: 'html' | 'p
  * 渲染文案模板。群消息用 'html'（字面段转义、玩家插入 @mention），
  * Mini App 用 'plain'。无法识别的 token 原样保留。
  */
-export function formatTemplate(text: string, game: GameRecord, mode: 'html' | 'plain'): string {
+export function formatTemplate(text: string, game: Game, mode: 'html' | 'plain'): string {
   if (!text) return text;
   if (!text.includes('{')) return mode === 'html' ? escHtml(text) : text;
   let out = '';
