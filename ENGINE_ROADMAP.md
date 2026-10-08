@@ -68,7 +68,7 @@ type EngineCtx = { definition:RuleDefinition; now:()=>number; rng?:()=>number };
 - CLI：`pnpm spec`（跑+diff）、`pnpm spec --update`（重录）。
 - `specs/README.md`：格式说明。
 
-**验收**：`pnpm spec` 全绿；18 个示例 + 盲盒行为被 golden 钉死；改坏引擎会 diff 失败。
+**验收**：`pnpm spec` 全绿；18 个示例 + 边界行为被 golden 钉死；改坏引擎会 diff 失败。
 
 **不改**：`src/`（引擎/机器人）。
 

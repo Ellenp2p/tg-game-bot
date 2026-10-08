@@ -385,7 +385,7 @@ state.results["rank"] = {
 
 ## 🎰 抽签策略：用老虎机做「任意 N 选一」
 
-需要一个"从 N 个选项里随机抽一个"的机制（抽盲盒、抽卡、抽惩罚…）时，**推荐直接用 `roll.draw`**——引擎内部就用下面第 1 节的映射数学，一步搞定，N ≤ 64 任意。不想用 `draw` 的话，也可以「`roll` + `branch` 分段」手写（第 4 节）。
+需要一个"从 N 个选项里随机抽一个"的机制（抽卡、抽奖、抽惩罚…）时，**推荐直接用 `roll.draw`**——引擎内部就用下面第 1 节的映射数学，一步搞定，N ≤ 64 任意。不想用 `draw` 的话，也可以「`roll` + `branch` 分段」手写（第 4 节）。
 
 ### 1. 映射数学（等距分段）
 
@@ -460,15 +460,15 @@ function drawStrategy(N, roundIdx, S) {
 }
 ```
 
-### 5. 例子：16 个盲盒（N=16，完全均匀）
+### 5. 例子：16 选 1 抽签（N=16，完全均匀）
 
 `64 / 16 = 4`，每号 4 个值，完全均匀。用 `draw` 一步（`targets` 指向 16 个结果步）：
 
 ```jsonc
-{ "type": "roll", "label": "抽盲盒", "emoji": "🎰", "assignment": "winner",
+{ "type": "roll", "label": "抽签", "emoji": "🎰", "assignment": "winner",
   "draw": { "count": 16, "uniform": "exact", "store": "box",
-    "targets": [ <盒1>, <盒2>, /* … */ <盒16> ] } },
-{ "type": "text", "label": "盒 1", "prompt": "盲盒 1：…", "next": "end" }
+    "targets": [ <签1>, <签2>, /* … */ <签16> ] } },
+{ "type": "text", "label": "签 1", "prompt": "签 1：…", "next": "end" }
 /* 每个结果步用 next:"end" 结束本轮，不必再挂 branch */
 ```
 
