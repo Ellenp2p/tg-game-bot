@@ -5,7 +5,7 @@ import { randomBytes } from 'node:crypto';
 import type {
   RuleRecord, GameRecord, GamePlayer, GameEventRecord, GameEventType,
   UserRecord, RuleDefinition, GameState
-} from './model.js';
+} from '@tg-game/engine';
 
 export function id8(): string {
   return randomBytes(4).toString('hex');

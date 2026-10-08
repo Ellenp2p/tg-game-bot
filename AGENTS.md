@@ -7,7 +7,33 @@ Telegram 群内游戏主理人 bot（grammy + better-sqlite3 + 原生 ws）。
 - 数据：SQLite (`./data/bot.sqlite`)
 - 入口：bot 命令（私聊管规则 / 群内开对局）+ Mini App 实时视图
 - 群内流程：管理员 `/startgame` 选规则 → 玩家 `/joingame` 报名 → `/begin` 开局 → 玩家掷色子/做选择 → 管理员 `/next`/`/skip`/`/undo`/`/endgame`
-- 规则设计：见 [`RULES_AUTHORING.md`](RULES_AUTHORING.md)；模板见 [`examples/`](examples/)；schema 真源 `src/model.ts` 的 `CURRENT_RULE_SCHEMA_VERSION`
+- 规则设计：见 [`RULES_AUTHORING.md`](RULES_AUTHORING.md)；模板见 [`examples/`](examples/)；schema 真源 `packages/engine/src/model.ts` 的 `CURRENT_RULE_SCHEMA_VERSION`
+
+## 仓库结构（monorepo）
+
+```
+packages/engine/   纯规则引擎（只依赖 zod）：schema / 状态机 / step 处理器 / 模板
+  src/model.ts     schema + 类型 + 常量（CURRENT_RULE_SCHEMA_VERSION）
+  src/rules.ts     引擎逻辑（beginGame/applyRoll/applyShowdownRoll/advanceToStep…）
+  test/            纯引擎单测（不碰 TG/DB）
+packages/bot/      Telegram 适配器（grammy / better-sqlite3 / ws）
+  src/index.ts     命令 / 回调 / 骰子 handler / HTTP+WS / 渲染
+  src/db.ts        持久化
+  test/            含 DB 的集成测试
+specs/             声明式场景 + golden（`pnpm spec`，见 specs/README.md）
+scripts/           spec 运行器 / 生成器
+examples/          规则模板（18 条）
+```
+
+**命令**（根目录）：
+- `pnpm build` — `pnpm -r build`（先 engine 后 bot）
+- `pnpm test` — 单测（engine + bot）+ `pnpm spec`
+- `pnpm spec` / `pnpm spec --update` — 跑 / 重录 golden
+- `pnpm dev` — tsx watch（bot）
+- 部署：`node packages/bot/dist/index.js`（systemd 的 ExecStart 已指向该路径）
+
+引擎重构路线图见 [`ENGINE_ROADMAP.md`](ENGINE_ROADMAP.md)。
+
 
 ## bot 命令语义
 

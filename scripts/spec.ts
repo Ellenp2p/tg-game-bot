@@ -13,9 +13,9 @@ import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync } from 
 import { join, basename } from 'node:path';
 import {
   ruleDefinition, DICE_EMOJI_MAX_VALUE,
-  type RuleDefinition, type DiceEmoji, type GameRecord, type GamePlayer
-} from '../src/model.js';
-import { beginGame, applyRoll, applyShowdownRoll, applyNext, applySkip, applyChoice } from '../src/rules.js';
+  type RuleDefinition, type DiceEmoji, type GameRecord, type GamePlayer,
+  beginGame, applyRoll, applyShowdownRoll, applyNext, applySkip, applyChoice
+} from '../packages/engine/src/index.js';
 
 const ROOT = process.cwd();
 const SPECS_DIR = join(ROOT, 'specs');

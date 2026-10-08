@@ -7,7 +7,19 @@ settings:
 importers:
 
   .:
+    devDependencies:
+      tsx:
+        specifier: ^4.20.5
+        version: 4.23.15
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+
+  packages/bot:
     dependencies:
+      '@tg-game/engine':
+        specifier: workspace:*
+        version: link:../engine
       better-sqlite3:
         specifier: ^13.0.3
         version: 13.0.3
@@ -20,9 +32,6 @@ importers:
       ws:
         specifier: ^8.18.3
         version: 8.22.0
-      zod:
-        specifier: ^4.1.5
-        version: 4.6.5
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^9.6.0
@@ -33,6 +42,19 @@ importers:
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.2
+      tsx:
+        specifier: ^4.20.5
+        version: 4.23.15
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+
+  packages/engine:
+    dependencies:
+      zod:
+        specifier: ^4.1.5
+        version: 4.6.5
+    devDependencies:
       tsx:
         specifier: ^4.20.5
         version: 4.23.15

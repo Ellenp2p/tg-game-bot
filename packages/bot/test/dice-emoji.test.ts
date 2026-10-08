@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Db } from '../src/db.js';
-import { applyRoll, beginGame } from '../src/rules.js';
-import { ruleDefinition, resolveRollEmoji, type RuleDefinition, DICE_EMOJI_MAX_VALUE } from '../src/model.js';
+import { applyRoll, beginGame } from '../../engine/src/index.js';
+import { ruleDefinition, resolveRollEmoji, type RuleDefinition, DICE_EMOJI_MAX_VALUE } from '../../engine/src/index.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

@@ -2,7 +2,7 @@
 /** 从 examples/*.json 生成 playthrough spec（min / max 两种取值），S0 种子。 */
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { ruleDefinition } from '../src/model.js';
+import { ruleDefinition } from '../packages/engine/src/index.js';
 
 const EXAMPLES = join(process.cwd(), 'examples');
 const SPECS = join(process.cwd(), 'specs');

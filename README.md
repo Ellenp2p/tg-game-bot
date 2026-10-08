@@ -139,10 +139,13 @@ docker compose up -d --build
 ## 开发
 
 ```bash
-pnpm run dev        # tsx watch，热重载
-pnpm test           # 跑测试
-pnpm run build      # tsc → dist/
+pnpm dev            # tsx watch（bot），热重载
+pnpm test           # 单测（engine + bot）+ spec/golden
+pnpm spec           # 只跑声明式场景 + golden（specs/）
+pnpm build          # pnpm -r build（先 engine 后 bot）
 ```
+
+仓库是 monorepo：`packages/engine`（纯引擎）+ `packages/bot`（Telegram 适配器）。详见 [`ENGINE_ROADMAP.md`](ENGINE_ROADMAP.md) 与 [`specs/README.md`](specs/README.md)。
 
 ## License
 

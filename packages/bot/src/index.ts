@@ -9,13 +9,11 @@ import { Db } from './db.js';
 import {
   ruleDefinition, type RuleDefinition, type RuleRecord, type GameRecord,
   type GamePlayer, type DiceEmoji, SUPPORTED_DICE_EMOJIS,
-  type GamePhase, type GameStatus
-} from './model.js';
-import {
+  type GamePhase, type GameStatus,
   advanceToStep, applyNext, applyRoll, applySkip, applyChoice, beginGame,
-  applyShowdownRoll, displayName, findStep, initialState, loopProgress, formatTemplate
-} from './rules.js';
-import { decodeSlotValue, isJackpot, SLOT_SYMBOL_LABEL } from './model.js';
+  applyShowdownRoll, displayName, findStep, initialState, loopProgress, formatTemplate,
+  decodeSlotValue, isJackpot, SLOT_SYMBOL_LABEL
+} from '@tg-game/engine';
 
 const token = process.env.BOT_TOKEN;
 if (!token) throw Error('BOT_TOKEN is required');

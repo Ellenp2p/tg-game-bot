@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { Db } from '../src/db.js';
 import {
   advanceToStep, applyChoice, applyNext, applyRoll, applySkip, beginGame
-} from '../src/rules.js';
-import { ruleDefinition, type RuleDefinition } from '../src/model.js';
+} from '../../engine/src/index.js';
+import { ruleDefinition, type RuleDefinition } from '../../engine/src/index.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
