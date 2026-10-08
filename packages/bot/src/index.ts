@@ -77,9 +77,10 @@ function broadcast(gameId: string): void {
   if (!game) return;
   const rule = db.getRule(game.ruleId);
   const players = db.listPlayers(gameId);
+  const { viewer: _drop, ...rest } = snapshot(game, rule?.definition, players, 0, false);
   const payload = JSON.stringify({
     type: 'state',
-    snapshot: snapshot(game, rule?.definition, players, 0, false)
+    snapshot: rest // 广播不含 viewer：观众身份由客户端初始化时（/api/games?initData）拿到，避免被覆盖成 0
   });
   for (const ws of set) if (ws.readyState === WebSocket.OPEN) ws.send(payload);
 }
@@ -204,7 +205,7 @@ async function notifyGroup(game: GameRecord, action: string, actorId: number): P
   if (action === 'join' || action === 'leave' || action === 'begin') {
     await refreshSignupMessage(game);
   }
-  if (action === 'begin' || action === 'next' || action === 'skip' || action === 'choice') {
+  if (action === 'begin' || action === 'next' || action === 'skip' || action === 'choice' || action === 'undo') {
     await sendStatus(game.chatId, game.gameId);
   } else if (action === 'end') {
     game.signupMsgId = null;

@@ -90,6 +90,7 @@
       }
     ],
     "activeActorId": null,
+    "showActor": false,
     "lastResult": null,
     "lastDice": null,
     "lastMessage": null,
@@ -177,6 +178,7 @@
       "stepIdx": 0,
       "expectedPlayerId": 9001,
       "emoji": "🎲",
+      "drawHint": null,
       "stepLabel": "掷色子"
     },
     "players": [
@@ -197,6 +199,7 @@
       }
     ],
     "activeActorId": null,
+    "showActor": false,
     "lastResult": null,
     "lastDice": null,
     "lastMessage": null,
@@ -303,6 +306,7 @@
       }
     ],
     "activeActorId": 9001,
+    "showActor": true,
     "lastResult": null,
     "lastDice": {
       "userId": 9001,
@@ -416,6 +420,7 @@
       }
     ],
     "activeActorId": 9001,
+    "showActor": false,
     "lastResult": null,
     "lastDice": {
       "userId": 9001,
@@ -538,6 +543,7 @@
       }
     ],
     "activeActorId": 9001,
+    "showActor": false,
     "lastResult": null,
     "lastDice": {
       "userId": 9001,
@@ -663,6 +669,7 @@
       }
     ],
     "activeActorId": 9001,
+    "showActor": false,
     "lastResult": null,
     "lastDice": {
       "userId": 9001,

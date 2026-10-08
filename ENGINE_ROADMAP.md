@@ -146,6 +146,11 @@ type EngineCtx = { definition:RuleDefinition; now:()=>number; rng?:()=>number };
 - [x] P2 渲染可测：`bot/render.ts`（`renderStatus` 纯函数）+ 渲染 golden（`__golden__/render.json`）
 - [x] P3 交付自洽：`deploy/`（systemd 单元 + 说明）；`.env.example` 与默认对齐；根路径解析（不再依赖 cwd）；优雅退出（SIGTERM/SIGINT）；`DICE_ANIMATION_MS` 读 env
 - [x] P4 可移植性①：`join`/`leave` 变引擎 intent（名册归引擎，满员/重复/阶段校验在引擎；`playerJoined`/`playerLeft` 事件）；spec 现可覆盖 join/leave（含 golden）
+- [x] P5 一致性（群消息 ↔ Mini App）：
+      - 修 **观众身份被 WS 覆盖**：`broadcast` 不再下发 `viewer`；Mini App 保留 `/api/games?initData` 拿到的 viewer
+      - **统一视图**：群 `renderStatus` 改为消费引擎 `buildView`（群=View→HTML，Mini App=View→JSON），内容不再漂（渲染 golden 字节不变）
+      - 扇出补漏：HTTP 的 `undo` 也刷新群消息；`buildView` 补 `drawHint`/`showActor`
+      - 契约 golden：`buildView` 视图 golden（固定时钟）
 
 ### 可移植性（Discord / 网页）
 

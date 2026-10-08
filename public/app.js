@@ -12,6 +12,7 @@ const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&','<':'<','>':
 const notice = t => { const el = $('notice'); el.textContent = t || ''; if (t) setTimeout(() => { if (el.textContent === t) el.textContent = ''; }, 4000); };
 
 let socket, lastSnap, currentGameId, viewerId;
+let myViewer = null; // 由 /api/games?initData 首次拿到；WS 广播不含 viewer，避免被覆盖
 let perspectiveKey = localStorage.getItem('perspective') || 'player';
 $('perspectiveToggle').checked = perspectiveKey === 'admin';
 $('perspectiveToggle').addEventListener('change', e => {
@@ -34,9 +35,11 @@ async function api(path, method, body) {
 function render(snap) {
   lastSnap = snap;
   if (!snap) { $('title').textContent = '尚未开启对局'; $('subtitle').textContent = '请管理员在群里 /startgame'; return; }
-  viewerId = snap.viewer.id;
-  const showAdmin = snap.viewer.isAdmin && perspectiveKey === 'admin';
-  $('perspectiveWrap').hidden = !snap.viewer.isAdmin;
+  if (snap.viewer) myViewer = snap.viewer;
+  const viewer = myViewer || { id: 0, isAdmin: false };
+  viewerId = viewer.id;
+  const showAdmin = viewer.isAdmin && perspectiveKey === 'admin';
+  $('perspectiveWrap').hidden = !viewer.isAdmin;
   $('title').textContent = snap.rule?.name || '游戏';
   $('subtitle').textContent = snap.status === 'signup' ? '🎲 报名中'
     : snap.status === 'ended' ? '✅ 已结束'

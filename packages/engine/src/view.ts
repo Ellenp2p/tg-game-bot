@@ -9,7 +9,7 @@ import { displayName } from './names.js';
  */
 export type ViewPhase =
   | { kind: 'signup' }
-  | { kind: 'roll'; roundIdx: number; stepIdx: number; expectedPlayerId: number | null; emoji: string; stepLabel: string }
+  | { kind: 'roll'; roundIdx: number; stepIdx: number; expectedPlayerId: number | null; emoji: string; drawHint: number | null; stepLabel: string }
   | { kind: 'text'; roundIdx: number; stepIdx: number; text: string; stepLabel: string }
   | { kind: 'choice'; roundIdx: number; stepIdx: number; options: Array<Record<string, unknown>>; pickedBy: number | null; stepLabel: string }
   | { kind: 'showdown'; roundIdx: number; stepIdx: number; emoji: string; order: string; slot: string; stepLabel: string; rolls: { userId: UserId; value: number }[]; pending: number[]; total: number }
@@ -26,6 +26,7 @@ export type View = {
   phase: ViewPhase;
   players: Array<{ userId: UserId; label: string; isViewer: boolean }>;
   activeActorId: number | null;
+  showActor: boolean;
   lastResult: unknown;
   lastDice: unknown;
   lastMessage: string | null;
@@ -54,7 +55,7 @@ export function buildView(
     stepIdx: game.stepIdx,
     loopProgress: rule && phase.kind !== 'signup' ? loopProgress(rule, game.state.loopCounters, phase.roundIdx) : null,
     phase: phase.kind === 'signup' ? { kind: 'signup' as const }
-      : phase.kind === 'roll' ? { kind: 'roll' as const, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx, expectedPlayerId: phase.expectedPlayerId, emoji: phase.emoji, stepLabel: step?.type === 'roll' ? fmt(step.label) : '' }
+      : phase.kind === 'roll' ? { kind: 'roll' as const, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx, expectedPlayerId: phase.expectedPlayerId, emoji: phase.emoji, drawHint: step?.type === 'roll' && step.draw ? step.draw.count : null, stepLabel: step?.type === 'roll' ? fmt(step.label) : '' }
       : phase.kind === 'text' ? { kind: 'text' as const, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx, text: fmt(phase.text), stepLabel: step?.type === 'text' ? fmt(step.label) : '' }
       : phase.kind === 'choice' ? { kind: 'choice' as const, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx, options: phase.options.map(o => ({ ...o, text: fmt(o.text) })), pickedBy: phase.pickedBy, stepLabel: step?.type === 'choice' ? fmt(step.label) : '' }
       : phase.kind === 'showdown' ? {
@@ -71,6 +72,7 @@ export function buildView(
       isViewer: p.userId === viewerId
     })),
     activeActorId: game.state.activeActorId ?? null,
+    showActor: (step?.type === 'text' || step?.type === 'punish') ? !!step.showActor && !!game.state.activeActorId : false,
     lastResult: lastResult
       ? { slot: game.state.lastResultSlot!, order: lastResult.order, ranking: lastResult.ranking, winners: lastResult.winners, losers: lastResult.losers, sum: lastResult.sum, max: lastResult.max, min: lastResult.min }
       : null,
