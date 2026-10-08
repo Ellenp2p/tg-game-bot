@@ -16,16 +16,16 @@
       }
     ]
   },
-  "players": [9002, 9001, 9003],
+  "players": ["9002", "9001", "9003"],
   "steps": [
     { "do": { "type": "begin" }, "expect": { "phase": "showdown" } },
-    { "do": { "type": "showdownRoll", "userId": 9002, "value": 4 } },
-    { "do": { "type": "showdownRoll", "userId": 9001, "value": 4 } },
-    { "do": { "type": "showdownRoll", "userId": 9003, "value": 1 },
+    { "do": { "type": "showdownRoll", "userId": "9002", "value": 4 } },
+    { "do": { "type": "showdownRoll", "userId": "9001", "value": 4 } },
+    { "do": { "type": "showdownRoll", "userId": "9003", "value": 1 },
       "expect": { "phase": "showdown", "messageContains": "并列" } },
-    { "do": { "type": "showdownRoll", "userId": 9002, "value": 2 } },
-    { "do": { "type": "showdownRoll", "userId": 9001, "value": 5 } },
-    { "do": { "type": "showdownRoll", "userId": 9003, "value": 3 },
+    { "do": { "type": "showdownRoll", "userId": "9002", "value": 2 } },
+    { "do": { "type": "showdownRoll", "userId": "9001", "value": 5 } },
+    { "do": { "type": "showdownRoll", "userId": "9003", "value": 3 },
       "expect": { "phase": "text", "messageContains": "赢家" } }
   ]
 }

@@ -3,7 +3,7 @@
   "name": "12-solo-dice-challenge.min",
   "rule": "examples/12-solo-dice-challenge.json",
   "players": [
-    2001
+    "2001"
   ],
   "policy": {
     "value": "min",

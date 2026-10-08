@@ -3,7 +3,7 @@
     "n": 0,
     "intent": {
       "type": "roll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🎰"
     },
@@ -16,22 +16,22 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🎰"
     },
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 1,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -40,10 +40,10 @@
       "roundIdx": 0,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2002,
+    "expectedPlayerId": "2002",
     "emoji": "🎰",
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🎰"
     },
@@ -52,15 +52,15 @@
       "0": 1
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 2,
     "intent": {
       "type": "roll",
-      "userId": 2002,
+      "userId": "2002",
       "value": 1,
       "emoji": "🎰"
     },
@@ -73,7 +73,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2002,
+      "userId": "2002",
       "value": 1,
       "emoji": "🎰"
     },
@@ -82,15 +82,15 @@
       "0": 1
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 3,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -99,10 +99,10 @@
       "roundIdx": 0,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2001,
+    "expectedPlayerId": "2001",
     "emoji": "🎰",
     "lastDice": {
-      "userId": 2002,
+      "userId": "2002",
       "value": 1,
       "emoji": "🎰"
     },
@@ -111,15 +111,15 @@
       "0": 2
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 4,
     "intent": {
       "type": "roll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🎰"
     },
@@ -132,7 +132,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🎰"
     },
@@ -141,15 +141,15 @@
       "0": 2
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 5,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "signup",
@@ -159,7 +159,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🎰"
     },
@@ -168,8 +168,8 @@
       "0": 3
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   }
 ]

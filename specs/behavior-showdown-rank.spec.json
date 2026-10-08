@@ -17,16 +17,16 @@
       }
     ]
   },
-  "players": [9002, 9001, 9003],
+  "players": ["9002", "9001", "9003"],
   "steps": [
     { "do": { "type": "begin" }, "expect": { "phase": "showdown" } },
-    { "do": { "type": "showdownRoll", "userId": 9002, "value": 4 } },
-    { "do": { "type": "showdownRoll", "userId": 9001, "value": 4 } },
-    { "do": { "type": "showdownRoll", "userId": 9003, "value": 1 },
-      "expect": { "phase": "roll", "expectedPlayerId": 9001, "messageContains": "赢家" } },
-    { "do": { "type": "roll", "userId": 9003, "value": 3, "emoji": "🎲" },
+    { "do": { "type": "showdownRoll", "userId": "9002", "value": 4 } },
+    { "do": { "type": "showdownRoll", "userId": "9001", "value": 4 } },
+    { "do": { "type": "showdownRoll", "userId": "9003", "value": 1 },
+      "expect": { "phase": "roll", "expectedPlayerId": "9001", "messageContains": "赢家" } },
+    { "do": { "type": "roll", "userId": "9003", "value": 3, "emoji": "🎲" },
       "expect": { "ok": false, "error": "不是你的回合" } },
-    { "do": { "type": "roll", "userId": 9001, "value": 3, "emoji": "🎲" },
+    { "do": { "type": "roll", "userId": "9001", "value": 3, "emoji": "🎲" },
       "expect": { "phase": "text" } }
   ]
 }

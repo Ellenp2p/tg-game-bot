@@ -2,14 +2,14 @@
   "kind": "scripted",
   "name": "behavior-draw-box",
   "rule": "examples/18-draw-lucky.json",
-  "players": [9001, 9002],
+  "players": ["9001", "9002"],
   "steps": [
-    { "do": { "type": "begin" }, "expect": { "phase": "roll", "expectedPlayerId": 9001 } },
-    { "do": { "type": "roll", "userId": 9001, "value": 64, "emoji": "🎰" },
+    { "do": { "type": "begin" }, "expect": { "phase": "roll", "expectedPlayerId": "9001" } },
+    { "do": { "type": "roll", "userId": "9001", "value": 64, "emoji": "🎰" },
       "expect": { "phase": "text", "stepIdx": 3, "lastDraw": 16, "messageContains": "16" } },
-    { "do": { "type": "next", "userId": 9001 },
-      "expect": { "phase": "roll", "expectedPlayerId": 9002, "roundIdx": 0 } },
-    { "do": { "type": "roll", "userId": 9002, "value": 4, "emoji": "🎰" },
+    { "do": { "type": "next", "userId": "9001" },
+      "expect": { "phase": "roll", "expectedPlayerId": "9002", "roundIdx": 0 } },
+    { "do": { "type": "roll", "userId": "9002", "value": 4, "emoji": "🎰" },
       "expect": { "phase": "text", "stepIdx": 1, "lastDraw": 1 } }
   ]
 }

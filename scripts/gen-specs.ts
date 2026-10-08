@@ -12,7 +12,7 @@ let n = 0;
 for (const f of files) {
   const def = ruleDefinition.parse(JSON.parse(readFileSync(join(EXAMPLES, f), 'utf8')));
   const count = Math.min(Math.max(def.minPlayers, 1), def.maxPlayers);
-  const players = Array.from({ length: count }, (_, i) => 2001 + i);
+  const players = Array.from({ length: count }, (_, i) => String(2001 + i));
   const totalSteps = def.rounds.reduce((s, r) => s + r.steps.length, 0);
   const maxLoops = def.rounds.reduce((m, r) => Math.max(m, r.loop ? (r.maxLoops ?? 99) : 1), 1);
   const maxOps = totalSteps * maxLoops * (count + 1) + 200;

@@ -74,17 +74,17 @@
     },
     "players": [
       {
-        "userId": 9001,
+        "userId": "9001",
         "label": "用户 #9001",
         "isViewer": true
       },
       {
-        "userId": 9002,
+        "userId": "9002",
         "label": "用户 #9002",
         "isViewer": false
       },
       {
-        "userId": 9003,
+        "userId": "9003",
         "label": "用户 #9003",
         "isViewer": false
       }
@@ -95,7 +95,7 @@
     "lastDice": null,
     "lastMessage": null,
     "viewer": {
-      "id": 9001,
+      "id": "9001",
       "isAdmin": false
     }
   },
@@ -176,24 +176,24 @@
       "kind": "roll",
       "roundIdx": 0,
       "stepIdx": 0,
-      "expectedPlayerId": 9001,
+      "expectedPlayerId": "9001",
       "emoji": "🎲",
       "drawHint": null,
       "stepLabel": "掷色子"
     },
     "players": [
       {
-        "userId": 9001,
+        "userId": "9001",
         "label": "用户 #9001",
         "isViewer": true
       },
       {
-        "userId": 9002,
+        "userId": "9002",
         "label": "用户 #9002",
         "isViewer": false
       },
       {
-        "userId": 9003,
+        "userId": "9003",
         "label": "用户 #9003",
         "isViewer": false
       }
@@ -204,7 +204,7 @@
     "lastDice": null,
     "lastMessage": null,
     "viewer": {
-      "id": 9001,
+      "id": "9001",
       "isAdmin": true
     }
   },
@@ -290,26 +290,26 @@
     },
     "players": [
       {
-        "userId": 9001,
+        "userId": "9001",
         "label": "用户 #9001",
         "isViewer": false
       },
       {
-        "userId": 9002,
+        "userId": "9002",
         "label": "用户 #9002",
         "isViewer": true
       },
       {
-        "userId": 9003,
+        "userId": "9003",
         "label": "用户 #9003",
         "isViewer": false
       }
     ],
-    "activeActorId": 9001,
+    "activeActorId": "9001",
     "showActor": true,
     "lastResult": null,
     "lastDice": {
-      "userId": 9001,
+      "userId": "9001",
       "value": 4,
       "at": 0,
       "emoji": "🎲",
@@ -317,7 +317,7 @@
     },
     "lastMessage": "🎲 用户 #9001 掷出 4 — 掷色子",
     "viewer": {
-      "id": 9002,
+      "id": "9002",
       "isAdmin": false
     }
   },
@@ -404,26 +404,26 @@
     },
     "players": [
       {
-        "userId": 9001,
+        "userId": "9001",
         "label": "用户 #9001",
         "isViewer": true
       },
       {
-        "userId": 9002,
+        "userId": "9002",
         "label": "用户 #9002",
         "isViewer": false
       },
       {
-        "userId": 9003,
+        "userId": "9003",
         "label": "用户 #9003",
         "isViewer": false
       }
     ],
-    "activeActorId": 9001,
+    "activeActorId": "9001",
     "showActor": false,
     "lastResult": null,
     "lastDice": {
-      "userId": 9001,
+      "userId": "9001",
       "value": 3,
       "at": 0,
       "emoji": "🎲",
@@ -431,7 +431,7 @@
     },
     "lastMessage": "🎲 用户 #9001 掷出 3 — 掷色子",
     "viewer": {
-      "id": 9001,
+      "id": "9001",
       "isAdmin": true
     }
   },
@@ -522,31 +522,31 @@
           "goto": "next"
         }
       ],
-      "pickedBy": 9001,
+      "pickedBy": "9001",
       "stepLabel": "选择"
     },
     "players": [
       {
-        "userId": 9001,
+        "userId": "9001",
         "label": "用户 #9001",
         "isViewer": true
       },
       {
-        "userId": 9002,
+        "userId": "9002",
         "label": "用户 #9002",
         "isViewer": false
       },
       {
-        "userId": 9003,
+        "userId": "9003",
         "label": "用户 #9003",
         "isViewer": false
       }
     ],
-    "activeActorId": 9001,
+    "activeActorId": "9001",
     "showActor": false,
     "lastResult": null,
     "lastDice": {
-      "userId": 9001,
+      "userId": "9001",
       "value": 3,
       "at": 0,
       "emoji": "🎲",
@@ -554,7 +554,7 @@
     },
     "lastMessage": "🎲 用户 #9001 掷出 3 — 掷色子",
     "viewer": {
-      "id": 9001,
+      "id": "9001",
       "isAdmin": true
     }
   },
@@ -641,38 +641,38 @@
       "stepLabel": "比大小",
       "rolls": [
         {
-          "userId": 9001,
+          "userId": "9001",
           "value": 5
         }
       ],
       "pending": [
-        9002,
-        9003
+        "9002",
+        "9003"
       ],
       "total": 3
     },
     "players": [
       {
-        "userId": 9001,
+        "userId": "9001",
         "label": "用户 #9001",
         "isViewer": false
       },
       {
-        "userId": 9002,
+        "userId": "9002",
         "label": "用户 #9002",
         "isViewer": false
       },
       {
-        "userId": 9003,
+        "userId": "9003",
         "label": "用户 #9003",
         "isViewer": true
       }
     ],
-    "activeActorId": 9001,
+    "activeActorId": "9001",
     "showActor": false,
     "lastResult": null,
     "lastDice": {
-      "userId": 9001,
+      "userId": "9001",
       "value": 3,
       "at": 0,
       "emoji": "🎲",
@@ -680,7 +680,7 @@
     },
     "lastMessage": "🎲 用户 #9001 掷出 5",
     "viewer": {
-      "id": 9003,
+      "id": "9003",
       "isAdmin": false
     }
   }

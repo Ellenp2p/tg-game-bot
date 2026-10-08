@@ -12,12 +12,12 @@
   },
   "players": [],
   "steps": [
-    { "do": { "type": "join", "userId": 101 }, "expect": { "ok": true, "phase": "signup" } },
-    { "do": { "type": "join", "userId": 102 }, "expect": { "ok": true } },
-    { "do": { "type": "join", "userId": 102 }, "expect": { "ok": false, "error": "已经报名" } },
-    { "do": { "type": "join", "userId": 103 }, "expect": { "ok": true } },
-    { "do": { "type": "join", "userId": 104 }, "expect": { "ok": false, "error": "已满员" } },
-    { "do": { "type": "leave", "userId": 101 }, "expect": { "ok": true } },
-    { "do": { "type": "leave", "userId": 999 }, "expect": { "ok": false, "error": "不在报名" } }
+    { "do": { "type": "join", "userId": "101" }, "expect": { "ok": true, "phase": "signup" } },
+    { "do": { "type": "join", "userId": "102" }, "expect": { "ok": true } },
+    { "do": { "type": "join", "userId": "102" }, "expect": { "ok": false, "error": "已经报名" } },
+    { "do": { "type": "join", "userId": "103" }, "expect": { "ok": true } },
+    { "do": { "type": "join", "userId": "104" }, "expect": { "ok": false, "error": "已满员" } },
+    { "do": { "type": "leave", "userId": "101" }, "expect": { "ok": true } },
+    { "do": { "type": "leave", "userId": "999" }, "expect": { "ok": false, "error": "不在报名" } }
   ]
 }

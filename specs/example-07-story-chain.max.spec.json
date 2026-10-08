@@ -3,9 +3,9 @@
   "name": "07-story-chain.max",
   "rule": "examples/07-story-chain.json",
   "players": [
-    2001,
-    2002,
-    2003
+    "2001",
+    "2002",
+    "2003"
   ],
   "policy": {
     "value": "max",

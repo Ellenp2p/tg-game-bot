@@ -27,10 +27,10 @@ const emojiRule = (emoji: '🎲' | '🏀' | '🎰' = '🎲'): RuleDefinition => 
 function setup(emoji: '🎲' | '🏀' | '🎰' = '🎲') {
   const dir = mkdtempSync(join(tmpdir(), 'emoji-'));
   const db = new Db(join(dir, 'bot.sqlite'));
-  db.touchUser(1001);
+  db.touchUser('1001');
   const rule = db.createRule(1001, 'emoji', emojiRule(emoji));
-  const game = db.createGame(-100, rule.ruleId, 1001);
-  db.addPlayer(game.gameId, 2001);
+  const game = db.createGame(-100, rule.ruleId, '1001');
+  db.addPlayer(game.gameId, '2001');
   return { dir, db, rule, game };
 }
 function teardown(ctx: { dir: string; db: Db }) { ctx.db.close(); rmSync(ctx.dir, { recursive: true, force: true }); }
@@ -84,7 +84,7 @@ test('emoji: applyRoll validates emoji matches phase.emoji', () => {
   try {
     beginGame(ctx.game, ctx.rule.definition);
     assert.throws(
-      () => applyRoll(ctx.game, ctx.rule.definition, 2001, 3, ctx.db.listPlayers(ctx.game.gameId), '🎲'),
+      () => applyRoll(ctx.game, ctx.rule.definition, '2001', 3, ctx.db.listPlayers(ctx.game.gameId), '🎲'),
       /本轮需要 🏀/
     );
   } finally { teardown(ctx); }
@@ -101,7 +101,7 @@ test('emoji: basketball value 6 rejected', () => {
   try {
     beginGame(ctx.game, ctx.rule.definition);
     assert.throws(
-      () => applyRoll(ctx.game, ctx.rule.definition, 2001, 6, ctx.db.listPlayers(ctx.game.gameId), '🏀'),
+      () => applyRoll(ctx.game, ctx.rule.definition, '2001', 6, ctx.db.listPlayers(ctx.game.gameId), '🏀'),
       /1-5/
     );
   } finally { teardown(ctx); }
@@ -111,7 +111,7 @@ test('emoji: basketball value 5 accepted', () => {
   const ctx = setup('🏀');
   try {
     beginGame(ctx.game, ctx.rule.definition);
-    const r = applyRoll(ctx.game, ctx.rule.definition, 2001, 5, ctx.db.listPlayers(ctx.game.gameId), '🏀');
+    const r = applyRoll(ctx.game, ctx.rule.definition, '2001', 5, ctx.db.listPlayers(ctx.game.gameId), '🏀');
     assert.match(r.message, /掷出 5/);
     assert.equal(ctx.game.state.lastDice?.emoji, '🏀');
   } finally { teardown(ctx); }
@@ -121,7 +121,7 @@ test('emoji: slot machine accepts value up to 64', () => {
   const ctx = setup('🎰');
   try {
     beginGame(ctx.game, ctx.rule.definition);
-    const r = applyRoll(ctx.game, ctx.rule.definition, 2001, 64, ctx.db.listPlayers(ctx.game.gameId), '🎰');
+    const r = applyRoll(ctx.game, ctx.rule.definition, '2001', 64, ctx.db.listPlayers(ctx.game.gameId), '🎰');
     assert.match(r.message, /掷出 64/);
   } finally { teardown(ctx); }
 });

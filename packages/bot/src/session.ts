@@ -1,8 +1,8 @@
-import type { DiceEmoji } from '@tg-game/engine';
+import type { DiceEmoji, UserId } from '@tg-game/engine';
 
 /** 掷骰动画期间的暂存（3.5s 后揭晓）——纯传输/时序状态，不属于引擎语义状态。 */
 export type PendingRoll = {
-  userId: number;
+  userId: UserId;
   value: number;
   chatId: number;
   waitingMsgId: number;

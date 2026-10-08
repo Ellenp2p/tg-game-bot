@@ -3,8 +3,8 @@
   "name": "17-dice-branch-board.max",
   "rule": "examples/17-dice-branch-board.json",
   "players": [
-    2001,
-    2002
+    "2001",
+    "2002"
   ],
   "policy": {
     "value": "max",

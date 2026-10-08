@@ -3,10 +3,10 @@
   "name": "08-charades.max",
   "rule": "examples/08-charades.json",
   "players": [
-    2001,
-    2002,
-    2003,
-    2004
+    "2001",
+    "2002",
+    "2003",
+    "2004"
   ],
   "policy": {
     "value": "max",

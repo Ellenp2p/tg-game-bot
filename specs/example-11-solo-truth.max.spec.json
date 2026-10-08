@@ -3,7 +3,7 @@
   "name": "11-solo-truth.max",
   "rule": "examples/11-solo-truth.json",
   "players": [
-    2001
+    "2001"
   ],
   "policy": {
     "value": "max",

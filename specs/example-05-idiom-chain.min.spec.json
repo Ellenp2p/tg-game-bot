@@ -3,10 +3,10 @@
   "name": "05-idiom-chain.min",
   "rule": "examples/05-idiom-chain.json",
   "players": [
-    2001,
-    2002,
-    2003,
-    2004
+    "2001",
+    "2002",
+    "2003",
+    "2004"
   ],
   "policy": {
     "value": "min",

@@ -12,7 +12,7 @@ import { html, mentionHtml, renderStatus } from './render.js';
 import {
   ruleDefinition, type RuleDefinition, type RuleRecord, type GameRecord,
   type GamePlayer, type DiceEmoji, SUPPORTED_DICE_EMOJIS,
-  type GamePhase, type GameStatus,
+  type GamePhase, type GameStatus, type UserId,
   advanceToStep, displayName, findStep, initialState, loopProgress, formatTemplate,
   decodeSlotValue, isJackpot, SLOT_SYMBOL_LABEL,
   run, type Intent as EngineIntent, type RunResult, buildView, applyUndo
@@ -32,14 +32,16 @@ const appLink = process.env.BOT_USERNAME && process.env.APP_SHORT_NAME
   : undefined;
 const publicUrl = process.env.PUBLIC_URL;
 
-type Pending = { kind: 'create-rule' | 'edit-rule'; userId: number; ruleId?: string };
+type Pending = { kind: 'create-rule' | 'edit-rule'; userId: UserId; ruleId?: string };
 const pending = new Map<string, Pending>();
 
 // html / mentionHtml / renderStatus 已抽到 ./render.ts（纯函数，可单测 + golden 回归）
 const isGroup = (ctx: Context) => ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
 const isPrivate = (ctx: Context) => ctx.chat?.type === 'private';
 const chatIdOf = (ctx: Context) => ctx.chat!.id;
-const userIdOf = (ctx: Context) => ctx.from!.id;
+/** Telegram 数字 id → 引擎/DB 的不透明 `UserId`（string）。所有引擎/DB 交互走它。 */
+const uid = (n: number): UserId => String(n);
+const userIdOf = (ctx: Context): UserId => uid(ctx.from!.id);
 
 async function isTelegramGroupAdmin(chatId: number, userId: number): Promise<boolean> {
   try {
@@ -58,17 +60,17 @@ async function isBotAdmin(chatId: number): Promise<boolean> {
 
 async function requireGroupAdmin(ctx: Context): Promise<void> {
   if (!isGroup(ctx)) throw Error('该命令仅在群内使用');
-  if (!await isTelegramGroupAdmin(ctx.chat!.id, userIdOf(ctx))) {
+  if (!await isTelegramGroupAdmin(ctx.chat!.id, ctx.from!.id)) {
     throw Error('仅本群 Telegram 管理员可操作');
   }
 }
 
 /** 当前正在播掷骰动画的玩家（传输态，仅用于 Mini App 显示"掷骰中…"）。 */
-function pendingRollsOf(gameId: string): Array<{ userId: number; emoji: DiceEmoji; kind: 'roll' | 'showdown' }> {
+function pendingRollsOf(gameId: string): Array<{ userId: UserId; emoji: DiceEmoji; kind: 'roll' | 'showdown' }> {
   return Object.values(session(gameId).pendingRolls).map(p => ({ userId: p.userId, emoji: p.emoji, kind: p.kind }));
 }
 
-function snapshot(game: GameRecord, definition: RuleDefinition | undefined, players: GamePlayer[], viewerId: number, isAdminViewer: boolean) {
+function snapshot(game: GameRecord, definition: RuleDefinition | undefined, players: GamePlayer[], viewerId: UserId, isAdminViewer: boolean) {
   // 引擎视图 + 适配器补的传输字段（Mini App 用 chatId 做「去群里掷骰」、用 pending 显示掷骰动画）
   return {
     ...buildView(game, definition, players, viewerId, isAdminViewer),
@@ -87,7 +89,7 @@ function broadcast(gameId: string): void {
   if (!game) return;
   const rule = db.getRule(game.ruleId);
   const players = db.listPlayers(gameId);
-  const { viewer: _drop, ...rest } = snapshot(game, rule?.definition, players, 0, false);
+  const { viewer: _drop, ...rest } = snapshot(game, rule?.definition, players, '', false);
   const payload = JSON.stringify({
     type: 'state',
     snapshot: rest // 广播不含 viewer：观众身份由客户端初始化时（/api/games?initData）拿到，避免被覆盖成 0
@@ -210,7 +212,7 @@ async function sendStatus(chatId: number, gameId: string): Promise<void> {
   }
 }
 
-async function notifyGroup(game: GameRecord, action: string, actorId: number): Promise<void> {
+async function notifyGroup(game: GameRecord, action: string, actorId: UserId): Promise<void> {
   const players = db.listPlayers(game.gameId);
   if (action === 'join' || action === 'leave' || action === 'begin') {
     await refreshSignupMessage(game);
@@ -271,7 +273,7 @@ const commandsZh = [
 
 const RULE_PAGE_SIZE = 5;
 
-function ruleListPage(userId: number, pageRaw: number): { text: string; keyboard: InlineKeyboard } {
+function ruleListPage(userId: UserId, pageRaw: number): { text: string; keyboard: InlineKeyboard } {
   const rules = db.listRules(userId);
   const totalPages = Math.max(1, Math.ceil(rules.length / RULE_PAGE_SIZE));
   const page = Math.min(Math.max(1, Math.floor(pageRaw) || 1), totalPages);
@@ -330,7 +332,7 @@ async function safeEdit(ctx: Context, text: string, keyboard?: InlineKeyboard): 
 
 bot.command('start', async ctx => {
   if (!ctx.from) return;
-  db.touchUser(ctx.from.id);
+  db.touchUser(userIdOf(ctx));
   const text =
     '欢迎使用游戏主理人。\n\n' +
     '私聊用法：\n' +
@@ -416,8 +418,8 @@ bot.command('help', async ctx => {
 bot.command('newrule', async ctx => {
   if (!isPrivate(ctx)) throw Error('请私聊机器人创建规则');
   if (!ctx.from) return;
-  db.touchUser(ctx.from.id);
-  pending.set(`${ctx.from.id}`, { kind: 'create-rule', userId: ctx.from.id });
+  db.touchUser(userIdOf(ctx));
+  pending.set(`${ctx.from.id}`, { kind: 'create-rule', userId: userIdOf(ctx) });
   await ctx.reply(
     '收到。\n\n' +
     '请把规则 JSON 发给我（<code>name</code> 字段为规则名）：\n' +
@@ -432,9 +434,9 @@ bot.command('editrule', async ctx => {
   if (!isPrivate(ctx) || !ctx.from) throw Error('请私聊机器人');
   const ruleId = (ctx.message?.text ?? '').replace(/^\/\w+(?:@\w+)?\s*/, '').trim();
   if (!/^[0-9a-f]{8}$/.test(ruleId)) throw Error('格式：/editrule 8位编号');
-  const rule = db.getRuleByUser(ruleId, ctx.from.id);
+  const rule = db.getRuleByUser(ruleId, userIdOf(ctx));
   if (!rule) throw Error('找不到规则');
-  pending.set(`${ctx.from.id}`, { kind: 'edit-rule', userId: ctx.from.id, ruleId });
+  pending.set(`${ctx.from.id}`, { kind: 'edit-rule', userId: userIdOf(ctx), ruleId });
   await ctx.reply(
     `当前 JSON：\n<pre>${html(JSON.stringify(rule.definition, null, 2))}</pre>\n\n` +
     '把新 JSON 发给我即可覆盖；名称会沿用当前的：' + rule.name + '\n' +
@@ -450,7 +452,7 @@ bot.command('cancel', async ctx => {
 
 bot.command('rules', async ctx => {
   if (!isPrivate(ctx) || !ctx.from) return;
-  const { text, keyboard } = ruleListPage(ctx.from.id, 1);
+  const { text, keyboard } = ruleListPage(userIdOf(ctx), 1);
   await ctx.reply(text, { parse_mode: 'HTML', reply_markup: keyboard });
 });
 
@@ -462,7 +464,7 @@ bot.command('rule', async ctx => {
   if (!isPrivate(ctx) || !ctx.from) return;
   const ruleId = (ctx.message?.text ?? '').replace(/^\/\w+(?:@\w+)?\s*/, '').trim();
   if (!/^[0-9a-f]{8}$/.test(ruleId)) throw Error('格式：/rule 编号');
-  const rule = db.getRuleByUser(ruleId, ctx.from.id);
+  const rule = db.getRuleByUser(ruleId, userIdOf(ctx));
   if (!rule) throw Error('找不到规则');
   await ctx.reply(
     `<b>${html(rule.name)}</b>\n\n<pre>${html(JSON.stringify(rule.definition, null, 2))}</pre>`,
@@ -474,7 +476,7 @@ bot.command('deleterule', async ctx => {
   if (!isPrivate(ctx) || !ctx.from) return;
   const ruleId = (ctx.message?.text ?? '').replace(/^\/\w+(?:@\w+)?\s*/, '').trim();
   if (!/^[0-9a-f]{8}$/.test(ruleId)) throw Error('格式：/deleterule 编号');
-  const ok = db.deleteRule(ruleId, ctx.from.id);
+  const ok = db.deleteRule(ruleId, userIdOf(ctx));
   if (!ok) throw Error('找不到规则或权限不足');
   await ctx.reply('已删除。');
 });
@@ -482,15 +484,15 @@ bot.command('deleterule', async ctx => {
 bot.callbackQuery(/^rlist:(\d+)$/, async ctx => {
   if (!isPrivate(ctx) || !ctx.from) return;
   const page = Number(ctx.match[1]) || 1;
-  const { text, keyboard } = ruleListPage(ctx.from.id, page);
+  const { text, keyboard } = ruleListPage(userIdOf(ctx), page);
   await ctx.answerCallbackQuery();
   await safeEdit(ctx, text, keyboard);
 });
 
 bot.callbackQuery('rnew', async ctx => {
   if (!isPrivate(ctx) || !ctx.from) return;
-  db.touchUser(ctx.from.id);
-  pending.set(`${ctx.from.id}`, { kind: 'create-rule', userId: ctx.from.id });
+  db.touchUser(userIdOf(ctx));
+  pending.set(`${ctx.from.id}`, { kind: 'create-rule', userId: userIdOf(ctx) });
   await ctx.answerCallbackQuery();
   await ctx.reply(
     '好的，请把规则 JSON 发给我（<code>name</code> 字段为规则名）：直接粘贴文本，或发送 <code>.json</code> 文件。\n结构见 /help。\n取消：/cancel',
@@ -500,7 +502,7 @@ bot.callbackQuery('rnew', async ctx => {
 
 bot.callbackQuery(/^rview:([0-9a-f]{8})$/, async ctx => {
   if (!isPrivate(ctx) || !ctx.from) return;
-  const rule = db.getRuleByUser(ctx.match[1], ctx.from.id);
+  const rule = db.getRuleByUser(ctx.match[1], userIdOf(ctx));
   if (!rule) { await ctx.answerCallbackQuery({ text: '规则不存在或无权访问', show_alert: true }); return; }
   await ctx.answerCallbackQuery();
   await safeEdit(ctx, ruleDetailText(rule), ruleDetailKeyboard(rule.ruleId));
@@ -508,7 +510,7 @@ bot.callbackQuery(/^rview:([0-9a-f]{8})$/, async ctx => {
 
 bot.callbackQuery(/^rjson:([0-9a-f]{8})$/, async ctx => {
   if (!isPrivate(ctx) || !ctx.from) return;
-  const rule = db.getRuleByUser(ctx.match[1], ctx.from.id);
+  const rule = db.getRuleByUser(ctx.match[1], userIdOf(ctx));
   if (!rule) { await ctx.answerCallbackQuery({ text: '规则不存在或无权访问', show_alert: true }); return; }
   await ctx.answerCallbackQuery();
   const json = JSON.stringify(rule.definition, null, 2);
@@ -528,9 +530,9 @@ bot.callbackQuery(/^rjson:([0-9a-f]{8})$/, async ctx => {
 
 bot.callbackQuery(/^redit:([0-9a-f]{8})$/, async ctx => {
   if (!isPrivate(ctx) || !ctx.from) return;
-  const rule = db.getRuleByUser(ctx.match[1], ctx.from.id);
+  const rule = db.getRuleByUser(ctx.match[1], userIdOf(ctx));
   if (!rule) { await ctx.answerCallbackQuery({ text: '规则不存在或无权访问', show_alert: true }); return; }
-  pending.set(`${ctx.from.id}`, { kind: 'edit-rule', userId: ctx.from.id, ruleId: rule.ruleId });
+  pending.set(`${ctx.from.id}`, { kind: 'edit-rule', userId: userIdOf(ctx), ruleId: rule.ruleId });
   await ctx.answerCallbackQuery();
   await ctx.reply(
     `当前 JSON：\n<pre>${html(JSON.stringify(rule.definition, null, 2))}</pre>\n\n` +
@@ -541,7 +543,7 @@ bot.callbackQuery(/^redit:([0-9a-f]{8})$/, async ctx => {
 
 bot.callbackQuery(/^rdel:([0-9a-f]{8})$/, async ctx => {
   if (!isPrivate(ctx) || !ctx.from) return;
-  const rule = db.getRuleByUser(ctx.match[1], ctx.from.id);
+  const rule = db.getRuleByUser(ctx.match[1], userIdOf(ctx));
   if (!rule) { await ctx.answerCallbackQuery({ text: '规则不存在或无权访问', show_alert: true }); return; }
   await ctx.answerCallbackQuery();
   await safeEdit(
@@ -553,10 +555,10 @@ bot.callbackQuery(/^rdel:([0-9a-f]{8})$/, async ctx => {
 
 bot.callbackQuery(/^rdelok:([0-9a-f]{8})$/, async ctx => {
   if (!isPrivate(ctx) || !ctx.from) return;
-  const ok = db.deleteRule(ctx.match[1], ctx.from.id);
+  const ok = db.deleteRule(ctx.match[1], userIdOf(ctx));
   if (!ok) { await ctx.answerCallbackQuery({ text: '删除失败或无权操作', show_alert: true }); return; }
   await ctx.answerCallbackQuery({ text: '已删除' });
-  const { text, keyboard } = ruleListPage(ctx.from.id, 1);
+  const { text, keyboard } = ruleListPage(userIdOf(ctx), 1);
   await safeEdit(ctx, text, keyboard);
 });
 
@@ -570,10 +572,10 @@ bot.command('startgame', async ctx => {
   if (existing) {
     existing.status = 'ended';
     existing.endedAt = Date.now();
-    db.recordEvent(existing.gameId, ctx.from.id, 'replace', {});
+    db.recordEvent(existing.gameId, userIdOf(ctx), 'replace', {});
     push(existing);
   }
-  const rules = db.listRules(ctx.from.id);
+  const rules = db.listRules(userIdOf(ctx));
   if (!rules.length) {
     await ctx.reply('你还没有规则。私聊 /newrule 名称 创建后再来开局。');
     return;
@@ -587,9 +589,9 @@ bot.callbackQuery(/^pick:([0-9a-f]{8})$/, async ctx => {
   if (!isGroup(ctx) || !ctx.from) return;
   await requireGroupAdmin(ctx);
   const ruleId = ctx.match[1];
-  const rule = db.getRuleByUser(ruleId, ctx.from.id);
+  const rule = db.getRuleByUser(ruleId, userIdOf(ctx));
   if (!rule) throw Error('规则不存在');
-  const game = db.createGame(chatIdOf(ctx), ruleId, ctx.from.id);
+  const game = db.createGame(chatIdOf(ctx), ruleId, userIdOf(ctx));
   await ctx.answerCallbackQuery();
   const { text } = renderSignupPage(game, rule.definition, [], 1);
   const sent = await bot.api.sendMessage(chatIdOf(ctx), text, { parse_mode: 'HTML', reply_markup: signupKeyboard(game, 1) });
@@ -604,9 +606,9 @@ bot.command('joingame', async ctx => {
   if (!game || game.status !== 'signup') throw Error('当前不在报名阶段');
   const rule = db.getRule(game.ruleId);
   if (!rule) throw Error('规则不存在（可能被删除）');
-  joinLeave(game, rule.definition, ctx.from.id, 'join');
+  joinLeave(game, rule.definition, userIdOf(ctx), 'join');
   push(game);
-  await notifyGroup(game, 'join', ctx.from.id);
+  await notifyGroup(game, 'join', userIdOf(ctx));
   await ctx.reply(`✅ 已加入（当前 ${db.listPlayers(game.gameId).length} / ${rule.definition.maxPlayers} 人）`);
 });
 
@@ -616,9 +618,9 @@ bot.command('leavegame', async ctx => {
   if (!game) throw Error('本群没有进行中的对局');
   const rule = db.getRule(game.ruleId);
   if (!rule) throw Error('规则不存在（可能被删除）');
-  joinLeave(game, rule.definition, ctx.from.id, 'leave');
+  joinLeave(game, rule.definition, userIdOf(ctx), 'leave');
   push(game);
-  await notifyGroup(game, 'leave', ctx.from.id);
+  await notifyGroup(game, 'leave', userIdOf(ctx));
   await ctx.reply('已退出。');
 });
 
@@ -635,8 +637,8 @@ bot.command('begin', async ctx => {
   if (players.length < min) throw Error(`至少需要 ${min} 位玩家，当前 ${players.length} 人`);
   if (players.length > max) throw Error(`最多 ${max} 位玩家，当前 ${players.length} 人`);
   attachPlayers(game);
-  runOk(game, rule.definition, players, { type: 'begin', userId: ctx.from.id });
-  db.recordEvent(game.gameId, ctx.from.id, 'begin', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+  runOk(game, rule.definition, players, { type: 'begin', userId: userIdOf(ctx) });
+  db.recordEvent(game.gameId, userIdOf(ctx), 'begin', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   push(game);
   await sendStatus(chatIdOf(ctx), game.gameId);
 });
@@ -647,8 +649,8 @@ bot.command('next', async ctx => {
   await doAdmin(ctx, async game => {
     const rule = db.getRule(game.ruleId);
     if (!rule) throw Error('规则不存在');
-    runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'next', userId: ctx.from!.id });
-    db.recordEvent(game.gameId, ctx.from!.id, 'next', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+    runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'next', userId: userIdOf(ctx) });
+    db.recordEvent(game.gameId, userIdOf(ctx), 'next', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   });
 });
 
@@ -658,8 +660,8 @@ bot.command('skip', async ctx => {
   await doAdmin(ctx, async game => {
     const rule = db.getRule(game.ruleId);
     if (!rule) throw Error('规则不存在');
-    runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'skip', userId: ctx.from!.id });
-    db.recordEvent(game.gameId, ctx.from!.id, 'skip', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+    runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'skip', userId: userIdOf(ctx) });
+    db.recordEvent(game.gameId, userIdOf(ctx), 'skip', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   });
 });
 
@@ -669,7 +671,7 @@ bot.command('undo', async ctx => {
   await doAdmin(ctx, async game => {
     const rule = db.getRule(game.ruleId);
     if (!rule) throw Error('规则不存在');
-    performUndo(game, rule.definition, ctx.from!.id);
+    performUndo(game, rule.definition, userIdOf(ctx));
   });
 });
 
@@ -680,7 +682,7 @@ bot.command('endgame', async ctx => {
   if (!game) throw Error('本群没有进行中的对局');
   game.status = 'ended';
   game.endedAt = Date.now();
-  db.recordEvent(game.gameId, ctx.from.id, 'end', {});
+  db.recordEvent(game.gameId, userIdOf(ctx), 'end', {});
   push(game);
   await ctx.reply('已结束本群当前对局。');
 });
@@ -722,19 +724,19 @@ async function downloadTelegramFile(filePath: string): Promise<string> {
 /** 把一段规则 JSON（粘贴的文本或上传的文件内容）落库：新建或覆盖 */
 async function saveRuleJson(ctx: Context, p: Pending, raw: string): Promise<void> {
   if (!ctx.from) return;
-  db.touchUser(ctx.from.id);
+  db.touchUser(userIdOf(ctx));
   const clean = raw.replace(/^\uFEFF/, '').trim();
   let def: RuleDefinition;
   try { def = ruleDefinition.parse(JSON.parse(clean)); }
   catch (e) { throw Error(`JSON 解析失败：${(e as Error).message}`); }
   if (p.kind === 'create-rule') {
     const name = def.name?.trim() || '未命名';
-    const rule = db.createRule(ctx.from.id, name, def);
+    const rule = db.createRule(userIdOf(ctx), name, def);
     pending.delete(`${ctx.from.id}`);
     await ctx.reply('✅ 已创建\n\n' + ruleDetailText(rule), { parse_mode: 'HTML', reply_markup: ruleDetailKeyboard(rule.ruleId) });
   } else {
-    const existing = db.getRuleByUser(p.ruleId!, ctx.from.id);
-    const updated = db.updateRule(p.ruleId!, ctx.from.id, existing?.name ?? def.name, def);
+    const existing = db.getRuleByUser(p.ruleId!, userIdOf(ctx));
+    const updated = db.updateRule(p.ruleId!, userIdOf(ctx), existing?.name ?? def.name, def);
     pending.delete(`${ctx.from.id}`);
     if (!updated) throw Error('更新失败');
     await ctx.reply('✅ 已更新\n\n' + ruleDetailText(updated), { parse_mode: 'HTML', reply_markup: ruleDetailKeyboard(updated.ruleId) });
@@ -768,7 +770,7 @@ bot.on('message:document', async ctx => {
   } catch (e) {
     throw Error(`读取文件失败：${(e as Error).message}`);
   }
-  const p: Pending = pending.get(`${ctx.from.id}`) ?? { kind: 'create-rule', userId: ctx.from.id };
+  const p: Pending = pending.get(`${ctx.from.id}`) ?? { kind: 'create-rule', userId: userIdOf(ctx) };
   await saveRuleJson(ctx, p, raw);
   if (fresh) {
     await ctx.reply('ℹ️ 未在 /newrule 流程中，已按「新建规则」处理；要覆盖已有规则请先 /editrule &lt;编号&gt; 再发文件。', { parse_mode: 'HTML' });
@@ -797,7 +799,7 @@ function runOk(game: GameRecord, definition: RuleDefinition, players: GamePlayer
 }
 
 /** 报名/退出：引擎校验（阶段 / 满员 / 重复），适配器落库 */
-function joinLeave(game: GameRecord, definition: RuleDefinition, userId: number, kind: 'join' | 'leave'): void {
+function joinLeave(game: GameRecord, definition: RuleDefinition, userId: UserId, kind: 'join' | 'leave'): void {
   attachPlayers(game);
   runOk(game, definition, game.players ?? [], { type: kind, userId });
   if (kind === 'join') db.addPlayer(game.gameId, userId);
@@ -822,7 +824,7 @@ async function withAdminGame(ctx: Context, fn: (game: GameRecord, rule: RuleReco
   }
 }
 
-function performUndo(game: GameRecord, definition: RuleDefinition, actorId: number): void {
+function performUndo(game: GameRecord, definition: RuleDefinition, actorId: UserId): void {
   const events = db.listEvents(game.gameId);
   const last = events.at(-1);
   if (!last) throw Error('没有可撤销的事件');
@@ -833,7 +835,7 @@ function performUndo(game: GameRecord, definition: RuleDefinition, actorId: numb
   db.recordEvent(game.gameId, actorId, 'undo', { undoneType: last.type });
 }
 
-function performChoice(game: GameRecord, definition: RuleDefinition, userId: number, optIdx: number, isAdmin: boolean): string {
+function performChoice(game: GameRecord, definition: RuleDefinition, userId: UserId, optIdx: number, isAdmin: boolean): string {
   const phase = game.state.phase;
   if (phase.kind !== 'choice') throw Error('当前不在选择阶段');
   if (phase.pickedBy !== null && phase.pickedBy !== userId) throw Error('不是你的回合，请等待系统指定玩家');
@@ -863,7 +865,7 @@ bot.on('message:dice', async ctx => {
     return;
   }
   const players = db.listPlayers(game.gameId);
-  const userId = ctx.from.id;
+  const userId = userIdOf(ctx);
   if (!players.some(p => p.userId === userId)) return;
 
   const sess = session(game.gameId);
@@ -913,7 +915,7 @@ function emojiLabel(emoji: DiceEmoji): string {
   } as Record<DiceEmoji, string>)[emoji];
 }
 
-async function resolvePendingRoll(gameId: string, expectedUserId: number, expectedValue: number, expectedEmoji: DiceEmoji): Promise<void> {
+async function resolvePendingRoll(gameId: string, expectedUserId: UserId, expectedValue: number, expectedEmoji: DiceEmoji): Promise<void> {
   const game = db.getGame(gameId);
   if (!game) return;
   const sess = session(gameId);
@@ -1010,7 +1012,7 @@ bot.callbackQuery(/^join:([0-9a-f]{8})$/, async ctx => {
   if (!game) { await ctx.answerCallbackQuery({ text: '对局不存在' }); return; }
   const rule = db.getRule(game.ruleId);
   if (!rule) { await ctx.answerCallbackQuery({ text: '规则已删除' }); return; }
-  try { joinLeave(game, rule.definition, ctx.from.id, 'join'); }
+  try { joinLeave(game, rule.definition, userIdOf(ctx), 'join'); }
   catch (e) { await ctx.answerCallbackQuery({ text: (e as Error).message, show_alert: true }); return; }
   push(game);
   await refreshSignupMessage(game);
@@ -1024,7 +1026,7 @@ bot.callbackQuery(/^leave:([0-9a-f]{8})$/, async ctx => {
   if (!game) { await ctx.answerCallbackQuery({ text: '对局不存在' }); return; }
   const rule = db.getRule(game.ruleId);
   if (!rule) { await ctx.answerCallbackQuery({ text: '规则已删除' }); return; }
-  try { joinLeave(game, rule.definition, ctx.from.id, 'leave'); }
+  try { joinLeave(game, rule.definition, userIdOf(ctx), 'leave'); }
   catch (e) { await ctx.answerCallbackQuery({ text: (e as Error).message, show_alert: true }); return; }
   push(game);
   await refreshSignupMessage(game);
@@ -1049,8 +1051,8 @@ bot.callbackQuery(/^begin:([0-9a-f]{8})$/, async ctx => {
     return;
   }
   attachPlayers(game);
-  runOk(game, rule.definition, players, { type: 'begin', userId: ctx.from.id });
-  db.recordEvent(gameId, ctx.from.id, 'begin', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+  runOk(game, rule.definition, players, { type: 'begin', userId: userIdOf(ctx) });
+  db.recordEvent(gameId, userIdOf(ctx), 'begin', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   push(game);
   await refreshSignupMessage(game);
   await ctx.answerCallbackQuery();
@@ -1067,7 +1069,7 @@ bot.callbackQuery(/^pickChoice:([0-9a-f]{8}):(\d+)$/, async ctx => {
   if (!rule) { await ctx.answerCallbackQuery({ text: '规则已删除' }); return; }
   const phase = game.state.phase;
   if (phase.kind !== 'choice') { await ctx.answerCallbackQuery({ text: '当前不在选择阶段' }); return; }
-  if (phase.pickedBy !== null && phase.pickedBy !== ctx.from.id) {
+  if (phase.pickedBy !== null && phase.pickedBy !== userIdOf(ctx)) {
     await ctx.answerCallbackQuery({ text: '不是你的回合', show_alert: true });
     return;
   }
@@ -1077,7 +1079,7 @@ bot.callbackQuery(/^pickChoice:([0-9a-f]{8}):(\d+)$/, async ctx => {
     return;
   }
   try {
-    const message = performChoice(game, rule.definition, ctx.from.id, optIdx, isAdmin);
+    const message = performChoice(game, rule.definition, userIdOf(ctx), optIdx, isAdmin);
     push(game);
     await ctx.answerCallbackQuery({ text: message });
     await sendStatus(game.chatId, gameId);
@@ -1090,8 +1092,8 @@ bot.callbackQuery(/^next:([0-9a-f]{8})$/, async ctx => {
   if (!isGroup(ctx) || !ctx.from) return;
   await requireGroupAdmin(ctx);
   await withAdminGame(ctx, (game, rule) => {
-    runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'next', userId: ctx.from!.id });
-    db.recordEvent(game.gameId, ctx.from!.id, 'next', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+    runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'next', userId: userIdOf(ctx) });
+    db.recordEvent(game.gameId, userIdOf(ctx), 'next', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   });
 });
 
@@ -1099,8 +1101,8 @@ bot.callbackQuery(/^skip:([0-9a-f]{8})$/, async ctx => {
   if (!isGroup(ctx) || !ctx.from) return;
   await requireGroupAdmin(ctx);
   await withAdminGame(ctx, (game, rule) => {
-    runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'skip', userId: ctx.from!.id });
-    db.recordEvent(game.gameId, ctx.from!.id, 'skip', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
+    runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'skip', userId: userIdOf(ctx) });
+    db.recordEvent(game.gameId, userIdOf(ctx), 'skip', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   });
 });
 
@@ -1108,7 +1110,7 @@ bot.callbackQuery(/^undo:([0-9a-f]{8})$/, async ctx => {
   if (!isGroup(ctx) || !ctx.from) return;
   await requireGroupAdmin(ctx);
   await withAdminGame(ctx, (game, rule) => {
-    performUndo(game, rule.definition, ctx.from!.id);
+    performUndo(game, rule.definition, userIdOf(ctx));
   });
 });
 
@@ -1117,7 +1119,7 @@ bot.callbackQuery(/^end:([0-9a-f]{8})$/, async ctx => {
   await requireGroupAdmin(ctx);
   await withAdminGame(ctx, (game) => {
     game.status = 'ended'; game.endedAt = Date.now();
-    db.recordEvent(game.gameId, ctx.from!.id, 'end', {});
+    db.recordEvent(game.gameId, userIdOf(ctx), 'end', {});
   });
 });
 
@@ -1189,8 +1191,9 @@ async function handleApi(req: IncomingMessage, res: any, url: URL): Promise<void
     res.end(JSON.stringify(body));
   };
   const initData = url.searchParams.get('initData') ?? (req.headers['x-init-data'] as string | undefined) ?? '';
-  let userId: number;
-  try { userId = verifyInitData(initData, token!).id; }
+  let userId: UserId;
+  let tgUserId: number;
+  try { tgUserId = verifyInitData(initData, token!).id; userId = String(tgUserId); }
   catch (e) { setJson(401, { error: (e as Error).message }); return; }
   db.touchUser(userId);
 
@@ -1219,7 +1222,7 @@ async function handleApi(req: IncomingMessage, res: any, url: URL): Promise<void
     if (!game) { setJson(404, { error: 'not found' }); return; }
     const rule = db.getRule(game.ruleId);
     const players = db.listPlayers(game.gameId);
-    const isAdmin = await isTelegramGroupAdmin(game.chatId, userId);
+    const isAdmin = await isTelegramGroupAdmin(game.chatId, tgUserId);
     setJson(200, snapshot(game, rule?.definition, players, userId, isAdmin));
     return;
   }
@@ -1231,7 +1234,7 @@ async function handleApi(req: IncomingMessage, res: any, url: URL): Promise<void
     const rule = db.getRule(game.ruleId);
     if (!rule) { setJson(404, { error: 'rule missing' }); return; }
     attachPlayers(game);
-    const isAdmin = await isTelegramGroupAdmin(game.chatId, userId);
+    const isAdmin = await isTelegramGroupAdmin(game.chatId, tgUserId);
     try {
       if (action === 'join') {
         joinLeave(game, rule.definition, userId, 'join');
@@ -1294,8 +1297,8 @@ server.on('upgrade', (req, socket, head) => {
   const initData = url.searchParams.get('initData') ?? '';
   const gameId = url.searchParams.get('game') ?? '';
   if (!gameId) { deny(400, 'Missing game'); return; }
-  let userId: number;
-  try { userId = verifyInitData(initData, token!).id; }
+  let userId: UserId;
+  try { userId = String(verifyInitData(initData, token!).id); }
   catch (e) { deny(401, `initData invalid: ${(e as Error).message}`); return; }
   wss.handleUpgrade(req, socket, head, ws => {
     if (!wsByGame.has(gameId)) wsByGame.set(gameId, new Set());

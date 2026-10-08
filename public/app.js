@@ -36,7 +36,7 @@ function render(snap) {
   lastSnap = snap;
   if (!snap) { $('title').textContent = '尚未开启对局'; $('subtitle').textContent = '请管理员在群里 /startgame'; return; }
   if (snap.viewer) myViewer = snap.viewer;
-  const viewer = myViewer || { id: 0, isAdmin: false };
+  const viewer = myViewer || { id: '', isAdmin: false };
   viewerId = viewer.id;
   const showAdmin = viewer.isAdmin && perspectiveKey === 'admin';
   $('perspectiveWrap').hidden = !viewer.isAdmin;

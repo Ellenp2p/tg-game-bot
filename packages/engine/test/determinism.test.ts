@@ -35,7 +35,7 @@ function makeInitial(players: GamePlayer[]): GameRecord {
 
 function makePlayers(def: RuleDefinition): GamePlayer[] {
   const n = Math.max(1, Math.min(def.minPlayers, def.maxPlayers));
-  return Array.from({ length: n }, (_, i) => ({ userId: 2001 + i, joinedAt: 0 }));
+  return Array.from({ length: n }, (_, i) => ({ userId: String(2001 + i), joinedAt: 0 }));
 }
 
 /** 可复现的伪随机源（LCG）。 */

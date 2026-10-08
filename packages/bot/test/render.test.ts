@@ -13,14 +13,14 @@ const GOLDEN = join(HERE, '__golden__', 'render.json');
 const UPDATE = process.env.UPDATE_RENDER === '1';
 
 const P: GamePlayer[] = [
-  { userId: 9001, joinedAt: 0 },
-  { userId: 9002, joinedAt: 0 },
-  { userId: 9003, joinedAt: 0 }
+  { userId: '9001', joinedAt: 0 },
+  { userId: '9002', joinedAt: 0 },
+  { userId: '9003', joinedAt: 0 }
 ];
 
 function mk(def: RuleDefinition, players: GamePlayer[] = P): GameRecord {
   const g: GameRecord = {
-    gameId: 'g', chatId: -1, ruleId: 'r', starterId: players[0]?.userId ?? 0, status: 'signup',
+    gameId: 'g', chatId: -1, ruleId: 'r', starterId: players[0]?.userId ?? '', status: 'signup',
     state: { phase: { kind: 'signup' }, stepHitCounts: {}, loopCounters: {} },
     roundIdx: 0, stepIdx: 0, createdAt: 0, endedAt: null, signupMsgId: null
   };
@@ -60,35 +60,35 @@ cases['signup-empty'] = renderStatus(mk(rollDef, []), rollDef, []);
 // 2) signup 3 人
 cases['signup-3'] = renderStatus(play(rollDef, []), rollDef, P);
 // 3) roll 阶段
-cases['roll'] = renderStatus(play(rollDef, [{ type: 'begin', userId: 9001 }]), rollDef, P);
+cases['roll'] = renderStatus(play(rollDef, [{ type: 'begin', userId: '9001' }]), rollDef, P);
 // 4) text 阶段（lastDice 有）
-cases['text'] = renderStatus(play(rollDef, [{ type: 'begin', userId: 9001 }, { type: 'roll', userId: 9001, value: 4, emoji: '🎲' }]), rollDef, P);
+cases['text'] = renderStatus(play(rollDef, [{ type: 'begin', userId: '9001' }, { type: 'roll', userId: '9001', value: 4, emoji: '🎲' }]), rollDef, P);
 // 5) punish 阶段（第 1 次）
 cases['punish'] = renderStatus(play(rollDef, [
-  { type: 'begin', userId: 9001 },
-  { type: 'roll', userId: 9001, value: 3, emoji: '🎲' },
-  { type: 'next', userId: 9001 }
+  { type: 'begin', userId: '9001' },
+  { type: 'roll', userId: '9001', value: 3, emoji: '🎲' },
+  { type: 'next', userId: '9001' }
 ]), rollDef, P);
 // 6) choice 阶段
 cases['choice'] = renderStatus(play(rollDef, [
-  { type: 'begin', userId: 9001 },
-  { type: 'roll', userId: 9001, value: 3, emoji: '🎲' },
-  { type: 'next', userId: 9001 },
-  { type: 'next', userId: 9001 }
+  { type: 'begin', userId: '9001' },
+  { type: 'roll', userId: '9001', value: 3, emoji: '🎲' },
+  { type: 'next', userId: '9001' },
+  { type: 'next', userId: '9001' }
 ]), rollDef, P);
 // 7) showdown（只掷了一人）
 cases['showdown-partial'] = renderStatus(play(rollDef, [
-  { type: 'begin', userId: 9001 },
-  { type: 'roll', userId: 9001, value: 3, emoji: '🎲' },
-  { type: 'next', userId: 9001 },
-  { type: 'next', userId: 9001 },
-  { type: 'choice', userId: 9001, optionIdx: 0 },
-  { type: 'showdownRoll', userId: 9001, value: 5, emoji: '🎲' }
+  { type: 'begin', userId: '9001' },
+  { type: 'roll', userId: '9001', value: 3, emoji: '🎲' },
+  { type: 'next', userId: '9001' },
+  { type: 'next', userId: '9001' },
+  { type: 'choice', userId: '9001', optionIdx: 0 },
+  { type: 'showdownRoll', userId: '9001', value: 5, emoji: '🎲' }
 ]), rollDef, P);
 // 8) 老虎机 lastDice 解码（text 阶段）
 cases['slot-text'] = renderStatus(play(slotDef, [
-  { type: 'begin', userId: 9001 },
-  { type: 'roll', userId: 9001, value: 22, emoji: '🎰' }
+  { type: 'begin', userId: '9001' },
+  { type: 'roll', userId: '9001', value: 22, emoji: '🎰' }
 ]), slotDef, P);
 
 test('render golden: renderStatus 输出稳定', () => {

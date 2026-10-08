@@ -21,7 +21,7 @@ function roundNameOf(v: ReturnType<typeof buildView>): string {
  * 群消息 = View→HTML，Mini App = View→JSON，内容不会漂。
  */
 export function renderStatus(game: GameRecord, def: RuleDefinition | undefined, players: GamePlayer[]): string {
-  const v = buildView(game, def, players, 0, false);
+  const v = buildView(game, def, players, '', false);
   const header = v.status === 'ended' ? '🏁 对局已结束\n\n' : '';
 
   if (v.phase.kind === 'signup') {

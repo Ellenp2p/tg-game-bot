@@ -3,10 +3,10 @@
   "name": "03-riddle-chain.min",
   "rule": "examples/03-riddle-chain.json",
   "players": [
-    2001,
-    2002,
-    2003,
-    2004
+    "2001",
+    "2002",
+    "2003",
+    "2004"
   ],
   "policy": {
     "value": "min",

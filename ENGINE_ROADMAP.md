@@ -161,4 +161,6 @@ type EngineCtx = { definition:RuleDefinition; now:()=>number; rng?:()=>number };
 - [x] 显示名解析器：`names.ts`（`displayName/setNameResolver`）
 - [x] **`Game` / `GameRecord` 拆分**：引擎只认 `Game`（无 `chatId`/`starterId`/`signupMsgId`/元数据）；`buildView` 不再含 `chatId`/`starterId`（bot 的 WS 载荷补上）；**buildView 契约 golden**（`__golden__/view.json`，固定时钟）
 - [x] **id 归一为 `UserId` 别名**（当前 `= number`）：引擎内所有 id 位置统一用它；将来接 Discord/网页只需把别名改成 `string` + 适配器/DB 边界转换，逻辑零改动
-- [ ] 未来接第二前端时：`UserId = string` + 边界转换；写适配器（身份/渲染/组件/持久化）
+- [x] P8 `UserId = string`（可移植性收尾）：别名改 `string`（`GamePhase.expectedPlayerId`/`pickedBy`、`View`、`EngineEvent.actor` 全部跟改）；Telegram 适配器边界 `ctx.from.id`(number)→`uid()`(string)，DB 读回统一 `String(...)`（SQLite INTEGER 亲和自动兼容旧行，无需迁移）；前端 `viewerId` 也是 string。引擎/DB 逻辑零改，`Tie` 排序改为确定性字典序。
+      - 验收：engine 122 / bot 44 / spec 40 全绿；view/渲染/spec golden 重录
+- [ ] 未来接第二前端时：写适配器（身份/渲染/组件/持久化）；`chatId` 等平台字段按需改 string

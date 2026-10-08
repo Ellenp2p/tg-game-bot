@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
 /**
- * 玩家标识（不透明句柄）。当前为 `number`（Telegram 的 user id 就在安全整数内）。
- * 若要接 Discord/网页（雪花 id 超安全整数），只需把这里改成 `string`，并在
- * **适配器/DB 边界**做 number↔string 转换；引擎逻辑无需改动。
+ * 玩家标识（不透明句柄）。**当前为 `string`**，以兼容 Discord/网页（雪花 id 超安全整数、或非数字 id）。
+ * Telegram 适配器在边界做 `number ↔ string` 转换（`ctx.from.id` → `String(...)`）；
+ * 引擎只认 `UserId`，逻辑与平台无关。DB 侧读回时统一 `String(...)`。
  */
-export type UserId = number;
+export type UserId = string;
 
 export const SUPPORTED_DICE_EMOJIS = ['🎲', '🎯', '🏀', '⚽', '🎰', '🎳'] as const;
 export type DiceEmoji = typeof SUPPORTED_DICE_EMOJIS[number];
@@ -237,10 +237,10 @@ export type ShowdownResult = {
 
 export type GamePhase =
   | { kind: 'signup' }
-  | { kind: 'roll'; stepIdx: number; expectedPlayerId: number | null; roundIdx: number; emoji: DiceEmoji }
+  | { kind: 'roll'; stepIdx: number; expectedPlayerId: UserId | null; roundIdx: number; emoji: DiceEmoji }
   | { kind: 'text'; stepIdx: number; roundIdx: number; text: string }
   | { kind: 'punish'; stepIdx: number; roundIdx: number; text: string; hitCount: number }
-  | { kind: 'choice'; stepIdx: number; roundIdx: number; options: ChoiceOption[]; pickedBy: number | null }
+  | { kind: 'choice'; stepIdx: number; roundIdx: number; options: ChoiceOption[]; pickedBy: UserId | null }
   | {
       kind: 'showdown'; stepIdx: number; roundIdx: number;
       emoji: DiceEmoji; order: ShowdownOrder; tie: ShowdownTie; slot: string; rolls: ShowdownRoll[];

@@ -7,11 +7,11 @@ import { advanceToStep, evaluateCondition, beginGame, applyRoll } from '../src/r
 
 function makeGame(def: RuleDefinition, results?: Record<string, ShowdownResult>, slot = 'last'): GameRecord {
   const g: GameRecord = {
-    gameId: 'g1', chatId: -100, ruleId: 'r1', starterId: 1, status: 'signup',
+    gameId: 'g1', chatId: -100, ruleId: 'r1', starterId: '1', status: 'signup',
     state: { phase: { kind: 'signup' }, stepHitCounts: {}, loopCounters: {} },
     roundIdx: 0, stepIdx: 0, createdAt: 0, endedAt: null, signupMsgId: null
   };
-  g.players = [{ userId: 1, joinedAt: 0 }];
+  g.players = [{ userId: '1', joinedAt: 0 }];
   if (results) { g.state.results = results; g.state.lastResultSlot = slot; }
   return g;
 }
@@ -104,7 +104,7 @@ test('branch: maxHits breaks self-loops and forces forward', () => {
 test('condition: dice compares the last single roll', () => {
   const g = makeGame(baseDef);
   assert.equal(evaluateCondition(g, { check: 'dice', op: 'eq', value: 6 }), false); // 还没掷
-  g.state.lastDice = { userId: 1, value: 6, at: 0, emoji: '🎲' };
+  g.state.lastDice = { userId: '1', value: 6, at: 0, emoji: '🎲' };
   assert.equal(evaluateCondition(g, { check: 'dice', op: 'eq', value: 6 }), true);
   assert.equal(evaluateCondition(g, { check: 'dice', op: 'lte', value: 2 }), false);
   assert.equal(evaluateCondition(g, { check: 'dice', op: 'gte', value: 6 }), true);
@@ -128,17 +128,17 @@ test('branch: routes on the last roll value', () => {
       ]
     }]
   });
-  const players: GamePlayer[] = [{ userId: 1, joinedAt: 0 }];
+  const players: GamePlayer[] = [{ userId: '1', joinedAt: 0 }];
   const g6 = makeGame(def);
   g6.players = players;
   beginGame(g6, def);
-  applyRoll(g6, def, 1, 6, players, '🎲');
+  applyRoll(g6, def, '1', 6, players, '🎲');
   assert.equal(g6.state.phase.kind === 'text' && g6.state.phase.text, 'SIX');
 
   const g3 = makeGame(def);
   g3.players = players;
   beginGame(g3, def);
-  applyRoll(g3, def, 1, 3, players, '🎲');
+  applyRoll(g3, def, '1', 3, players, '🎲');
   assert.equal(g3.state.phase.kind === 'text' && g3.state.phase.text, 'LOW');
 });
 

@@ -3,7 +3,7 @@
     "n": 0,
     "intent": {
       "type": "roll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -16,24 +16,24 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 1,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "punish",
@@ -43,24 +43,24 @@
       "stepIdx": 2
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 2,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -69,27 +69,27 @@
       "roundIdx": 1,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2002,
+    "expectedPlayerId": "2002",
     "emoji": "🎲",
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 3,
     "intent": {
       "type": "roll",
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
@@ -102,24 +102,24 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 4,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "choice",
@@ -129,24 +129,24 @@
       "stepIdx": 2
     },
     "lastDice": {
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 5,
     "intent": {
       "type": "choice",
-      "userId": 2002,
+      "userId": "2002",
       "optionIdx": 0
     },
     "ok": true,
@@ -158,24 +158,24 @@
       "stepIdx": 4
     },
     "lastDice": {
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 6,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -184,10 +184,10 @@
       "roundIdx": 1,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2003,
+    "expectedPlayerId": "2003",
     "emoji": "🎲",
     "lastDice": {
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
@@ -196,17 +196,17 @@
       "1": 1
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 7,
     "intent": {
       "type": "roll",
-      "userId": 2003,
+      "userId": "2003",
       "value": 6,
       "emoji": "🎲"
     },
@@ -219,7 +219,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2003,
+      "userId": "2003",
       "value": 6,
       "emoji": "🎲"
     },
@@ -228,17 +228,17 @@
       "1": 1
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 8,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "choice",
@@ -248,7 +248,7 @@
       "stepIdx": 2
     },
     "lastDice": {
-      "userId": 2003,
+      "userId": "2003",
       "value": 6,
       "emoji": "🎲"
     },
@@ -257,17 +257,17 @@
       "1": 1
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 9,
     "intent": {
       "type": "choice",
-      "userId": 2003,
+      "userId": "2003",
       "optionIdx": 0
     },
     "ok": true,
@@ -279,7 +279,7 @@
       "stepIdx": 4
     },
     "lastDice": {
-      "userId": 2003,
+      "userId": "2003",
       "value": 6,
       "emoji": "🎲"
     },
@@ -288,17 +288,17 @@
       "1": 1
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 10,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -307,10 +307,10 @@
       "roundIdx": 1,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2004,
+    "expectedPlayerId": "2004",
     "emoji": "🎲",
     "lastDice": {
-      "userId": 2003,
+      "userId": "2003",
       "value": 6,
       "emoji": "🎲"
     },
@@ -319,17 +319,17 @@
       "1": 2
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 11,
     "intent": {
       "type": "roll",
-      "userId": 2004,
+      "userId": "2004",
       "value": 6,
       "emoji": "🎲"
     },
@@ -342,7 +342,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2004,
+      "userId": "2004",
       "value": 6,
       "emoji": "🎲"
     },
@@ -351,17 +351,17 @@
       "1": 2
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 12,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "choice",
@@ -371,7 +371,7 @@
       "stepIdx": 2
     },
     "lastDice": {
-      "userId": 2004,
+      "userId": "2004",
       "value": 6,
       "emoji": "🎲"
     },
@@ -380,17 +380,17 @@
       "1": 2
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 13,
     "intent": {
       "type": "choice",
-      "userId": 2004,
+      "userId": "2004",
       "optionIdx": 0
     },
     "ok": true,
@@ -402,7 +402,7 @@
       "stepIdx": 4
     },
     "lastDice": {
-      "userId": 2004,
+      "userId": "2004",
       "value": 6,
       "emoji": "🎲"
     },
@@ -411,17 +411,17 @@
       "1": 2
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 14,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -430,10 +430,10 @@
       "roundIdx": 1,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2001,
+    "expectedPlayerId": "2001",
     "emoji": "🎲",
     "lastDice": {
-      "userId": 2004,
+      "userId": "2004",
       "value": 6,
       "emoji": "🎲"
     },
@@ -442,17 +442,17 @@
       "1": 3
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 15,
     "intent": {
       "type": "roll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -465,7 +465,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -474,17 +474,17 @@
       "1": 3
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 16,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "choice",
@@ -494,7 +494,7 @@
       "stepIdx": 2
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -503,17 +503,17 @@
       "1": 3
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 17,
     "intent": {
       "type": "choice",
-      "userId": 2001,
+      "userId": "2001",
       "optionIdx": 0
     },
     "ok": true,
@@ -525,7 +525,7 @@
       "stepIdx": 4
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -534,17 +534,17 @@
       "1": 3
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 18,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -553,10 +553,10 @@
       "roundIdx": 1,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2002,
+    "expectedPlayerId": "2002",
     "emoji": "🎲",
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -565,17 +565,17 @@
       "1": 4
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 19,
     "intent": {
       "type": "roll",
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
@@ -588,7 +588,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
@@ -597,17 +597,17 @@
       "1": 4
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 20,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "choice",
@@ -617,7 +617,7 @@
       "stepIdx": 2
     },
     "lastDice": {
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
@@ -626,17 +626,17 @@
       "1": 4
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 21,
     "intent": {
       "type": "choice",
-      "userId": 2002,
+      "userId": "2002",
       "optionIdx": 0
     },
     "ok": true,
@@ -648,7 +648,7 @@
       "stepIdx": 4
     },
     "lastDice": {
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
@@ -657,17 +657,17 @@
       "1": 4
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 22,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -676,10 +676,10 @@
       "roundIdx": 1,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2003,
+    "expectedPlayerId": "2003",
     "emoji": "🎲",
     "lastDice": {
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
@@ -688,17 +688,17 @@
       "1": 5
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 23,
     "intent": {
       "type": "roll",
-      "userId": 2003,
+      "userId": "2003",
       "value": 6,
       "emoji": "🎲"
     },
@@ -711,7 +711,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2003,
+      "userId": "2003",
       "value": 6,
       "emoji": "🎲"
     },
@@ -720,17 +720,17 @@
       "1": 5
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 24,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "choice",
@@ -740,7 +740,7 @@
       "stepIdx": 2
     },
     "lastDice": {
-      "userId": 2003,
+      "userId": "2003",
       "value": 6,
       "emoji": "🎲"
     },
@@ -749,17 +749,17 @@
       "1": 5
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 25,
     "intent": {
       "type": "choice",
-      "userId": 2003,
+      "userId": "2003",
       "optionIdx": 0
     },
     "ok": true,
@@ -771,7 +771,7 @@
       "stepIdx": 4
     },
     "lastDice": {
-      "userId": 2003,
+      "userId": "2003",
       "value": 6,
       "emoji": "🎲"
     },
@@ -780,17 +780,17 @@
       "1": 5
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 26,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -799,10 +799,10 @@
       "roundIdx": 1,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2004,
+    "expectedPlayerId": "2004",
     "emoji": "🎲",
     "lastDice": {
-      "userId": 2003,
+      "userId": "2003",
       "value": 6,
       "emoji": "🎲"
     },
@@ -811,17 +811,17 @@
       "1": 6
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 27,
     "intent": {
       "type": "roll",
-      "userId": 2004,
+      "userId": "2004",
       "value": 6,
       "emoji": "🎲"
     },
@@ -834,7 +834,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2004,
+      "userId": "2004",
       "value": 6,
       "emoji": "🎲"
     },
@@ -843,17 +843,17 @@
       "1": 6
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 28,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "choice",
@@ -863,7 +863,7 @@
       "stepIdx": 2
     },
     "lastDice": {
-      "userId": 2004,
+      "userId": "2004",
       "value": 6,
       "emoji": "🎲"
     },
@@ -872,17 +872,17 @@
       "1": 6
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 29,
     "intent": {
       "type": "choice",
-      "userId": 2004,
+      "userId": "2004",
       "optionIdx": 0
     },
     "ok": true,
@@ -894,7 +894,7 @@
       "stepIdx": 4
     },
     "lastDice": {
-      "userId": 2004,
+      "userId": "2004",
       "value": 6,
       "emoji": "🎲"
     },
@@ -903,17 +903,17 @@
       "1": 6
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 30,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -922,10 +922,10 @@
       "roundIdx": 1,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2001,
+    "expectedPlayerId": "2001",
     "emoji": "🎲",
     "lastDice": {
-      "userId": 2004,
+      "userId": "2004",
       "value": 6,
       "emoji": "🎲"
     },
@@ -934,17 +934,17 @@
       "1": 7
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 31,
     "intent": {
       "type": "roll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -957,7 +957,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -966,17 +966,17 @@
       "1": 7
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 32,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "choice",
@@ -986,7 +986,7 @@
       "stepIdx": 2
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -995,17 +995,17 @@
       "1": 7
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 33,
     "intent": {
       "type": "choice",
-      "userId": 2001,
+      "userId": "2001",
       "optionIdx": 0
     },
     "ok": true,
@@ -1017,7 +1017,7 @@
       "stepIdx": 4
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -1026,17 +1026,17 @@
       "1": 7
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   },
   {
     "n": 34,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "signup",
@@ -1046,7 +1046,7 @@
       "stepIdx": 4
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -1055,10 +1055,10 @@
       "1": 8
     },
     "playerIds": [
-      2001,
-      2002,
-      2003,
-      2004
+      "2001",
+      "2002",
+      "2003",
+      "2004"
     ]
   }
 ]

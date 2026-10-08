@@ -16,9 +16,9 @@ const GOLDEN = join(HERE, '__golden__', 'view.json');
 const UPDATE = process.env.UPDATE_VIEW === '1';
 
 const P: GamePlayer[] = [
-  { userId: 9001, joinedAt: 0 },
-  { userId: 9002, joinedAt: 0 },
-  { userId: 9003, joinedAt: 0 }
+  { userId: '9001', joinedAt: 0 },
+  { userId: '9002', joinedAt: 0 },
+  { userId: '9003', joinedAt: 0 }
 ];
 
 function mk(def: RuleDefinition, players: GamePlayer[] = P): GameRecord {
@@ -48,23 +48,23 @@ const def = ruleDefinition.parse({
 });
 
 const cases: Record<string, unknown> = {};
-cases['signup'] = buildView(mk(def), def, P, 9001, false);
-cases['roll'] = buildView(play(def, [{ type: 'begin', userId: 9001 }]), def, P, 9001, true);
+cases['signup'] = buildView(mk(def), def, P, '9001', false);
+cases['roll'] = buildView(play(def, [{ type: 'begin', userId: '9001' }]), def, P, '9001', true);
 cases['text'] = buildView(play(def, [
-  { type: 'begin', userId: 9001 }, { type: 'roll', userId: 9001, value: 4, emoji: '🎲' }
-]), def, P, 9002, false);
+  { type: 'begin', userId: '9001' }, { type: 'roll', userId: '9001', value: 4, emoji: '🎲' }
+]), def, P, '9002', false);
 cases['punish'] = buildView(play(def, [
-  { type: 'begin', userId: 9001 }, { type: 'roll', userId: 9001, value: 3, emoji: '🎲' }, { type: 'next', userId: 9001 }
-]), def, P, 9001, true);
+  { type: 'begin', userId: '9001' }, { type: 'roll', userId: '9001', value: 3, emoji: '🎲' }, { type: 'next', userId: '9001' }
+]), def, P, '9001', true);
 cases['choice'] = buildView(play(def, [
-  { type: 'begin', userId: 9001 }, { type: 'roll', userId: 9001, value: 3, emoji: '🎲' },
-  { type: 'next', userId: 9001 }, { type: 'next', userId: 9001 }
-]), def, P, 9001, true);
+  { type: 'begin', userId: '9001' }, { type: 'roll', userId: '9001', value: 3, emoji: '🎲' },
+  { type: 'next', userId: '9001' }, { type: 'next', userId: '9001' }
+]), def, P, '9001', true);
 cases['showdown'] = buildView(play(def, [
-  { type: 'begin', userId: 9001 }, { type: 'roll', userId: 9001, value: 3, emoji: '🎲' },
-  { type: 'next', userId: 9001 }, { type: 'next', userId: 9001 }, { type: 'choice', userId: 9001, optionIdx: 0 },
-  { type: 'showdownRoll', userId: 9001, value: 5, emoji: '🎲' }
-]), def, P, 9003, false);
+  { type: 'begin', userId: '9001' }, { type: 'roll', userId: '9001', value: 3, emoji: '🎲' },
+  { type: 'next', userId: '9001' }, { type: 'next', userId: '9001' }, { type: 'choice', userId: '9001', optionIdx: 0 },
+  { type: 'showdownRoll', userId: '9001', value: 5, emoji: '🎲' }
+]), def, P, '9003', false);
 
 test('view golden: buildView 输出稳定（Mini App 契约）', () => {
   const actual = JSON.stringify(cases, null, 2) + '\n';

@@ -15,16 +15,16 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      9002,
-      9001,
-      9003
+      "9002",
+      "9001",
+      "9003"
     ]
   },
   {
     "n": 1,
     "intent": {
       "type": "showdownRoll",
-      "userId": 9002,
+      "userId": "9002",
       "value": 4
     },
     "ok": true,
@@ -39,16 +39,16 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      9002,
-      9001,
-      9003
+      "9002",
+      "9001",
+      "9003"
     ]
   },
   {
     "n": 2,
     "intent": {
       "type": "showdownRoll",
-      "userId": 9001,
+      "userId": "9001",
       "value": 4
     },
     "ok": true,
@@ -63,16 +63,16 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      9002,
-      9001,
-      9003
+      "9002",
+      "9001",
+      "9003"
     ]
   },
   {
     "n": 3,
     "intent": {
       "type": "showdownRoll",
-      "userId": 9003,
+      "userId": "9003",
       "value": 1
     },
     "ok": true,
@@ -87,16 +87,16 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      9002,
-      9001,
-      9003
+      "9002",
+      "9001",
+      "9003"
     ]
   },
   {
     "n": 4,
     "intent": {
       "type": "showdownRoll",
-      "userId": 9002,
+      "userId": "9002",
       "value": 2
     },
     "ok": true,
@@ -111,16 +111,16 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      9002,
-      9001,
-      9003
+      "9002",
+      "9001",
+      "9003"
     ]
   },
   {
     "n": 5,
     "intent": {
       "type": "showdownRoll",
-      "userId": 9001,
+      "userId": "9001",
       "value": 5
     },
     "ok": true,
@@ -135,16 +135,16 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      9002,
-      9001,
-      9003
+      "9002",
+      "9001",
+      "9003"
     ]
   },
   {
     "n": 6,
     "intent": {
       "type": "showdownRoll",
-      "userId": 9003,
+      "userId": "9003",
       "value": 3
     },
     "ok": true,
@@ -159,9 +159,9 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      9002,
-      9001,
-      9003
+      "9002",
+      "9001",
+      "9003"
     ]
   }
 ]

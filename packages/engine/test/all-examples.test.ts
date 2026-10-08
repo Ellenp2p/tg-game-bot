@@ -119,8 +119,8 @@ test('all examples: every loop round has maxLoops in [1, 100]', () => {
 
 test('all examples: complete playthrough ends within bounded steps', () => {
   const players: GamePlayer[] = [
-    { userId: 2001, joinedAt: 0 },
-    { userId: 2002, joinedAt: 0 }
+    { userId: '2001', joinedAt: 0 },
+    { userId: '2002', joinedAt: 0 }
   ];
   for (const { name, def } of examples) {
     const totalSteps = def.rounds.reduce((s, r) => s + r.steps.length, 0);
@@ -133,7 +133,7 @@ test('all examples: complete playthrough ends within bounded steps', () => {
 });
 
 test('all examples: non-loop round advances to next round', () => {
-  const players: GamePlayer[] = [{ userId: 2001, joinedAt: 0 }];
+  const players: GamePlayer[] = [{ userId: '2001', joinedAt: 0 }];
   for (const { name, def } of examples) {
     if (def.rounds.length < 2) continue;
     const first = def.rounds[0];
@@ -147,7 +147,7 @@ test('all examples: non-loop round advances to next round', () => {
 });
 
 test('all examples: maxLoops termination works for every loop round', () => {
-  const players: GamePlayer[] = [{ userId: 2001, joinedAt: 0 }];
+  const players: GamePlayer[] = [{ userId: '2001', joinedAt: 0 }];
   for (const { name, def } of examples) {
     const loopRounds = def.rounds.filter(r => r.loop);
     if (!loopRounds.length) continue;
@@ -165,7 +165,7 @@ test('all examples: maxLoops termination works for every loop round', () => {
 });
 
 test('all examples: roll steps use the declared emoji range (not exceed max)', () => {
-  const players: GamePlayer[] = [{ userId: 2001, joinedAt: 0 }];
+  const players: GamePlayer[] = [{ userId: '2001', joinedAt: 0 }];
   for (const { name, def } of examples) {
     const game = newGame(def, players);
     for (let i = 0; i < 50; i++) {
@@ -174,29 +174,29 @@ test('all examples: roll steps use the declared emoji range (not exceed max)', (
       const expectedMax = DICE_EMOJI_MAX_VALUE[phase.emoji];
       for (let v = 1; v <= 6; v++) {
         if (v > expectedMax) {
-          assert.throws(() => applyRoll(game, def, 2001, v, players, phase.emoji), /范围|需要/, `${name} should reject ${phase.emoji}=${v}`);
+          assert.throws(() => applyRoll(game, def, '2001', v, players, phase.emoji), /范围|需要/, `${name} should reject ${phase.emoji}=${v}`);
         }
       }
-      applyRoll(game, def, 2001, Math.min(expectedMax, 1), players, phase.emoji);
+      applyRoll(game, def, '2001', Math.min(expectedMax, 1), players, phase.emoji);
     }
   }
 });
 
 test('all examples: wrong emoji rejected for roll', () => {
-  const players: GamePlayer[] = [{ userId: 2001, joinedAt: 0 }];
+  const players: GamePlayer[] = [{ userId: '2001', joinedAt: 0 }];
   for (const { name, def } of examples) {
     const game = newGame(def, players);
     const phase = game.state.phase;
     if (phase.kind !== 'roll') continue;
     const wrong: DiceEmoji = phase.emoji === '🎲' ? '🏀' : '🎲';
     if (phase.emoji === '🎲') {
-      assert.throws(() => applyRoll(game, def, 2001, 1, players, wrong), /需要/, `${name} should reject wrong emoji`);
+      assert.throws(() => applyRoll(game, def, '2001', 1, players, wrong), /需要/, `${name} should reject wrong emoji`);
     }
   }
 });
 
 test('all examples: slot machine produces correctly decoded lastDice', () => {
-  const players: GamePlayer[] = [{ userId: 2001, joinedAt: 0 }];
+  const players: GamePlayer[] = [{ userId: '2001', joinedAt: 0 }];
   const ten = examples.find(e => e.name === '10-slot-machine-jackpot.json')!;
   const game = newGame(ten.def, players);
   for (let i = 0; i < 20 && game.state.phase.kind === 'roll'; i++) {
@@ -210,7 +210,7 @@ test('all examples: slot machine produces correctly decoded lastDice', () => {
 });
 
 test('all examples: maxLoops counter persists across loop iterations', () => {
-  const players: GamePlayer[] = [{ userId: 2001, joinedAt: 0 }];
+  const players: GamePlayer[] = [{ userId: '2001', joinedAt: 0 }];
   const two = examples.find(e => e.name === '02-dice-punishment.json')!;
   const game = newGame(two.def, players);
   const target = two.def.rounds[0].maxLoops!;
@@ -221,7 +221,7 @@ test('all examples: maxLoops counter persists across loop iterations', () => {
 });
 
 test('all examples: 03 (riddle chain) two rounds, second loop with maxLoops=10', () => {
-  const players: GamePlayer[] = [{ userId: 2001, joinedAt: 0 }];
+  const players: GamePlayer[] = [{ userId: '2001', joinedAt: 0 }];
   const three = examples.find(e => e.name === '03-riddle-chain.json')!;
   assert.equal(three.def.rounds.length, 2);
   assert.equal(three.def.rounds[1].loop, true);
@@ -234,28 +234,28 @@ test('all examples: 03 (riddle chain) two rounds, second loop with maxLoops=10',
 });
 
 test('all examples: 09 (basketball) uses 🏀 and rejects 🎲', () => {
-  const players: GamePlayer[] = [{ userId: 2001, joinedAt: 0 }];
+  const players: GamePlayer[] = [{ userId: '2001', joinedAt: 0 }];
   const nine = examples.find(e => e.name === '09-basketball-tournament.json')!;
   const game = newGame(nine.def, players);
   const phase = game.state.phase;
   assert.equal(phase.kind, 'roll');
   if (phase.kind === 'roll') {
     assert.equal(phase.emoji, '🏀');
-    assert.throws(() => applyRoll(game, nine.def, 2001, 3, players, '🎲'), /需要 🏀/);
-    assert.throws(() => applyRoll(game, nine.def, 2001, 6, players, '🏀'), /1-5/);
-    const r = applyRoll(game, nine.def, 2001, 4, players, '🏀');
+    assert.throws(() => applyRoll(game, nine.def, '2001', 3, players, '🎲'), /需要 🏀/);
+    assert.throws(() => applyRoll(game, nine.def, '2001', 6, players, '🏀'), /1-5/);
+    const r = applyRoll(game, nine.def, '2001', 4, players, '🏀');
     assert.match(r.message, /掷出 4/);
   }
 });
 
 test('all examples: 10 (slot) first-roll symbol display works', () => {
-  const players: GamePlayer[] = [{ userId: 2001, joinedAt: 0 }];
+  const players: GamePlayer[] = [{ userId: '2001', joinedAt: 0 }];
   const ten = examples.find(e => e.name === '10-slot-machine-jackpot.json')!;
   const game = newGame(ten.def, players);
   for (let v = 1; v <= 64; v++) {
     const phase = game.state.phase;
     if (phase.kind !== 'roll') break;
-    const r = applyRoll(game, ten.def, 2001, v, players, '🎰');
+    const r = applyRoll(game, ten.def, '2001', v, players, '🎰');
     if (isJackpot(v)) {
       assert.match(r.message, /JACKPOT/, `value ${v} should be jackpot`);
     } else {

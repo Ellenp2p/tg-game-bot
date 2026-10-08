@@ -22,16 +22,16 @@ export type EngineErrorCode =
 
 /** 语义事件（不含时间戳，保持确定性；需要时由调用方补 at）。 */
 export type EngineEvent =
-  | { type: 'playerJoined'; actor: number }
-  | { type: 'playerLeft'; actor: number }
-  | { type: 'gameStarted'; actor: number }
+  | { type: 'playerJoined'; actor: UserId }
+  | { type: 'playerLeft'; actor: UserId }
+  | { type: 'gameStarted'; actor: UserId }
   | { type: 'phaseEntered'; phase: string; roundIdx: number; stepIdx: number }
-  | { type: 'rollResolved'; actor: number; value: number; emoji: string }
-  | { type: 'drawResolved'; actor: number; value: number; bucket: number }
-  | { type: 'showdownRolled'; actor: number; value: number }
-  | { type: 'showdownSettled'; actor: number }
-  | { type: 'showdownRerolled'; actor: number }
-  | { type: 'choiceMade'; actor: number; optionIdx: number }
+  | { type: 'rollResolved'; actor: UserId; value: number; emoji: string }
+  | { type: 'drawResolved'; actor: UserId; value: number; bucket: number }
+  | { type: 'showdownRolled'; actor: UserId; value: number }
+  | { type: 'showdownSettled'; actor: UserId }
+  | { type: 'showdownRerolled'; actor: UserId }
+  | { type: 'choiceMade'; actor: UserId; optionIdx: number }
   | { type: 'gameEnded' };
 
 export type RunResult =

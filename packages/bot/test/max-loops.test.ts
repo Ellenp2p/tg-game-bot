@@ -29,10 +29,10 @@ const loopRule = (maxLoops?: number): RuleDefinition => ruleDefinition.parse({
 function setup(maxLoops?: number) {
   const dir = mkdtempSync(join(tmpdir(), 'loop-'));
   const db = new Db(join(dir, 'bot.sqlite'));
-  db.touchUser(1001);
+  db.touchUser('1001');
   const rule = db.createRule(1001, 'loop', loopRule(maxLoops));
-  const game = db.createGame(-100, rule.ruleId, 1001);
-  db.addPlayer(game.gameId, 2001);
+  const game = db.createGame(-100, rule.ruleId, '1001');
+  db.addPlayer(game.gameId, '2001');
   return { dir, db, rule, game };
 }
 function teardown(ctx: { dir: string; db: Db }) { ctx.db.close(); rmSync(ctx.dir, { recursive: true, force: true }); }
@@ -42,8 +42,8 @@ test('maxLoops: undefined = infinite loop (legacy behavior)', () => {
   try {
     beginGame(ctx.game, ctx.rule.definition);
     for (let i = 0; i < 20; i++) {
-      applyRoll(ctx.game, ctx.rule.definition, 2001, 3, ctx.db.listPlayers(ctx.game.gameId));
-      applyNext(ctx.game, ctx.rule.definition, 1001);
+      applyRoll(ctx.game, ctx.rule.definition, '2001', 3, ctx.db.listPlayers(ctx.game.gameId));
+      applyNext(ctx.game, ctx.rule.definition, '1001');
     }
     assert.equal(ctx.game.status, 'in_progress');
     assert.equal(ctx.game.state.loopCounters['0'], 20);
@@ -54,8 +54,8 @@ test('maxLoops: 1 = single pass then end', () => {
   const ctx = setup(1);
   try {
     beginGame(ctx.game, ctx.rule.definition);
-    applyRoll(ctx.game, ctx.rule.definition, 2001, 3, ctx.db.listPlayers(ctx.game.gameId));
-    applyNext(ctx.game, ctx.rule.definition, 1001);
+    applyRoll(ctx.game, ctx.rule.definition, '2001', 3, ctx.db.listPlayers(ctx.game.gameId));
+    applyNext(ctx.game, ctx.rule.definition, '1001');
     // steps ran out, no more loops
     assert.equal(ctx.game.status, 'ended');
     assert.equal(ctx.game.state.loopCounters['0'], 1);
@@ -68,8 +68,8 @@ test('maxLoops: 3 = three passes then end', () => {
     beginGame(ctx.game, ctx.rule.definition);
     for (let i = 0; i < 3; i++) {
       assert.equal(ctx.game.status, 'in_progress', `should still be in_progress before pass ${i + 1}`);
-      applyRoll(ctx.game, ctx.rule.definition, 2001, 3, ctx.db.listPlayers(ctx.game.gameId));
-      applyNext(ctx.game, ctx.rule.definition, 1001);
+      applyRoll(ctx.game, ctx.rule.definition, '2001', 3, ctx.db.listPlayers(ctx.game.gameId));
+      applyNext(ctx.game, ctx.rule.definition, '1001');
     }
     assert.equal(ctx.game.status, 'ended');
     assert.equal(ctx.game.state.loopCounters['0'], 3);
@@ -82,11 +82,11 @@ test('maxLoops: punish ladder escalates across loops', () => {
     beginGame(ctx.game, ctx.rule.definition);
     const texts: string[] = [];
     for (let i = 0; i < 3; i++) {
-      applyRoll(ctx.game, ctx.rule.definition, 2001, 3, ctx.db.listPlayers(ctx.game.gameId));
+      applyRoll(ctx.game, ctx.rule.definition, '2001', 3, ctx.db.listPlayers(ctx.game.gameId));
       const phase = ctx.game.state.phase;
       assert.equal(phase.kind, 'punish');
       if (phase.kind === 'punish') texts.push(phase.text);
-      applyNext(ctx.game, ctx.rule.definition, 1001); // punish → loop back to roll
+      applyNext(ctx.game, ctx.rule.definition, '1001'); // punish → loop back to roll
     }
     assert.equal(texts[0], '喝一口');
     assert.equal(texts[1], '喝两杯');
@@ -126,21 +126,21 @@ test('maxLoops: with multi-round, last round maxLoops controls end', () => {
   const dir = mkdtempSync(join(tmpdir(), 'multi-'));
   const db = new Db(join(dir, 'bot.sqlite'));
   try {
-    db.touchUser(1001);
+    db.touchUser('1001');
     const rule = db.createRule(1001, 'multi', multiRule);
-    const game = db.createGame(-100, rule.ruleId, 1001);
-    db.addPlayer(game.gameId, 2001);
+    const game = db.createGame(-100, rule.ruleId, '1001');
+    db.addPlayer(game.gameId, '2001');
     beginGame(game, rule.definition);
     // R1: 2 passes then → R2
     for (let i = 0; i < 2; i++) {
-      applyRoll(game, rule.definition, 2001, 3, db.listPlayers(game.gameId));
-      applyNext(game, rule.definition, 1001);
+      applyRoll(game, rule.definition, '2001', 3, db.listPlayers(game.gameId));
+      applyNext(game, rule.definition, '1001');
     }
     assert.equal(game.roundIdx, 1);
     assert.equal(game.state.loopCounters['0'], 2);
     // R2: 1 pass then end
-    applyRoll(game, rule.definition, 2001, 3, db.listPlayers(game.gameId));
-    applyNext(game, rule.definition, 1001);
+    applyRoll(game, rule.definition, '2001', 3, db.listPlayers(game.gameId));
+    applyNext(game, rule.definition, '1001');
     assert.equal(game.status, 'ended');
     assert.equal(game.state.loopCounters['1'], 1);
   } finally { db.close(); rmSync(dir, { recursive: true, force: true }); }

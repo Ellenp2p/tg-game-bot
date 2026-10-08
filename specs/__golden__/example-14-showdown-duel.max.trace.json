@@ -3,7 +3,7 @@
     "n": 0,
     "intent": {
       "type": "showdownRoll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -19,15 +19,15 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 1,
     "intent": {
       "type": "showdownRoll",
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
@@ -43,15 +43,15 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 2,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "punish",
@@ -64,15 +64,15 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 3,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "text",
@@ -85,15 +85,15 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 4,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "showdown",
@@ -108,15 +108,15 @@
       "0": 1
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 5,
     "intent": {
       "type": "showdownRoll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -134,15 +134,15 @@
       "0": 1
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 6,
     "intent": {
       "type": "showdownRoll",
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
@@ -160,15 +160,15 @@
       "0": 1
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 7,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "punish",
@@ -183,15 +183,15 @@
       "0": 1
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 8,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "text",
@@ -206,15 +206,15 @@
       "0": 1
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 9,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "showdown",
@@ -229,15 +229,15 @@
       "0": 2
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 10,
     "intent": {
       "type": "showdownRoll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -255,15 +255,15 @@
       "0": 2
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 11,
     "intent": {
       "type": "showdownRoll",
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
@@ -281,15 +281,15 @@
       "0": 2
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 12,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "punish",
@@ -304,15 +304,15 @@
       "0": 2
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 13,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "text",
@@ -327,15 +327,15 @@
       "0": 2
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 14,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "showdown",
@@ -350,15 +350,15 @@
       "0": 3
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 15,
     "intent": {
       "type": "showdownRoll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -376,15 +376,15 @@
       "0": 3
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 16,
     "intent": {
       "type": "showdownRoll",
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
@@ -402,15 +402,15 @@
       "0": 3
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 17,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "punish",
@@ -425,15 +425,15 @@
       "0": 3
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 18,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "text",
@@ -448,15 +448,15 @@
       "0": 3
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 19,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "showdown",
@@ -471,15 +471,15 @@
       "0": 4
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 20,
     "intent": {
       "type": "showdownRoll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -497,15 +497,15 @@
       "0": 4
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 21,
     "intent": {
       "type": "showdownRoll",
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
@@ -523,15 +523,15 @@
       "0": 4
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 22,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "punish",
@@ -546,15 +546,15 @@
       "0": 4
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 23,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "text",
@@ -569,15 +569,15 @@
       "0": 4
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 24,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "signup",
@@ -592,8 +592,8 @@
       "0": 5
     },
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   }
 ]

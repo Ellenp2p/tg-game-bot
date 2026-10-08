@@ -9,10 +9,10 @@ import { displayName } from './names.js';
  */
 export type ViewPhase =
   | { kind: 'signup' }
-  | { kind: 'roll'; roundIdx: number; stepIdx: number; expectedPlayerId: number | null; emoji: string; drawHint: number | null; stepLabel: string }
+  | { kind: 'roll'; roundIdx: number; stepIdx: number; expectedPlayerId: UserId | null; emoji: string; drawHint: number | null; stepLabel: string }
   | { kind: 'text'; roundIdx: number; stepIdx: number; text: string; stepLabel: string }
-  | { kind: 'choice'; roundIdx: number; stepIdx: number; options: Array<Record<string, unknown>>; pickedBy: number | null; stepLabel: string }
-  | { kind: 'showdown'; roundIdx: number; stepIdx: number; emoji: string; order: string; slot: string; stepLabel: string; rolls: { userId: UserId; value: number }[]; pending: number[]; total: number }
+  | { kind: 'choice'; roundIdx: number; stepIdx: number; options: Array<Record<string, unknown>>; pickedBy: UserId | null; stepLabel: string }
+  | { kind: 'showdown'; roundIdx: number; stepIdx: number; emoji: string; order: string; slot: string; stepLabel: string; rolls: { userId: UserId; value: number }[]; pending: UserId[]; total: number }
   | { kind: 'punish'; roundIdx: number; stepIdx: number; text: string; hitCount: number; stepLabel: string };
 
 export type View = {
@@ -25,12 +25,12 @@ export type View = {
   loopProgress: { current: number; total: number | null } | null;
   phase: ViewPhase;
   players: Array<{ userId: UserId; label: string; isViewer: boolean }>;
-  activeActorId: number | null;
+  activeActorId: UserId | null;
   showActor: boolean;
   lastResult: unknown;
   lastDice: unknown;
   lastMessage: string | null;
-  viewer: { id: number; isAdmin: boolean };
+  viewer: { id: UserId; isAdmin: boolean };
 };
 
 /** 由局面 + 规则 + 玩家（+ 观察者）构造视图。与 bot 的 snapshot 形状一致。 */
@@ -38,7 +38,7 @@ export function buildView(
   game: Game,
   definition: RuleDefinition | undefined,
   players: GamePlayer[],
-  viewerId: number,
+  viewerId: UserId,
   isAdminViewer: boolean
 ): View {
   const rule = definition ?? null;

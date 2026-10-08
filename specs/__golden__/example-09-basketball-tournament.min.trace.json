@@ -3,7 +3,7 @@
     "n": 0,
     "intent": {
       "type": "roll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -16,21 +16,21 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 1,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -39,10 +39,10 @@
       "roundIdx": 0,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2001,
+    "expectedPlayerId": "2001",
     "emoji": "🏀",
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -51,14 +51,14 @@
       "0": 1
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 2,
     "intent": {
       "type": "roll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -71,7 +71,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -80,14 +80,14 @@
       "0": 1
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 3,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -96,10 +96,10 @@
       "roundIdx": 0,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2001,
+    "expectedPlayerId": "2001",
     "emoji": "🏀",
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -108,14 +108,14 @@
       "0": 2
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 4,
     "intent": {
       "type": "roll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -128,7 +128,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -137,14 +137,14 @@
       "0": 2
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 5,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -153,10 +153,10 @@
       "roundIdx": 0,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2001,
+    "expectedPlayerId": "2001",
     "emoji": "🏀",
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -165,14 +165,14 @@
       "0": 3
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 6,
     "intent": {
       "type": "roll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -185,7 +185,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -194,14 +194,14 @@
       "0": 3
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 7,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -210,10 +210,10 @@
       "roundIdx": 0,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2001,
+    "expectedPlayerId": "2001",
     "emoji": "🏀",
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -222,14 +222,14 @@
       "0": 4
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 8,
     "intent": {
       "type": "roll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -242,7 +242,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -251,14 +251,14 @@
       "0": 4
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 9,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -267,10 +267,10 @@
       "roundIdx": 0,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2001,
+    "expectedPlayerId": "2001",
     "emoji": "🏀",
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -279,14 +279,14 @@
       "0": 5
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 10,
     "intent": {
       "type": "roll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -299,7 +299,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -308,14 +308,14 @@
       "0": 5
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 11,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -324,10 +324,10 @@
       "roundIdx": 0,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2001,
+    "expectedPlayerId": "2001",
     "emoji": "🏀",
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -336,14 +336,14 @@
       "0": 6
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 12,
     "intent": {
       "type": "roll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -356,7 +356,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -365,14 +365,14 @@
       "0": 6
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 13,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "roll",
@@ -381,10 +381,10 @@
       "roundIdx": 0,
       "stepIdx": 0
     },
-    "expectedPlayerId": 2001,
+    "expectedPlayerId": "2001",
     "emoji": "🏀",
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -393,14 +393,14 @@
       "0": 7
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 14,
     "intent": {
       "type": "roll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -413,7 +413,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -422,14 +422,14 @@
       "0": 7
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   },
   {
     "n": 15,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "signup",
@@ -439,7 +439,7 @@
       "stepIdx": 1
     },
     "lastDice": {
-      "userId": 2001,
+      "userId": "2001",
       "value": 1,
       "emoji": "🏀"
     },
@@ -448,7 +448,7 @@
       "0": 8
     },
     "playerIds": [
-      2001
+      "2001"
     ]
   }
 ]

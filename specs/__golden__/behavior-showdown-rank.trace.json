@@ -15,16 +15,16 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      9002,
-      9001,
-      9003
+      "9002",
+      "9001",
+      "9003"
     ]
   },
   {
     "n": 1,
     "intent": {
       "type": "showdownRoll",
-      "userId": 9002,
+      "userId": "9002",
       "value": 4
     },
     "ok": true,
@@ -39,16 +39,16 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      9002,
-      9001,
-      9003
+      "9002",
+      "9001",
+      "9003"
     ]
   },
   {
     "n": 2,
     "intent": {
       "type": "showdownRoll",
-      "userId": 9001,
+      "userId": "9001",
       "value": 4
     },
     "ok": true,
@@ -63,16 +63,16 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      9002,
-      9001,
-      9003
+      "9002",
+      "9001",
+      "9003"
     ]
   },
   {
     "n": 3,
     "intent": {
       "type": "showdownRoll",
-      "userId": 9003,
+      "userId": "9003",
       "value": 1
     },
     "ok": true,
@@ -83,22 +83,22 @@
       "roundIdx": 0,
       "stepIdx": 1
     },
-    "expectedPlayerId": 9001,
+    "expectedPlayerId": "9001",
     "emoji": "🎲",
     "lastDice": null,
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      9002,
-      9001,
-      9003
+      "9002",
+      "9001",
+      "9003"
     ]
   },
   {
     "n": 4,
     "intent": {
       "type": "roll",
-      "userId": 9003,
+      "userId": "9003",
       "value": 3,
       "emoji": "🎲"
     },
@@ -110,22 +110,22 @@
       "roundIdx": 0,
       "stepIdx": 1
     },
-    "expectedPlayerId": 9001,
+    "expectedPlayerId": "9001",
     "emoji": "🎲",
     "lastDice": null,
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      9002,
-      9001,
-      9003
+      "9002",
+      "9001",
+      "9003"
     ]
   },
   {
     "n": 5,
     "intent": {
       "type": "roll",
-      "userId": 9001,
+      "userId": "9001",
       "value": 3,
       "emoji": "🎲"
     },
@@ -138,16 +138,16 @@
       "stepIdx": 2
     },
     "lastDice": {
-      "userId": 9001,
+      "userId": "9001",
       "value": 3,
       "emoji": "🎲"
     },
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      9002,
-      9001,
-      9003
+      "9002",
+      "9001",
+      "9003"
     ]
   }
 ]

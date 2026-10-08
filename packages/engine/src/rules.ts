@@ -26,7 +26,7 @@ export function initialState(): GameState {
   return { phase: { kind: 'signup' }, stepHitCounts: {}, loopCounters: {} };
 }
 
-export function nextRollerId(players: GamePlayer[], after: number | null): number | null {
+export function nextRollerId(players: GamePlayer[], after: UserId | null): UserId | null {
   if (!players.length) return null;
   if (players.length === 1) return players[0].userId;
   const startIdx = after === null
@@ -75,7 +75,7 @@ export function resolveActorPick(
   players: GamePlayer[],
   pick: 'winner' | 'loser',
   slot?: string
-): number | null {
+): UserId | null {
   const key = slot ?? game.state.lastResultSlot ?? 'last';
   const res = game.state.results?.[key];
   if (!res) return null;
@@ -173,7 +173,7 @@ function stepTo(game: Game, definition: RuleDefinition, roundIdx: number, stepId
   const players = playersOf(game);
 
   if (step.type === 'roll') {
-    let expectedPlayerId: number | null = null;
+    let expectedPlayerId: UserId | null = null;
     if (step.assignment === 'next_player') {
       expectedPlayerId = nextRollerId(players, game.state.lastRollerId ?? null);
     } else if (step.assignment === 'self') {
@@ -187,7 +187,7 @@ function stepTo(game: Game, definition: RuleDefinition, roundIdx: number, stepId
   } else if (step.type === 'text') {
     game.state.phase = { kind: 'text', stepIdx, roundIdx, text: step.prompt ?? step.label };
   } else if (step.type === 'choice') {
-    let pickedBy: number | null;
+    let pickedBy: UserId | null;
     if (step.chooser === 'any') {
       pickedBy = null;
     } else if (step.chooser === 'winner' || step.chooser === 'loser') {
@@ -339,11 +339,11 @@ export function settleShowdown(game: Game, definition: RuleDefinition, players: 
       const fb = firstAt[String(b.userId)] ?? Number.MAX_SAFE_INTEGER;
       if (fa !== fb) return fa - fb;
     }
-    return a.userId - b.userId;
+    return a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0;
   });
 
-  let winners: number[] = [];
-  let losers: number[] = [];
+  let winners: UserId[] = [];
+  let losers: UserId[] = [];
   if (step.order !== 'none' && sorted.length) {
     if (step.tie === 'first') {
       winners = [sorted[0].userId];

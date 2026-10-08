@@ -4,8 +4,8 @@ import { ruleDefinition, type RuleDefinition, type GameRecord, type GamePlayer }
 import { applyRoll, applyNext, beginGame, drawBucket, formatTemplate } from '../src/rules.js';
 
 const PLAYERS: GamePlayer[] = [
-  { userId: 1, joinedAt: 0 },
-  { userId: 2, joinedAt: 0 }
+  { userId: '1', joinedAt: 0 },
+  { userId: '2', joinedAt: 0 }
 ];
 
 function newGame(def: RuleDefinition, ps: GamePlayer[] = PLAYERS): GameRecord {
@@ -63,7 +63,7 @@ test('drawBucket: works with smaller dice source', () => {
 test('roll.draw jumps to the bucket target, stores number, {draw} renders', () => {
   const def = drawDef(16, 'exact'); // w=4
   const g = newGame(def);
-  const r = applyRoll(g, def, 1, 4, PLAYERS, '🎰'); // bucket 1 -> step 1
+  const r = applyRoll(g, def, '1', 4, PLAYERS, '🎰'); // bucket 1 -> step 1
   assert.equal(g.state.phase.kind, 'text');
   assert.equal(g.state.phase.kind === 'text' && g.state.phase.stepIdx, 1);
   assert.equal(g.state.lastDraw, 1);
@@ -71,7 +71,7 @@ test('roll.draw jumps to the bucket target, stores number, {draw} renders', () =
   assert.match(r.message, /第 <b>1<\/b> 号/);
 
   const g2 = newGame(def);
-  applyRoll(g2, def, 1, 64, PLAYERS, '🎰'); // bucket 16 -> step 2
+  applyRoll(g2, def, '1', 64, PLAYERS, '🎰'); // bucket 16 -> step 2
   assert.equal(g2.state.phase.kind === 'text' && g2.state.phase.stepIdx, 2);
   assert.equal(g2.state.lastDraw, 16);
   assert.equal(formatTemplate('{draw} / {draw.box}', g2, 'plain'), '16 / 16');
@@ -80,7 +80,7 @@ test('roll.draw jumps to the bucket target, stores number, {draw} renders', () =
 test('roll.draw exact rejects out-of-range roll without advancing', () => {
   const def = drawDef(10, 'exact'); // M=60
   const g = newGame(def);
-  const r = applyRoll(g, def, 1, 61, PLAYERS, '🎰');
+  const r = applyRoll(g, def, '1', 61, PLAYERS, '🎰');
   assert.match(r.message, /再抽一次/);
   assert.equal(g.state.phase.kind, 'roll');
   assert.equal(g.state.lastDraw, undefined);
@@ -102,7 +102,7 @@ test('roll.draw count cannot exceed the dice range', () => {
     ] }]
   });
   const g = newGame(def);
-  assert.throws(() => applyRoll(g, def, 1, 3, PLAYERS, '🎲'), /超过/);
+  assert.throws(() => applyRoll(g, def, '1', 3, PLAYERS, '🎲'), /超过/);
 });
 
 test('goto "end" ends the round (and terminates a bounded loop)', () => {
@@ -130,7 +130,7 @@ test('choice option goto "end" ends the round', () => {
   });
   const g = newGame(def);
   // 直接调用 applyNext（管理员强制选第一个 -> end）
-  applyNext(g, def, 1);
+  applyNext(g, def, '1');
   assert.equal(g.status, 'ended');
 });
 
@@ -143,7 +143,7 @@ test('text.next "end" ends the round via applyNext', () => {
     ] }]
   });
   const g = newGame(def);
-  applyNext(g, def, 1);
+  applyNext(g, def, '1');
   assert.equal(g.status, 'ended');
 });
 

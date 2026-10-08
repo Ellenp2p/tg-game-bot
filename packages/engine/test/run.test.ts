@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ruleDefinition, run, beginGame, type RuleDefinition, type GameRecord, type GamePlayer } from '../src/index.js';
 
-const P: GamePlayer[] = [{ userId: 9001, joinedAt: 0 }, { userId: 9002, joinedAt: 0 }];
+const P: GamePlayer[] = [{ userId: '9001', joinedAt: 0 }, { userId: '9002', joinedAt: 0 }];
 
 function newGame(): GameRecord {
   const g: GameRecord = {
-    gameId: 'g', chatId: 0, ruleId: 'r', starterId: 9001, status: 'signup',
+    gameId: 'g', chatId: 0, ruleId: 'r', starterId: '9001', status: 'signup',
     state: { phase: { kind: 'signup' }, stepHitCounts: {}, loopCounters: {} },
     roundIdx: 0, stepIdx: 0, createdAt: 0, endedAt: null, signupMsgId: null
   };
@@ -51,7 +51,7 @@ const rerollDef: RuleDefinition = ruleDefinition.parse({
 
 test('run: begin emits gameStarted + phaseEntered', () => {
   const g = newGame();
-  const r = run(g, rollDef, P, { type: 'begin', userId: 9001 });
+  const r = run(g, rollDef, P, { type: 'begin', userId: '9001' });
   assert.equal(r.ok, true);
   if (!r.ok) return;
   assert.deepEqual(r.events.map(e => e.type), ['gameStarted', 'phaseEntered']);
@@ -61,7 +61,7 @@ test('run: begin emits gameStarted + phaseEntered', () => {
 test('run: wrong turn → typed error NOT_YOUR_TURN', () => {
   const g = newGame();
   beginGame(g, rollDef);
-  const r = run(g, rollDef, P, { type: 'roll', userId: 9002, value: 3, emoji: '🎲' });
+  const r = run(g, rollDef, P, { type: 'roll', userId: '9002', value: 3, emoji: '🎲' });
   assert.equal(r.ok, false);
   if (r.ok) return;
   assert.equal(r.code, 'NOT_YOUR_TURN');
@@ -70,7 +70,7 @@ test('run: wrong turn → typed error NOT_YOUR_TURN', () => {
 test('run: roll emits rollResolved', () => {
   const g = newGame();
   beginGame(g, rollDef);
-  const r = run(g, rollDef, P, { type: 'roll', userId: 9001, value: 3, emoji: '🎲' });
+  const r = run(g, rollDef, P, { type: 'roll', userId: '9001', value: 3, emoji: '🎲' });
   assert.equal(r.ok, true);
   if (!r.ok) return;
   assert.ok(r.events.some(e => e.type === 'rollResolved'));
@@ -80,7 +80,7 @@ test('run: roll emits rollResolved', () => {
 test('run: roll.draw emits drawResolved with the bucket', () => {
   const g = newGame();
   beginGame(g, drawDef);
-  const r = run(g, drawDef, P, { type: 'roll', userId: 9001, value: 64, emoji: '🎰' });
+  const r = run(g, drawDef, P, { type: 'roll', userId: '9001', value: 64, emoji: '🎰' });
   assert.equal(r.ok, true);
   if (!r.ok) return;
   const draw = r.events.find(e => e.type === 'drawResolved');
@@ -92,8 +92,8 @@ test('run: roll.draw emits drawResolved with the bucket', () => {
 test('run: showdown settle / reroll events', () => {
   const g = newGame();
   beginGame(g, rerollDef);
-  run(g, rerollDef, P, { type: 'showdownRoll', userId: 9001, value: 4, emoji: '🎲' });
-  const r = run(g, rerollDef, P, { type: 'showdownRoll', userId: 9002, value: 4, emoji: '🎲' });
+  run(g, rerollDef, P, { type: 'showdownRoll', userId: '9001', value: 4, emoji: '🎲' });
+  const r = run(g, rerollDef, P, { type: 'showdownRoll', userId: '9002', value: 4, emoji: '🎲' });
   assert.equal(r.ok, true);
   if (!r.ok) return;
   assert.ok(r.events.some(e => e.type === 'showdownRerolled'));
@@ -103,9 +103,9 @@ test('run: showdown settle / reroll events', () => {
 test('run: deterministic —— 相同意图序列 → 相同状态（去掉时间戳）', () => {
   const plays = (): GameRecord => {
     const g = newGame();
-    run(g, rollDef, P, { type: 'begin', userId: 9001 });
-    run(g, rollDef, P, { type: 'roll', userId: 9001, value: 4, emoji: '🎲' });
-    run(g, rollDef, P, { type: 'next', userId: 9001 });
+    run(g, rollDef, P, { type: 'begin', userId: '9001' });
+    run(g, rollDef, P, { type: 'roll', userId: '9001', value: 4, emoji: '🎲' });
+    run(g, rollDef, P, { type: 'next', userId: '9001' });
     return g;
   };
   const a = plays(); const b = plays();

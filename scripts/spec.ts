@@ -13,7 +13,7 @@ import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync } from 
 import { join, basename } from 'node:path';
 import {
   ruleDefinition, DICE_EMOJI_MAX_VALUE, run, beginGame,
-  type RuleDefinition, type DiceEmoji, type GameRecord, type GamePlayer, type Intent as EngineIntent
+  type RuleDefinition, type DiceEmoji, type GameRecord, type GamePlayer, type Intent as EngineIntent, type UserId
 } from '../packages/engine/src/index.js';
 
 const ROOT = process.cwd();
@@ -21,20 +21,20 @@ const SPECS_DIR = join(ROOT, 'specs');
 const GOLDEN_DIR = join(SPECS_DIR, '__golden__');
 
 type Intent =
-  | { type: 'join'; userId: number }
-  | { type: 'leave'; userId: number }
-  | { type: 'begin'; userId?: number }
-  | { type: 'roll'; userId: number; value: number; emoji?: DiceEmoji }
-  | { type: 'showdownRoll'; userId: number; value: number; emoji?: DiceEmoji }
-  | { type: 'choice'; userId: number; optionIdx: number }
-  | { type: 'next'; userId?: number }
-  | { type: 'skip'; userId?: number };
+  | { type: 'join'; userId: UserId }
+  | { type: 'leave'; userId: UserId }
+  | { type: 'begin'; userId?: UserId }
+  | { type: 'roll'; userId: UserId; value: number; emoji?: DiceEmoji }
+  | { type: 'showdownRoll'; userId: UserId; value: number; emoji?: DiceEmoji }
+  | { type: 'choice'; userId: UserId; optionIdx: number }
+  | { type: 'next'; userId?: UserId }
+  | { type: 'skip'; userId?: UserId };
 
 type Expect = {
   ok?: boolean;
   error?: string;
   phase?: string;
-  expectedPlayerId?: number | null;
+  expectedPlayerId?: UserId | null;
   roundIdx?: number;
   stepIdx?: number;
   messageContains?: string;
@@ -46,14 +46,14 @@ type PlaythroughSpec = {
   kind: 'playthrough';
   name: string;
   rule: string | object;
-  players: number[];
+  players: UserId[];
   policy: { value: 'min' | 'max'; choice: number; maxOps: number };
 };
 type ScriptedSpec = {
   kind: 'scripted';
   name: string;
   rule: string | object;
-  players: number[];
+  players: UserId[];
   steps: Array<{ do: Intent; expect?: Expect }>;
 };
 type Spec = PlaythroughSpec | ScriptedSpec;
@@ -66,20 +66,20 @@ type TraceEntry = {
   phase: string;
   status: string;
   cursor: { roundIdx: number; stepIdx: number };
-  expectedPlayerId?: number | null;
+  expectedPlayerId?: UserId | null;
   emoji?: string;
-  lastDice?: { userId: number; value: number; emoji: string } | null;
+  lastDice?: { userId: UserId; value: number; emoji: string } | null;
   lastDraw?: number | null;
   loops?: Record<string, number>;
-  playerIds?: number[];
+  playerIds?: UserId[];
   message?: string;
 };
 
 // ---------- 构建游戏 ----------
-function buildGame(def: RuleDefinition, playerIds: number[]): { game: GameRecord; players: GamePlayer[] } {
+function buildGame(def: RuleDefinition, playerIds: UserId[]): { game: GameRecord; players: GamePlayer[] } {
   const players: GamePlayer[] = playerIds.map((id, i) => ({ userId: id, joinedAt: i }));
   const game: GameRecord = {
-    gameId: 'spec', chatId: 0, ruleId: 'spec', starterId: players[0]?.userId ?? 0, status: 'signup',
+    gameId: 'spec', chatId: 0, ruleId: 'spec', starterId: players[0]?.userId ?? '', status: 'signup',
     state: { phase: { kind: 'signup' }, stepHitCounts: {}, loopCounters: {} },
     roundIdx: 0, stepIdx: 0, createdAt: 0, endedAt: null, signupMsgId: null
   };
@@ -99,7 +99,7 @@ function resolveRule(rule: string | object): RuleDefinition {
 type ApplyOut = { ok: boolean; message?: string; error?: string; settled?: boolean; rerolled?: boolean };
 function applyIntent(game: GameRecord, def: RuleDefinition, players: GamePlayer[], it: Intent): ApplyOut {
   const roster = game.players ?? players;
-  const userId = it.userId ?? roster[0]?.userId ?? 0;
+  const userId = it.userId ?? roster[0]?.userId ?? '';
   const r = run(game, def, roster, { ...it, userId } as EngineIntent);
   if (!r.ok) return { ok: false, error: r.text };
   const rerolled = r.events.some(e => e.type === 'showdownRerolled');

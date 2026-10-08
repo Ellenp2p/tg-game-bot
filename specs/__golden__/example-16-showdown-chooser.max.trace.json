@@ -3,7 +3,7 @@
     "n": 0,
     "intent": {
       "type": "showdownRoll",
-      "userId": 2001,
+      "userId": "2001",
       "value": 6,
       "emoji": "🎲"
     },
@@ -19,15 +19,15 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 1,
     "intent": {
       "type": "showdownRoll",
-      "userId": 2002,
+      "userId": "2002",
       "value": 6,
       "emoji": "🎲"
     },
@@ -43,15 +43,15 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 2,
     "intent": {
       "type": "choice",
-      "userId": 2001,
+      "userId": "2001",
       "optionIdx": 0
     },
     "ok": true,
@@ -66,15 +66,15 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   },
   {
     "n": 3,
     "intent": {
       "type": "next",
-      "userId": 2001
+      "userId": "2001"
     },
     "ok": true,
     "phase": "signup",
@@ -87,8 +87,8 @@
     "lastDraw": null,
     "loops": {},
     "playerIds": [
-      2001,
-      2002
+      "2001",
+      "2002"
     ]
   }
 ]

@@ -5,11 +5,11 @@ import {
   type RuleDefinition, type GameRecord, type GamePlayer, type Intent
 } from '../src/index.js';
 
-const P: GamePlayer[] = [{ userId: 9001, joinedAt: 0 }, { userId: 9002, joinedAt: 0 }];
+const P: GamePlayer[] = [{ userId: '9001', joinedAt: 0 }, { userId: '9002', joinedAt: 0 }];
 
 function makeInitial(): GameRecord {
   const g: GameRecord = {
-    gameId: 'g', chatId: 0, ruleId: 'r', starterId: 9001, status: 'signup',
+    gameId: 'g', chatId: 0, ruleId: 'r', starterId: '9001', status: 'signup',
     state: { phase: { kind: 'signup' }, stepHitCounts: {}, loopCounters: {} },
     roundIdx: 0, stepIdx: 0, createdAt: 0, endedAt: null, signupMsgId: null
   };
@@ -36,11 +36,11 @@ const def: RuleDefinition = ruleDefinition.parse({
 });
 
 const intents: Intent[] = [
-  { type: 'begin', userId: 9001 },
-  { type: 'roll', userId: 9001, value: 4, emoji: '🎲' },
-  { type: 'next', userId: 9001 },
-  { type: 'roll', userId: 9002, value: 2, emoji: '🎲' },
-  { type: 'next', userId: 9001 }
+  { type: 'begin', userId: '9001' },
+  { type: 'roll', userId: '9001', value: 4, emoji: '🎲' },
+  { type: 'next', userId: '9001' },
+  { type: 'roll', userId: '9002', value: 2, emoji: '🎲' },
+  { type: 'next', userId: '9001' }
 ];
 
 test('replay: 重放意图序列得到与直接运行一致的局面', () => {
@@ -59,8 +59,8 @@ test('replay: 重放意图序列得到与直接运行一致的局面', () => {
 
 test('replay: 非法意图被记录进 errors，不改变局面', () => {
   const bad: Intent[] = [
-    { type: 'begin', userId: 9001 },
-    { type: 'roll', userId: 9002, value: 4, emoji: '🎲' } // 不是他的回合
+    { type: 'begin', userId: '9001' },
+    { type: 'roll', userId: '9002', value: 4, emoji: '🎲' } // 不是他的回合
   ];
   const { game, errors } = replay(makeInitial, def, P, bad);
   assert.equal(errors.length, 1);
