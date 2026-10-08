@@ -12,9 +12,8 @@
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import {
-  ruleDefinition, DICE_EMOJI_MAX_VALUE,
-  type RuleDefinition, type DiceEmoji, type GameRecord, type GamePlayer,
-  beginGame, applyRoll, applyShowdownRoll, applyNext, applySkip, applyChoice
+  ruleDefinition, DICE_EMOJI_MAX_VALUE, run, beginGame,
+  type RuleDefinition, type DiceEmoji, type GameRecord, type GamePlayer, type Intent as EngineIntent
 } from '../packages/engine/src/index.js';
 
 const ROOT = process.cwd();
@@ -93,38 +92,15 @@ function resolveRule(rule: string | object): RuleDefinition {
   return ruleDefinition.parse(rule);
 }
 
-// ---------- intent → 现有引擎（S0 薄桥；S2 之后由 engine.run 取代） ----------
+// ---------- intent → 引擎唯一入口 run() ----------
 type ApplyOut = { ok: boolean; message?: string; error?: string; settled?: boolean; rerolled?: boolean };
 function applyIntent(game: GameRecord, def: RuleDefinition, players: GamePlayer[], it: Intent): ApplyOut {
-  try {
-    switch (it.type) {
-      case 'begin':
-        beginGame(game, def);
-        return { ok: true };
-      case 'roll': {
-        const r = applyRoll(game, def, it.userId, it.value, players, it.emoji);
-        return { ok: true, message: r.message };
-      }
-      case 'showdownRoll': {
-        const r = applyShowdownRoll(game, def, it.userId, it.value, players, it.emoji);
-        return { ok: true, message: r.message, settled: r.settled, rerolled: r.rerolled };
-      }
-      case 'choice': {
-        const r = applyChoice(game, def, it.userId, it.optionIdx);
-        return { ok: true, message: r.message };
-      }
-      case 'next':
-        applyNext(game, def, it.userId ?? players[0].userId, players);
-        return { ok: true };
-      case 'skip':
-        applySkip(game, def);
-        return { ok: true };
-      default:
-        return { ok: false, error: `unsupported intent ${(it as Intent).type}` };
-    }
-  } catch (e) {
-    return { ok: false, error: (e as Error).message };
-  }
+  const userId = it.userId ?? players[0].userId;
+  const r = run(game, def, players, { ...it, userId } as EngineIntent);
+  if (!r.ok) return { ok: false, error: r.text };
+  const rerolled = r.events.some(e => e.type === 'showdownRerolled');
+  const settled = r.events.some(e => e.type === 'showdownSettled' || e.type === 'showdownRerolled');
+  return { ok: true, message: r.message, settled, rerolled };
 }
 
 // ---------- 归一化快照（不含时间戳，保证 golden 稳定） ----------

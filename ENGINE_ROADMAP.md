@@ -129,7 +129,8 @@ type EngineCtx = { definition:RuleDefinition; now:()=>number; rng?:()=>number };
 
 - [x] S0 spec runner + golden（39 spec 全绿，`specs/__golden__` 入库）
 - [x] S1 monorepo + engine 抽取（`packages/engine` 纯包 / `packages/bot` 适配器；测试归位：engine 86 + bot 43）
-- [ ] S2 run() 唯一入口
+- [x] S2 引擎 `run(game, intent, players)` 唯一入口（`machine.ts`；typed 错误 + 语义事件；spec 运行器已改走它；引擎测试 92）
+      —— bot 的 handler 收口到 `run` 与后续事件/视图一起做（避免多套路径并存），并入 S3/S4
 - [ ] S3 事件化
 - [ ] S4 View 抽取
 - [ ] S5 传输态外移
