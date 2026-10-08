@@ -9,7 +9,7 @@ Telegram 群内由管理员开对局 → 玩家掷色子 / 答题 / 受罚 → �
 - **群内对局**：每个群独立的对局；多人轮换、全员比大小、惩罚 ladder 自动升级、可循环轮、可设置特定 step
 - **声明式规则**：JSON 描述游戏流程，6 种 step 类型（`roll` / `text` / `punish` / `choice` / `showdown` / `branch`），18 个模板见 [`examples/`](examples/)
 - **多种 emoji**：🎲🎯🏀⚽🎰🎳（骰子 1-6、篮球足球 1-5、老虎机 1-64）
-- **实时视图**：Telegram Mini App（WebSocket 推送）— 玩家看到当前进度，管理员看到全员状态
+- **实时视图**：Telegram Mini App（WebSocket 推送）— 玩家看到当前进度、可直接在网页里掷骰；管理员看到全员状态
 - **管理面板**：Mini App 提供报名 / 推进 / 跳过 / 撤销 / 结束 / 切换步骤
 - **规则共享**：同一组织项目可绑定多个群，规则一份多群共享
 - **隐私优先**：SQLite 只存 `user_id` + 规则 JSON + 动作流事件，**不存任何聊天内容、用户名、群名、图片**
@@ -133,7 +133,7 @@ docker compose up -d --build
 ## 安全 / 边界
 
 - Mini App 只信任服务端验证过的 Telegram `initData`（HMAC-SHA256 校验）。1 小时后需重新打开登录。会话 30 分钟有效。
-- 原生骰子结果由 Telegram 产生；Bot API 不会通知服务端「动画已结束」，默认延时 4 秒再公布（可调 `DICE_ANIMATION_MS`）。
+- 原生骰子结果由 Telegram 产生（玩家在群里发色子，或 Mini App 点「🎲 我来掷」由 bot 调 `sendDice` 代掷）；Bot API 不会通知服务端「动画已结束」，默认延时 4 秒再公布（可调 `DICE_ANIMATION_MS`）。
 - WebSocket 连接先提交临时会话令牌，验证前不会收到游戏数据；令牌不放在 URL。生产必须 HTTPS/WSS。
 - 每个进程只跑一个实例（同一 Bot Token 多进程长轮询会冲突）。
 - 每群一个对局，不按论坛话题拆分。`/status` 消息对群成员可见；规则详情命令限管理员。

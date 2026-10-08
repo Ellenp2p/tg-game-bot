@@ -46,6 +46,8 @@ examples/          规则模板（18 条）
 - **群里**：每局一条**置顶入口卡**（复用报名消息）。报名时静默置顶（`disable_notification`）；`/begin` 后改成静态卡「🎲 <规则名> · 对局进行中」+ `📱 打开实时视图`（url button → `https://t.me/<bot>/<APP_SHORT_NAME>?startapp=game_<gameId>`，Telegram 自动按 Mini App 打开）；对局结束（含 `/startgame` 覆盖旧局）自动改「🏁 已结束」并**解除置顶**。管理员可用 `/play` 召唤/重置入口（卡片被删或被顶掉时）。
 - **私聊**：webApp button 用 `PUBLIC_URL/?game=<gameId>`，全屏内嵌；Menu Button 用 `setChatMenuButton` 配置 `PUBLIC_URL`，私聊左侧栏固定入口。
 - 前端 `app.js` 从 `?game=` 或 `tg.initDataUnsafe.start_param=game_<id>` 解析 gameId。
+- **网页掷骰**：Mini App 里轮到谁，点「🎲 我来掷」→ `POST /api/games/:id/roll` → bot 用 `sendDice` 在群里代掷（Telegram 原生随机、群内可见动画），走与群内色子相同的 `pending` / `DICE_ANIMATION_MS` 揭晓流程；「去群里掷」保留为手动退路。
+- **管理员网页操作**：Mini App「管理员视角」开关提供 开始 / 推进 / 跳过 / 撤销 / 结束 / 选项（`POST /api/games/:id/<action>`，服务端按 Telegram 群管理员实时校验）。
 - **群里 inline 不能用 webApp button**（会 `BUTTON_TYPE_INVALID`），只能用 url + t.me deeplink。
 
 ### 命令清单
