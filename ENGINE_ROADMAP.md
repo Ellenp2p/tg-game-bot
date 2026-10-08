@@ -135,6 +135,6 @@ type EngineCtx = { definition:RuleDefinition; now:()=>number; rng?:()=>number };
       - bot **全部**引擎调用收口到 `run()`（12 处，grep 无残留）；typed 错误透传
       - 引擎新增 `replay(makeInitial, def, players, intents)`（同序列必得同局 + 非法意图入 errors），+测试
       - 既有 `game_events` 事件日志保留（undo 依赖其 payload）；「事件落库 + undo 改走 replay」留待后续
-- [ ] S4 View 抽取
-- [ ] S5 传输态外移
-- [ ] S6 边界固化 + 部署
+- [x] S4 View 抽取：引擎 `view.ts` / `buildView()`（结构化、模板已解析为 plain）；bot 的 WS/Mini App `snapshot` 改为委托它（形状不变）；HTML/键盘仍由适配器渲染
+- [x] S5 传输态外移：`pendingRolls` / `showdownBoardMsgId` 移出引擎 `GameState` → bot `session.ts`（内存）；引擎状态彻底干净
+- [x] S6 边界固化：`packages/engine` 禁 import grammy/better-sqlite3/ws/node:http（import 守卫测试）；文档更新；部署

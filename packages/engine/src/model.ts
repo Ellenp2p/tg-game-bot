@@ -226,17 +226,7 @@ export type ShowdownResult = {
   min: number;
 };
 
-/** 尚未揭晓的骰子（按 userId 索引，支持多人并发） */
-export type PendingRoll = {
-  userId: number;
-  value: number;
-  chatId: number;
-  waitingMsgId: number;
-  emoji: DiceEmoji;
-  kind: 'roll' | 'showdown';
-  roundIdx: number;
-  stepIdx: number;
-};
+/** 尚未揭晓的骰子（按 userId 索引，支持多人并发）已在适配器侧（bot/session.ts）维护，不属于引擎语义状态。 */
 
 export type GamePhase =
   | { kind: 'signup' }
@@ -256,16 +246,12 @@ export type GameState = {
   lastRollerId?: number;
   lastDice?: { userId: number; value: number; at: number; emoji: DiceEmoji };
   lastMessage?: string;
-  /** 未揭晓的骰子，按 userId -> pending */
-  pendingRolls?: Record<string, PendingRoll>;
   /** 命名结果槽 */
   results?: Record<string, ShowdownResult>;
   /** 最近一次写入的结果槽名 */
   lastResultSlot?: string;
   /** 当前主角 */
   activeActorId?: number;
-  /** showdown 看板消息 id（编辑同一条，避免刷屏） */
-  showdownBoardMsgId?: number;
   /** roll.draw 命中的编号（命名槽） */
   draws?: Record<string, number>;
   /** 最近一次 roll.draw 命中的编号 */

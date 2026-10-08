@@ -6,13 +6,14 @@ import { join } from 'node:path';
 import { WebSocketServer, WebSocket } from 'ws';
 import { verifyInitData } from './auth.js';
 import { Db } from './db.js';
+import { session } from './session.js';
 import {
   ruleDefinition, type RuleDefinition, type RuleRecord, type GameRecord,
   type GamePlayer, type DiceEmoji, SUPPORTED_DICE_EMOJIS,
   type GamePhase, type GameStatus,
   advanceToStep, displayName, findStep, initialState, loopProgress, formatTemplate,
   decodeSlotValue, isJackpot, SLOT_SYMBOL_LABEL,
-  run, type Intent as EngineIntent, type RunResult
+  run, type Intent as EngineIntent, type RunResult, buildView
 } from '@tg-game/engine';
 
 const token = process.env.BOT_TOKEN;
@@ -57,48 +58,8 @@ async function requireGroupAdmin(ctx: Context): Promise<void> {
 }
 
 function snapshot(game: GameRecord, definition: RuleDefinition | undefined, players: GamePlayer[], viewerId: number, isAdminViewer: boolean) {
-  const rule = definition ?? null;
-  const phase = game.state.phase;
-  const step = rule && phase.kind !== 'signup' ? findStep(rule, phase.roundIdx, phase.stepIdx) : undefined;
-  const fmt = (t: string) => formatTemplate(t, game, 'plain');
-  const lastResult = game.state.lastResultSlot ? game.state.results?.[game.state.lastResultSlot] : undefined;
-  return {
-    gameId: game.gameId,
-    chatId: game.chatId,
-    ruleId: game.ruleId,
-    starterId: game.starterId,
-    status: game.status,
-    rule: rule ? { ruleId: rule ? rule.name : '', name: rule.name, rounds: rule.rounds } : null,
-    roundIdx: game.roundIdx,
-    stepIdx: game.stepIdx,
-    loopProgress: rule && phase.kind !== 'signup' ? loopProgress(rule, game.state.loopCounters, phase.roundIdx) : null,
-    phase: phase.kind === 'signup' ? { kind: 'signup' as const }
-      : phase.kind === 'roll' ? { kind: 'roll' as const, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx, expectedPlayerId: phase.expectedPlayerId, emoji: phase.emoji, stepLabel: step?.type === 'roll' ? fmt(step.label) : '' }
-      : phase.kind === 'text' ? { kind: 'text' as const, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx, text: fmt(phase.text), stepLabel: step?.type === 'text' ? fmt(step.label) : '' }
-      : phase.kind === 'choice' ? { kind: 'choice' as const, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx, options: phase.options.map(o => ({ ...o, text: fmt(o.text) })), pickedBy: phase.pickedBy, stepLabel: step?.type === 'choice' ? fmt(step.label) : '' }
-      : phase.kind === 'showdown' ? {
-          kind: 'showdown' as const, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx, emoji: phase.emoji,
-          order: phase.order, slot: phase.slot, stepLabel: step?.type === 'showdown' ? fmt(step.label) : '',
-          rolls: phase.rolls.map(r => ({ userId: r.userId, value: r.value })),
-          pending: players.filter(p => !phase.rolls.some(r => r.userId === p.userId)).map(p => p.userId),
-          total: players.length
-        }
-      : { kind: 'punish' as const, roundIdx: phase.roundIdx, stepIdx: phase.stepIdx, text: fmt(phase.text), hitCount: phase.hitCount, stepLabel: step?.type === 'punish' ? fmt(step.label) : '' },
-    players: players.map(p => ({
-      userId: p.userId,
-      label: displayName(p.userId),
-      isViewer: p.userId === viewerId
-    })),
-    activeActorId: game.state.activeActorId ?? null,
-    lastResult: lastResult
-      ? { slot: game.state.lastResultSlot!, order: lastResult.order, ranking: lastResult.ranking, winners: lastResult.winners, losers: lastResult.losers, sum: lastResult.sum, max: lastResult.max, min: lastResult.min }
-      : null,
-    lastDice: game.state.lastDice
-      ? { ...game.state.lastDice, decoded: game.state.lastDice.emoji === '🎰' ? decodeSlotValue(game.state.lastDice.value) : null }
-      : null,
-    lastMessage: game.state.lastMessage ?? null,
-    viewer: { id: viewerId, isAdmin: isAdminViewer }
-  };
+  // 视图构造已抽到引擎（packages/engine/src/view.ts），此处仅保留调用点
+  return buildView(game, definition, players, viewerId, isAdminViewer);
 }
 
 const wsByGame = new Map<string, Set<WebSocket>>();
@@ -206,20 +167,20 @@ async function sendStatus(chatId: number, gameId: string): Promise<void> {
   const text = renderStatus(game, rule?.definition, players);
   const kb = statusKeyboard(game, gameId, game.state.phase, game.status, players);
   const isShowdown = game.status !== 'ended' && game.state.phase.kind === 'showdown';
-  if (isShowdown && game.state.showdownBoardMsgId) {
+  const sess = session(gameId);
+  if (isShowdown && sess.boardMsgId) {
     try {
-      await bot.api.editMessageText(chatId, game.state.showdownBoardMsgId, text, { parse_mode: 'HTML', reply_markup: kb });
+      await bot.api.editMessageText(chatId, sess.boardMsgId, text, { parse_mode: 'HTML', reply_markup: kb });
       return;
     } catch (e) {
       console.warn('[board] edit failed:', (e as Error).message);
-      game.state.showdownBoardMsgId = undefined;
+      sess.boardMsgId = undefined;
     }
   }
-  if (!isShowdown && game.state.showdownBoardMsgId) {
+  if (!isShowdown && sess.boardMsgId) {
     // 离开 showdown：清掉旧看板按钮，避免误点
-    const boardId = game.state.showdownBoardMsgId;
-    game.state.showdownBoardMsgId = undefined;
-    db.updateGame(game);
+    const boardId = sess.boardMsgId;
+    sess.boardMsgId = undefined;
     bot.api.editMessageReplyMarkup(chatId, boardId, { reply_markup: { inline_keyboard: [] } })
       .catch(e => console.warn('[board] clear markup failed:', (e as Error).message));
   }
@@ -229,8 +190,7 @@ async function sendStatus(chatId: number, gameId: string): Promise<void> {
       reply_markup: kb
     });
     if (isShowdown) {
-      game.state.showdownBoardMsgId = sent.message_id;
-      db.updateGame(game);
+      sess.boardMsgId = sent.message_id;
     }
   } catch (e) {
     console.warn('[status] send failed:', (e as Error).message);
@@ -944,7 +904,7 @@ function performUndo(game: GameRecord, definition: RuleDefinition, actorId: numb
     case 'roll':
       game.state.lastDice = undefined;
       game.state.lastDraw = undefined;
-      game.state.pendingRolls = undefined;
+      session(game.gameId).pendingRolls = {};
       break;
     case 'showdown': {
       const p = last.payload as { roundIdx?: number; stepIdx?: number };
@@ -999,7 +959,8 @@ bot.on('message:dice', async ctx => {
   const userId = ctx.from.id;
   if (!players.some(p => p.userId === userId)) return;
 
-  const pendingRolls = game.state.pendingRolls ?? {};
+  const sess = session(game.gameId);
+  const pendingRolls = sess.pendingRolls;
   if (pendingRolls[String(userId)]) {
     await bot.api.sendMessage(chatIdOf(ctx), '⏳ 你的色子结果还没揭晓，请稍候。');
     return;
@@ -1021,7 +982,7 @@ bot.on('message:dice', async ctx => {
     waitingMsgId = waiting.message_id;
   }
 
-  game.state.pendingRolls = {
+  sess.pendingRolls = {
     ...pendingRolls,
     [String(userId)]: {
       userId,
@@ -1048,18 +1009,19 @@ function emojiLabel(emoji: DiceEmoji): string {
 async function resolvePendingRoll(gameId: string, expectedUserId: number, expectedValue: number, expectedEmoji: DiceEmoji): Promise<void> {
   const game = db.getGame(gameId);
   if (!game) return;
-  const pending = game.state.pendingRolls?.[String(expectedUserId)];
+  const sess = session(gameId);
+  const pending = sess.pendingRolls[String(expectedUserId)];
   if (!pending) return;
   if (pending.value !== expectedValue || pending.emoji !== expectedEmoji) return;
-  const rest = { ...(game.state.pendingRolls ?? {}) };
+  const rest = { ...sess.pendingRolls };
   delete rest[String(expectedUserId)];
-  game.state.pendingRolls = rest;
+  sess.pendingRolls = rest;
   const rule = db.getRule(game.ruleId);
   if (!rule) { push(game); return; }
   const players = db.listPlayers(gameId);
   const phase0 = game.state.phase;
   const matchesStep = (p: typeof phase0) => p.kind !== 'signup' && p.roundIdx === pending.roundIdx && p.stepIdx === pending.stepIdx;
-  const boardId = game.state.showdownBoardMsgId;
+  const boardId = sess.boardMsgId;
 
   if (pending.kind === 'showdown' && phase0.kind === 'showdown' && matchesStep(phase0)) {
     let resultMessage: string;
@@ -1093,8 +1055,7 @@ async function resolvePendingRoll(gameId: string, expectedUserId: number, expect
       }
       if (rerolled) {
         // 平局重掷：把并列提示留在旧看板，另发一条新看板
-        game.state.showdownBoardMsgId = undefined;
-        db.updateGame(game);
+        sess.boardMsgId = undefined;
       }
       if (game.status === 'ended') {
         await bot.api.sendMessage(pending.chatId, '🏁 对局已结束。');
