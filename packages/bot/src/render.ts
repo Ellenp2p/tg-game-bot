@@ -33,6 +33,11 @@ export function linkifyNames(text: string, ids: UserId[]): string {
   return out;
 }
 
+/** 置顶入口卡（静态两行）。第一行是置顶栏会显示的摘要，需自含信息。 */
+export function renderEntryCard(ruleName: string): string {
+  return `🎲 <b>${html(ruleName)}</b> · 对局进行中\n📱 点下方按钮打开实时视图`;
+}
+
 function roundNameOf(v: ReturnType<typeof buildView>): string {
   const rounds = (v.rule?.rounds as Array<{ name?: string }> | undefined) ?? [];
   return rounds[v.roundIdx]?.name ?? `第 ${v.roundIdx + 1} 轮`;

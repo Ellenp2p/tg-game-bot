@@ -8,7 +8,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { verifyInitData } from './auth.js';
 import { Db } from './db.js';
 import { session } from './session.js';
-import { html, mentionHtml, renderStatus, linkifyNames } from './render.js';
+import { html, mentionHtml, renderStatus, linkifyNames, renderEntryCard } from './render.js';
 import {
   ruleDefinition, type RuleDefinition, type RuleRecord, type GameRecord,
   type GamePlayer, type DiceEmoji, SUPPORTED_DICE_EMOJIS,
@@ -77,6 +77,36 @@ async function warmNames(chatId: number, ids: UserId[]): Promise<void> {
       cacheUser(id, m.user);
     } catch { /* 忽略：非成员/超时/无权限都回退默认名 */ }
   }));
+}
+
+/** 置顶入口卡的 t.me deeplink（Telegram 会直接按 Mini App 打开）；未配置 App 时 undefined */
+const entryCardLink = (gameId: string): string | undefined =>
+  appLink ? `${appLink}?startapp=game_${gameId}` : undefined;
+
+/** 置顶入口卡键盘：只有「📱 打开实时视图」一个 url 按钮（群内不能用 web_app 按钮） */
+function entryKeyboard(game: GameRecord): InlineKeyboard | undefined {
+  const link = entryCardLink(game.gameId);
+  return link ? new InlineKeyboard().url('📱 打开实时视图', link) : undefined;
+}
+
+/** 静默置顶入口卡；失败降级（每进程每组只提示一次），不影响对局 */
+const pinHintShown = new Set<number>();
+async function pinEntryCard(chatId: number, messageId: number): Promise<boolean> {
+  if (!appLink) return false;
+  try {
+    await bot.api.pinChatMessage(chatId, messageId, { disable_notification: true });
+    pinHintShown.delete(chatId);
+    return true;
+  } catch (e) {
+    console.warn('[pin]', (e as Error).message);
+    if (!pinHintShown.has(chatId)) {
+      pinHintShown.add(chatId);
+      await bot.api.sendMessage(chatId,
+        '⚠️ 置顶失败：请确认机器人有「置顶消息」权限（群设置 → 管理员），修好后管理员发 /play 重试。')
+        .catch(() => {});
+    }
+    return false;
+  }
 }
 
 // 每条 update 都记下发送者名字（内存），供引擎渲染使用
@@ -191,9 +221,32 @@ async function refreshSignupMessage(game: GameRecord): Promise<void> {
   } catch (e) { console.warn('[signup] edit failed:', (e as Error).message); }
 }
 
+/** 开局后：把报名消息就地改成静态置顶入口卡（之后直到结束不再更新） */
+async function convertPinnedToEntry(game: GameRecord): Promise<void> {
+  if (!appLink || !game.signupMsgId) return;
+  const rule = db.getRule(game.ruleId);
+  try {
+    await bot.api.editMessageText(game.chatId, game.signupMsgId,
+      renderEntryCard(rule?.name ?? game.ruleId),
+      { parse_mode: 'HTML', reply_markup: entryKeyboard(game) });
+  } catch (e) { console.warn('[entry] convert failed:', (e as Error).message); }
+}
+
+/** 对局结束：卡片改「已结束」+ 解除置顶 + 清卡片 id（幂等；所有结束路径都经 push 收口） */
+async function finalizeEndedGame(game: GameRecord): Promise<void> {
+  const msgId = game.signupMsgId;
+  if (!msgId) return;
+  game.signupMsgId = null;
+  db.updateGame(game);
+  await bot.api.editMessageText(game.chatId, msgId, '🏁 本局已结束', { parse_mode: 'HTML' })
+    .catch(() => {});
+  await bot.api.unpinChatMessage(game.chatId, msgId, {}).catch(() => {});
+}
+
 function push(game: GameRecord): void {
   db.updateGame(game);
   broadcast(game.gameId);
+  if (game.status === 'ended') void finalizeEndedGame(game);
 }
 
 function statusKeyboard(game: GameRecord, gameId: string, phase: GamePhase, status: GameStatus, players: GamePlayer[]): InlineKeyboard | undefined {
@@ -275,8 +328,6 @@ async function notifyGroup(game: GameRecord, action: string, actorId: UserId): P
   if (action === 'begin' || action === 'next' || action === 'skip' || action === 'choice' || action === 'undo') {
     await sendStatus(game.chatId, game.gameId);
   } else if (action === 'end') {
-    game.signupMsgId = null;
-    db.updateGame(game);
     await bot.api.sendMessage(game.chatId, '🏁 对局已结束。');
   }
 }
@@ -311,7 +362,7 @@ const commandsZh = [
   { command: 'undo', description: '撤销（管理员）' },
   { command: 'endgame', description: '结束游戏（管理员）' },
   { command: 'status', description: '查看当前对局状态' },
-  { command: 'play', description: '群里发，私聊收 Mini App 内嵌按钮' }
+  { command: 'play', description: '召唤/重置置顶入口（管理员）' }
 ];
 
 (async () => {
@@ -653,6 +704,7 @@ bot.callbackQuery(/^pick:([0-9a-f]{8})$/, async ctx => {
   game.signupMsgId = sent.message_id;
   db.updateGame(game);
   broadcast(game.gameId);
+  await pinEntryCard(chatIdOf(ctx), sent.message_id);
 });
 
 bot.command('joingame', async ctx => {
@@ -695,6 +747,7 @@ bot.command('begin', async ctx => {
   runOk(game, rule.definition, players, { type: 'begin', userId: userIdOf(ctx) });
   db.recordEvent(game.gameId, userIdOf(ctx), 'begin', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   push(game);
+  await convertPinnedToEntry(game);
   await sendStatus(chatIdOf(ctx), game.gameId);
 });
 
@@ -743,19 +796,41 @@ bot.command('endgame', async ctx => {
 });
 
 bot.command('play', async ctx => {
-  if (!isGroup(ctx) || !ctx.from) return;
+  if (!isGroup(ctx)) { await ctx.reply('📌 /play 请在群里使用——它负责召唤/重置本群的置顶入口。'); return; }
+  await requireGroupAdmin(ctx);
   const game = db.getActiveGameByChat(chatIdOf(ctx));
-  if (!game) throw Error('本群没有进行中的对局');
-  if (!publicUrl) throw Error('未配置 PUBLIC_URL');
-  const url = `${publicUrl}/?game=${game.gameId}`;
-  try {
-    await bot.api.sendMessage(ctx.from.id,
-      `点击下方按钮在 Telegram 内嵌 Mini App 中查看本群当前对局：\n${url}`,
-      { reply_markup: new InlineKeyboard().webApp('🎮 打开实时视图', url) });
-    await ctx.reply('已私聊发给你打开按钮（电脑 Telegram Desktop 也可用）。');
-  } catch (e) {
-    await ctx.reply('请先私聊过我一次（/start）我才能发私聊消息。');
+  if (!game) { await ctx.reply('本群没有进行中的对局，管理员可 /startgame 开新局。'); return; }
+  if (!appLink) { await ctx.reply('未配置 Mini App（BOT_USERNAME / APP_SHORT_NAME）。'); return; }
+
+  const rule = db.getRule(game.ruleId);
+  const players = db.listPlayers(game.gameId);
+  await warmNames(game.chatId, players.map(p => p.userId));
+  const isSignup = game.status === 'signup';
+  const text = isSignup
+    ? renderSignupPage(game, rule?.definition, players, 1).text
+    : renderEntryCard(rule?.name ?? game.ruleId);
+  const kb = isSignup ? signupKeyboard(game, 1) : entryKeyboard(game);
+
+  let msgId: number | null = game.signupMsgId;
+  let alive = false;
+  if (msgId) {
+    try {
+      await bot.api.editMessageText(game.chatId, msgId, text, { parse_mode: 'HTML', reply_markup: kb });
+      alive = true;
+    } catch (e) {
+      if ((e as Error).message.includes('not modified')) alive = true;
+    }
   }
+  if (!alive) {
+    const sent = await bot.api.sendMessage(game.chatId, text, { parse_mode: 'HTML', reply_markup: kb });
+    msgId = sent.message_id;
+    game.signupMsgId = msgId;
+    db.updateGame(game);
+  }
+  const ok = await pinEntryCard(game.chatId, msgId!);
+  await ctx.reply(ok
+    ? (alive ? '📌 已置顶实时视图入口。' : '📌 已重建并置顶实时视图入口。')
+    : '⚠️ 入口已就绪，但置顶失败：请给机器人「置顶消息」权限。');
 });
 
 bot.command('status', async ctx => {
@@ -1125,7 +1200,7 @@ bot.callbackQuery(/^begin:([0-9a-f]{8})$/, async ctx => {
   runOk(game, rule.definition, players, { type: 'begin', userId: userIdOf(ctx) });
   db.recordEvent(gameId, userIdOf(ctx), 'begin', { roundIdx: game.roundIdx, stepIdx: game.stepIdx });
   push(game);
-  await refreshSignupMessage(game);
+  await convertPinnedToEntry(game);
   await ctx.answerCallbackQuery();
   await sendStatus(chatIdOf(ctx), gameId);
 });
