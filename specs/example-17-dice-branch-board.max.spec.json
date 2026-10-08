@@ -1,0 +1,14 @@
+{
+  "kind": "playthrough",
+  "name": "17-dice-branch-board.max",
+  "rule": "examples/17-dice-branch-board.json",
+  "players": [
+    2001,
+    2002
+  ],
+  "policy": {
+    "value": "max",
+    "choice": 0,
+    "maxOps": 326
+  }
+}

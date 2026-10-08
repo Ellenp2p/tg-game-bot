@@ -1,0 +1,14 @@
+{
+  "kind": "playthrough",
+  "name": "02-dice-punishment.min",
+  "rule": "examples/02-dice-punishment.json",
+  "players": [
+    2001,
+    2002
+  ],
+  "policy": {
+    "value": "min",
+    "choice": 0,
+    "maxOps": 272
+  }
+}

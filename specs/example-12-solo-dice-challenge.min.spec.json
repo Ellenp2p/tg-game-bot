@@ -1,0 +1,13 @@
+{
+  "kind": "playthrough",
+  "name": "12-solo-dice-challenge.min",
+  "rule": "examples/12-solo-dice-challenge.json",
+  "players": [
+    2001
+  ],
+  "policy": {
+    "value": "min",
+    "choice": 0,
+    "maxOps": 240
+  }
+}

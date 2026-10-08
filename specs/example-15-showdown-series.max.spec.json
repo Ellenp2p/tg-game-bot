@@ -1,0 +1,14 @@
+{
+  "kind": "playthrough",
+  "name": "15-showdown-series.max",
+  "rule": "examples/15-showdown-series.json",
+  "players": [
+    2001,
+    2002
+  ],
+  "policy": {
+    "value": "max",
+    "choice": 0,
+    "maxOps": 227
+  }
+}

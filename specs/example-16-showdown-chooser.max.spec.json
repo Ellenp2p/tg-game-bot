@@ -1,0 +1,14 @@
+{
+  "kind": "playthrough",
+  "name": "16-showdown-chooser.max",
+  "rule": "examples/16-showdown-chooser.json",
+  "players": [
+    2001,
+    2002
+  ],
+  "policy": {
+    "value": "max",
+    "choice": 0,
+    "maxOps": 215
+  }
+}

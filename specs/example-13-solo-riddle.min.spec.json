@@ -1,0 +1,13 @@
+{
+  "kind": "playthrough",
+  "name": "13-solo-riddle.min",
+  "rule": "examples/13-solo-riddle.json",
+  "players": [
+    2001
+  ],
+  "policy": {
+    "value": "min",
+    "choice": 0,
+    "maxOps": 230
+  }
+}

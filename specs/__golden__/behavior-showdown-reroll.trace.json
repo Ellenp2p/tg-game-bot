@@ -1,0 +1,132 @@
+[
+  {
+    "n": 0,
+    "intent": {
+      "type": "begin"
+    },
+    "ok": true,
+    "phase": "showdown",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 1,
+    "intent": {
+      "type": "showdownRoll",
+      "userId": 9002,
+      "value": 4
+    },
+    "ok": true,
+    "message": "🎲 用户 #9002 掷出 4",
+    "phase": "showdown",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 2,
+    "intent": {
+      "type": "showdownRoll",
+      "userId": 9001,
+      "value": 4
+    },
+    "ok": true,
+    "message": "🎲 用户 #9001 掷出 4",
+    "phase": "showdown",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 3,
+    "intent": {
+      "type": "showdownRoll",
+      "userId": 9003,
+      "value": 1
+    },
+    "ok": true,
+    "message": "🏆 比大小结果（比大）\n1. 用户 #9001 → 4\n2. 用户 #9002 → 4\n3. 用户 #9003 → 1\n\n⚠️ 最大/最小出现并列，请全员重新掷一次。",
+    "phase": "showdown",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 4,
+    "intent": {
+      "type": "showdownRoll",
+      "userId": 9002,
+      "value": 2
+    },
+    "ok": true,
+    "message": "🎲 用户 #9002 掷出 2",
+    "phase": "showdown",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 5,
+    "intent": {
+      "type": "showdownRoll",
+      "userId": 9001,
+      "value": 5
+    },
+    "ok": true,
+    "message": "🎲 用户 #9001 掷出 5",
+    "phase": "showdown",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 6,
+    "intent": {
+      "type": "showdownRoll",
+      "userId": 9003,
+      "value": 3
+    },
+    "ok": true,
+    "message": "🏆 比大小结果（比大）\n1. 用户 #9001 → 5\n2. 用户 #9003 → 3\n3. 用户 #9002 → 2\n\n👉 赢家：用户 #9001 ｜ 输家：用户 #9002",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {}
+  }
+]

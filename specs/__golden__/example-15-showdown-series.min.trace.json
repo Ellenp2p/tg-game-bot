@@ -1,0 +1,170 @@
+[
+  {
+    "n": 0,
+    "intent": {
+      "type": "showdownRoll",
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2001 掷出 1",
+    "phase": "showdown",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 1,
+    "intent": {
+      "type": "showdownRoll",
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🏆 比大小结果（比大）\n1. 用户 #2001 → 1\n2. 用户 #2002 → 1\n\n👉 赢家：用户 #2001、用户 #2002 ｜ 输家：用户 #2001、用户 #2002",
+    "phase": "showdown",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "0": 1
+    }
+  },
+  {
+    "n": 2,
+    "intent": {
+      "type": "showdownRoll",
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2001 掷出 1",
+    "phase": "showdown",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "0": 1
+    }
+  },
+  {
+    "n": 3,
+    "intent": {
+      "type": "showdownRoll",
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🏆 比大小结果（比大）\n1. 用户 #2001 → 2\n2. 用户 #2002 → 2\n\n👉 赢家：用户 #2001、用户 #2002 ｜ 输家：用户 #2001、用户 #2002",
+    "phase": "showdown",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "0": 2
+    }
+  },
+  {
+    "n": 4,
+    "intent": {
+      "type": "showdownRoll",
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2001 掷出 1",
+    "phase": "showdown",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "0": 2
+    }
+  },
+  {
+    "n": 5,
+    "intent": {
+      "type": "showdownRoll",
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🏆 比大小结果（比大）\n1. 用户 #2001 → 3\n2. 用户 #2002 → 3\n\n👉 赢家：用户 #2001、用户 #2002 ｜ 输家：用户 #2001、用户 #2002",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "0": 3
+    }
+  },
+  {
+    "n": 6,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "0": 3
+    }
+  },
+  {
+    "n": 7,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "signup",
+    "status": "ended",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "0": 3
+    }
+  }
+]

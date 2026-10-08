@@ -1,0 +1,16 @@
+{
+  "kind": "playthrough",
+  "name": "05-idiom-chain.max",
+  "rule": "examples/05-idiom-chain.json",
+  "players": [
+    2001,
+    2002,
+    2003,
+    2004
+  ],
+  "policy": {
+    "value": "max",
+    "choice": 0,
+    "maxOps": 425
+  }
+}

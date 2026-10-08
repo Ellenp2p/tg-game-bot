@@ -1,0 +1,2 @@
+# golden / spec 用 LF，保证跨平台比对稳定（Windows autocrlf 不会改动它们）
+specs/**/*.json text eol=lf

@@ -1,0 +1,16 @@
+{
+  "kind": "playthrough",
+  "name": "08-charades.min",
+  "rule": "examples/08-charades.json",
+  "players": [
+    2001,
+    2002,
+    2003,
+    2004
+  ],
+  "policy": {
+    "value": "min",
+    "choice": 0,
+    "maxOps": 520
+  }
+}

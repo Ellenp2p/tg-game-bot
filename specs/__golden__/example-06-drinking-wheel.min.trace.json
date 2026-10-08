@@ -1,0 +1,984 @@
+[
+  {
+    "n": 0,
+    "intent": {
+      "type": "roll",
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2001 掷出 1 — 🎲 命运色子",
+    "phase": "choice",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 1,
+    "intent": {
+      "type": "choice",
+      "userId": 2001,
+      "optionIdx": 0
+    },
+    "ok": true,
+    "message": "👉 用户 #2001 选择了「🍺 我喝」",
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 2,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 3
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 3,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2002,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 1
+    }
+  },
+  {
+    "n": 4,
+    "intent": {
+      "type": "roll",
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2002 掷出 1 — 🎲 命运色子",
+    "phase": "choice",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 1
+    }
+  },
+  {
+    "n": 5,
+    "intent": {
+      "type": "choice",
+      "userId": 2002,
+      "optionIdx": 0
+    },
+    "ok": true,
+    "message": "👉 用户 #2002 选择了「🍺 我喝」",
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 1
+    }
+  },
+  {
+    "n": 6,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 3
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 1
+    }
+  },
+  {
+    "n": 7,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2001,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 2
+    }
+  },
+  {
+    "n": 8,
+    "intent": {
+      "type": "roll",
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2001 掷出 1 — 🎲 命运色子",
+    "phase": "choice",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 2
+    }
+  },
+  {
+    "n": 9,
+    "intent": {
+      "type": "choice",
+      "userId": 2001,
+      "optionIdx": 0
+    },
+    "ok": true,
+    "message": "👉 用户 #2001 选择了「🍺 我喝」",
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 2
+    }
+  },
+  {
+    "n": 10,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 3
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 2
+    }
+  },
+  {
+    "n": 11,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2002,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 3
+    }
+  },
+  {
+    "n": 12,
+    "intent": {
+      "type": "roll",
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2002 掷出 1 — 🎲 命运色子",
+    "phase": "choice",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 3
+    }
+  },
+  {
+    "n": 13,
+    "intent": {
+      "type": "choice",
+      "userId": 2002,
+      "optionIdx": 0
+    },
+    "ok": true,
+    "message": "👉 用户 #2002 选择了「🍺 我喝」",
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 3
+    }
+  },
+  {
+    "n": 14,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 3
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 3
+    }
+  },
+  {
+    "n": 15,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2001,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 4
+    }
+  },
+  {
+    "n": 16,
+    "intent": {
+      "type": "roll",
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2001 掷出 1 — 🎲 命运色子",
+    "phase": "choice",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 4
+    }
+  },
+  {
+    "n": 17,
+    "intent": {
+      "type": "choice",
+      "userId": 2001,
+      "optionIdx": 0
+    },
+    "ok": true,
+    "message": "👉 用户 #2001 选择了「🍺 我喝」",
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 4
+    }
+  },
+  {
+    "n": 18,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 3
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 4
+    }
+  },
+  {
+    "n": 19,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2002,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 5
+    }
+  },
+  {
+    "n": 20,
+    "intent": {
+      "type": "roll",
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2002 掷出 1 — 🎲 命运色子",
+    "phase": "choice",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 5
+    }
+  },
+  {
+    "n": 21,
+    "intent": {
+      "type": "choice",
+      "userId": 2002,
+      "optionIdx": 0
+    },
+    "ok": true,
+    "message": "👉 用户 #2002 选择了「🍺 我喝」",
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 5
+    }
+  },
+  {
+    "n": 22,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 3
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 5
+    }
+  },
+  {
+    "n": 23,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2001,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 6
+    }
+  },
+  {
+    "n": 24,
+    "intent": {
+      "type": "roll",
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2001 掷出 1 — 🎲 命运色子",
+    "phase": "choice",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 6
+    }
+  },
+  {
+    "n": 25,
+    "intent": {
+      "type": "choice",
+      "userId": 2001,
+      "optionIdx": 0
+    },
+    "ok": true,
+    "message": "👉 用户 #2001 选择了「🍺 我喝」",
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 6
+    }
+  },
+  {
+    "n": 26,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 3
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 6
+    }
+  },
+  {
+    "n": 27,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2002,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 7
+    }
+  },
+  {
+    "n": 28,
+    "intent": {
+      "type": "roll",
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2002 掷出 1 — 🎲 命运色子",
+    "phase": "choice",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 7
+    }
+  },
+  {
+    "n": 29,
+    "intent": {
+      "type": "choice",
+      "userId": 2002,
+      "optionIdx": 0
+    },
+    "ok": true,
+    "message": "👉 用户 #2002 选择了「🍺 我喝」",
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 7
+    }
+  },
+  {
+    "n": 30,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 3
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 7
+    }
+  },
+  {
+    "n": 31,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2001,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 8
+    }
+  },
+  {
+    "n": 32,
+    "intent": {
+      "type": "roll",
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2001 掷出 1 — 🎲 命运色子",
+    "phase": "choice",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 8
+    }
+  },
+  {
+    "n": 33,
+    "intent": {
+      "type": "choice",
+      "userId": 2001,
+      "optionIdx": 0
+    },
+    "ok": true,
+    "message": "👉 用户 #2001 选择了「🍺 我喝」",
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 8
+    }
+  },
+  {
+    "n": 34,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 3
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 8
+    }
+  },
+  {
+    "n": 35,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2002,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 9
+    }
+  },
+  {
+    "n": 36,
+    "intent": {
+      "type": "roll",
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2002 掷出 1 — 🎲 命运色子",
+    "phase": "choice",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 9
+    }
+  },
+  {
+    "n": 37,
+    "intent": {
+      "type": "choice",
+      "userId": 2002,
+      "optionIdx": 0
+    },
+    "ok": true,
+    "message": "👉 用户 #2002 选择了「🍺 我喝」",
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 9
+    }
+  },
+  {
+    "n": 38,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 3
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 9
+    }
+  },
+  {
+    "n": 39,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "signup",
+    "status": "ended",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 3
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 10
+    }
+  }
+]

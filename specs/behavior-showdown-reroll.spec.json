@@ -1,0 +1,31 @@
+{
+  "kind": "scripted",
+  "name": "behavior-showdown-reroll",
+  "rule": {
+    "version": "1.8.0",
+    "name": "reroll-demo",
+    "minPlayers": 3,
+    "maxPlayers": 3,
+    "rounds": [
+      {
+        "name": "R",
+        "steps": [
+          { "type": "showdown", "label": "比大小", "emoji": "🎲", "order": "high", "tie": "reroll", "actor": "winner" },
+          { "type": "text", "label": "done", "prompt": "x" }
+        ]
+      }
+    ]
+  },
+  "players": [9002, 9001, 9003],
+  "steps": [
+    { "do": { "type": "begin" }, "expect": { "phase": "showdown" } },
+    { "do": { "type": "showdownRoll", "userId": 9002, "value": 4 } },
+    { "do": { "type": "showdownRoll", "userId": 9001, "value": 4 } },
+    { "do": { "type": "showdownRoll", "userId": 9003, "value": 1 },
+      "expect": { "phase": "showdown", "messageContains": "并列" } },
+    { "do": { "type": "showdownRoll", "userId": 9002, "value": 2 } },
+    { "do": { "type": "showdownRoll", "userId": 9001, "value": 5 } },
+    { "do": { "type": "showdownRoll", "userId": 9003, "value": 3 },
+      "expect": { "phase": "text", "messageContains": "赢家" } }
+  ]
+}

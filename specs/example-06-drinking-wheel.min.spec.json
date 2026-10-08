@@ -1,0 +1,14 @@
+{
+  "kind": "playthrough",
+  "name": "06-drinking-wheel.min",
+  "rule": "examples/06-drinking-wheel.json",
+  "players": [
+    2001,
+    2002
+  ],
+  "policy": {
+    "value": "min",
+    "choice": 0,
+    "maxOps": 320
+  }
+}

@@ -1,0 +1,151 @@
+[
+  {
+    "n": 0,
+    "intent": {
+      "type": "roll",
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎰"
+    },
+    "ok": true,
+    "message": "🎰 用户 #2001 掷出 1 — 🎰 拉杆\n   BAR BAR BAR 🎉 JACKPOT",
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎰"
+    },
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 1,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2002,
+    "emoji": "🎰",
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎰"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 1
+    }
+  },
+  {
+    "n": 2,
+    "intent": {
+      "type": "roll",
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎰"
+    },
+    "ok": true,
+    "message": "🎰 用户 #2002 掷出 1 — 🎰 拉杆\n   BAR BAR BAR 🎉 JACKPOT",
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎰"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 1
+    }
+  },
+  {
+    "n": 3,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2001,
+    "emoji": "🎰",
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎰"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 2
+    }
+  },
+  {
+    "n": 4,
+    "intent": {
+      "type": "roll",
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎰"
+    },
+    "ok": true,
+    "message": "🎰 用户 #2001 掷出 1 — 🎰 拉杆\n   BAR BAR BAR 🎉 JACKPOT",
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎰"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 2
+    }
+  },
+  {
+    "n": 5,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "signup",
+    "status": "ended",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎰"
+    },
+    "lastDraw": null,
+    "loops": {
+      "0": 3
+    }
+  }
+]

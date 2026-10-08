@@ -1,0 +1,338 @@
+[
+  {
+    "n": 0,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 1,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 2,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 3,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 1
+    }
+  },
+  {
+    "n": 4,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 1
+    }
+  },
+  {
+    "n": 5,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 2
+    }
+  },
+  {
+    "n": 6,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 2
+    }
+  },
+  {
+    "n": 7,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 3
+    }
+  },
+  {
+    "n": 8,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 3
+    }
+  },
+  {
+    "n": 9,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 4
+    }
+  },
+  {
+    "n": 10,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 4
+    }
+  },
+  {
+    "n": 11,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 5
+    }
+  },
+  {
+    "n": 12,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 5
+    }
+  },
+  {
+    "n": 13,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 6
+    }
+  },
+  {
+    "n": 14,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 6
+    }
+  },
+  {
+    "n": 15,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 7
+    }
+  },
+  {
+    "n": 16,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 7
+    }
+  },
+  {
+    "n": 17,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "signup",
+    "status": "ended",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {
+      "1": 8
+    }
+  }
+]

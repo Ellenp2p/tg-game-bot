@@ -1,0 +1,95 @@
+[
+  {
+    "n": 0,
+    "intent": {
+      "type": "begin"
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 9001,
+    "emoji": "🎰",
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 1,
+    "intent": {
+      "type": "roll",
+      "userId": 9001,
+      "value": 64,
+      "emoji": "🎰"
+    },
+    "ok": true,
+    "message": "🎰 用户 #9001 抽到第 <b>16</b> 号（点数 64）\n   7 7 7 🎉 JACKPOT",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 3
+    },
+    "lastDice": {
+      "userId": 9001,
+      "value": 64,
+      "emoji": "🎰"
+    },
+    "lastDraw": 16,
+    "loops": {}
+  },
+  {
+    "n": 2,
+    "intent": {
+      "type": "next",
+      "userId": 9001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 9002,
+    "emoji": "🎰",
+    "lastDice": {
+      "userId": 9001,
+      "value": 64,
+      "emoji": "🎰"
+    },
+    "lastDraw": 16,
+    "loops": {
+      "0": 1
+    }
+  },
+  {
+    "n": 3,
+    "intent": {
+      "type": "roll",
+      "userId": 9002,
+      "value": 4,
+      "emoji": "🎰"
+    },
+    "ok": true,
+    "message": "🎰 用户 #9002 抽到第 <b>1</b> 号（点数 4）\n   BAR BAR 7",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 9002,
+      "value": 4,
+      "emoji": "🎰"
+    },
+    "lastDraw": 1,
+    "loops": {
+      "0": 1
+    }
+  }
+]

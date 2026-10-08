@@ -1,0 +1,804 @@
+[
+  {
+    "n": 0,
+    "intent": {
+      "type": "roll",
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2001 掷出 1 — 🎲 谁先出第一题",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 1,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 2,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2002,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 3,
+    "intent": {
+      "type": "roll",
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2002 掷出 1 — 🎲 谁来答题",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 4,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {}
+  },
+  {
+    "n": 5,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2003,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 1
+    }
+  },
+  {
+    "n": 6,
+    "intent": {
+      "type": "roll",
+      "userId": 2003,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2003 掷出 1 — 🎲 谁来答题",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2003,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 1
+    }
+  },
+  {
+    "n": 7,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2003,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 1
+    }
+  },
+  {
+    "n": 8,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2004,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2003,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 2
+    }
+  },
+  {
+    "n": 9,
+    "intent": {
+      "type": "roll",
+      "userId": 2004,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2004 掷出 1 — 🎲 谁来答题",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2004,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 2
+    }
+  },
+  {
+    "n": 10,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2004,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 2
+    }
+  },
+  {
+    "n": 11,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2001,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2004,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 3
+    }
+  },
+  {
+    "n": 12,
+    "intent": {
+      "type": "roll",
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2001 掷出 1 — 🎲 谁来答题",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 3
+    }
+  },
+  {
+    "n": 13,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 3
+    }
+  },
+  {
+    "n": 14,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2002,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 4
+    }
+  },
+  {
+    "n": 15,
+    "intent": {
+      "type": "roll",
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2002 掷出 1 — 🎲 谁来答题",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 4
+    }
+  },
+  {
+    "n": 16,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 4
+    }
+  },
+  {
+    "n": 17,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2003,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 5
+    }
+  },
+  {
+    "n": 18,
+    "intent": {
+      "type": "roll",
+      "userId": 2003,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2003 掷出 1 — 🎲 谁来答题",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2003,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 5
+    }
+  },
+  {
+    "n": 19,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2003,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 5
+    }
+  },
+  {
+    "n": 20,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2004,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2003,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 6
+    }
+  },
+  {
+    "n": 21,
+    "intent": {
+      "type": "roll",
+      "userId": 2004,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2004 掷出 1 — 🎲 谁来答题",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2004,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 6
+    }
+  },
+  {
+    "n": 22,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2004,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 6
+    }
+  },
+  {
+    "n": 23,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2001,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2004,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 7
+    }
+  },
+  {
+    "n": 24,
+    "intent": {
+      "type": "roll",
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2001 掷出 1 — 🎲 谁来答题",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 7
+    }
+  },
+  {
+    "n": 25,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 7
+    }
+  },
+  {
+    "n": 26,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2002,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2001,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 8
+    }
+  },
+  {
+    "n": 27,
+    "intent": {
+      "type": "roll",
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2002 掷出 1 — 🎲 谁来答题",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 8
+    }
+  },
+  {
+    "n": 28,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 8
+    }
+  },
+  {
+    "n": 29,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "roll",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 0
+    },
+    "expectedPlayerId": 2003,
+    "emoji": "🎲",
+    "lastDice": {
+      "userId": 2002,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 9
+    }
+  },
+  {
+    "n": 30,
+    "intent": {
+      "type": "roll",
+      "userId": 2003,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "ok": true,
+    "message": "🎲 用户 #2003 掷出 1 — 🎲 谁来答题",
+    "phase": "text",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 1
+    },
+    "lastDice": {
+      "userId": 2003,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 9
+    }
+  },
+  {
+    "n": 31,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "punish",
+    "status": "in_progress",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2003,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 9
+    }
+  },
+  {
+    "n": 32,
+    "intent": {
+      "type": "next",
+      "userId": 2001
+    },
+    "ok": true,
+    "phase": "signup",
+    "status": "ended",
+    "cursor": {
+      "roundIdx": 1,
+      "stepIdx": 2
+    },
+    "lastDice": {
+      "userId": 2003,
+      "value": 1,
+      "emoji": "🎲"
+    },
+    "lastDraw": null,
+    "loops": {
+      "1": 10
+    }
+  }
+]

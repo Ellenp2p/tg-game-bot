@@ -1,0 +1,13 @@
+{
+  "kind": "playthrough",
+  "name": "09-basketball-tournament.max",
+  "rule": "examples/09-basketball-tournament.json",
+  "players": [
+    2001
+  ],
+  "policy": {
+    "value": "max",
+    "choice": 0,
+    "maxOps": 232
+  }
+}

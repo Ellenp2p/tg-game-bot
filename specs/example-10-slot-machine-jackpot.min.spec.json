@@ -1,0 +1,14 @@
+{
+  "kind": "playthrough",
+  "name": "10-slot-machine-jackpot.min",
+  "rule": "examples/10-slot-machine-jackpot.json",
+  "players": [
+    2001,
+    2002
+  ],
+  "policy": {
+    "value": "min",
+    "choice": 0,
+    "maxOps": 218
+  }
+}

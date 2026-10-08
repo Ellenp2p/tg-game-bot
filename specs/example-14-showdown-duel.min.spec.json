@@ -1,0 +1,14 @@
+{
+  "kind": "playthrough",
+  "name": "14-showdown-duel.min",
+  "rule": "examples/14-showdown-duel.json",
+  "players": [
+    2001,
+    2002
+  ],
+  "policy": {
+    "value": "min",
+    "choice": 0,
+    "maxOps": 275
+  }
+}

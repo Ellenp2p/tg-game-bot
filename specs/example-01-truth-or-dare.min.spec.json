@@ -1,0 +1,14 @@
+{
+  "kind": "playthrough",
+  "name": "01-truth-or-dare.min",
+  "rule": "examples/01-truth-or-dare.json",
+  "players": [
+    2001,
+    2002
+  ],
+  "policy": {
+    "value": "min",
+    "choice": 0,
+    "maxOps": 392
+  }
+}

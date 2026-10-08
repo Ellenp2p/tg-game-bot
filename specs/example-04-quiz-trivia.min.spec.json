@@ -1,0 +1,14 @@
+{
+  "kind": "playthrough",
+  "name": "04-quiz-trivia.min",
+  "rule": "examples/04-quiz-trivia.json",
+  "players": [
+    2001,
+    2002
+  ],
+  "policy": {
+    "value": "min",
+    "choice": 0,
+    "maxOps": 296
+  }
+}

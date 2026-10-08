@@ -1,0 +1,13 @@
+{
+  "kind": "playthrough",
+  "name": "11-solo-truth.min",
+  "rule": "examples/11-solo-truth.json",
+  "players": [
+    2001
+  ],
+  "policy": {
+    "value": "min",
+    "choice": 0,
+    "maxOps": 360
+  }
+}
