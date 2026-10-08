@@ -17,6 +17,7 @@ const groupLink = chatId => {
 };
 
 let socket, lastSnap, currentGameId, viewerId;
+let lastDiceKey = null; // 已展示的骰子结果 key（userId:value:at），只在结果变化时播揭晓动画
 let myViewer = null; // 由 /api/games?initData 首次拿到；WS 广播不含 viewer，避免被覆盖
 let perspectiveKey = localStorage.getItem('perspective') || 'player';
 $('perspectiveToggle').checked = perspectiveKey === 'admin';
@@ -120,13 +121,28 @@ function render(snap) {
     stepCard.hidden = true;
   }
 
-  if (snap.lastDice) {
+  // 骰子卡片三态：正在掷（旋转，不显示上一轮点数）→ 揭晓（pop 出新点数）→ 隐藏
+  const pend = snap.pending || [];
+  const diceBox = $('diceBox');
+  if (pend.length) {
     $('diceCard').hidden = false;
-    $('diceBox').textContent = '🎲';
-    $('diceBox').dataset.value = String(snap.lastDice.value);
-    $('diceBox').classList.remove('rolling');
-    void $('diceBox').offsetWidth;
-    $('diceBox').classList.add('rolling');
+    diceBox.textContent = '🎲';
+    diceBox.classList.remove('rolling');
+    diceBox.classList.add('spin');
+    const who = pend.map(p => viewerLabel(snap.players.find(x => x.userId === p.userId))).join('、');
+    $('diceMeta').innerHTML = `🎲 ${esc(who)} 掷骰中…`;
+    lastDiceKey = null; // 下一次结果一定触发揭晓动画
+  } else if (snap.lastDice) {
+    const key = `${snap.lastDice.userId}:${snap.lastDice.value}:${snap.lastDice.at ?? ''}`;
+    $('diceCard').hidden = false;
+    diceBox.textContent = '🎲';
+    diceBox.classList.remove('spin');
+    if (key !== lastDiceKey) {
+      diceBox.classList.remove('rolling');
+      void diceBox.offsetWidth;
+      diceBox.classList.add('rolling');
+      lastDiceKey = key;
+    }
     const roller = snap.players.find(p => p.userId === snap.lastDice.userId);
     let meta = `${esc(viewerLabel(roller))} 掷出 <b>${snap.lastDice.value}</b>`;
     if (snap.lastDice.decoded) {
@@ -137,6 +153,7 @@ function render(snap) {
     $('diceMeta').innerHTML = meta;
   } else {
     $('diceCard').hidden = true;
+    lastDiceKey = null;
   }
 
   const playersList = $('playerList');
@@ -211,6 +228,12 @@ function render(snap) {
       const btn = e.target;
       if (btn.disabled) return;
       btn.disabled = true;
+      // 乐观切到「掷骰中」，避免请求往返期间闪现上一轮结果
+      $('diceCard').hidden = false;
+      $('diceBox').classList.remove('rolling');
+      $('diceBox').classList.add('spin');
+      $('diceMeta').innerHTML = '🎲 掷骰中…';
+      lastDiceKey = null;
       api(`/api/games/${snap.gameId}/roll`, 'POST')
         .then(() => notice('🎲 已掷骰，等待揭晓…'))
         .catch(err => { btn.disabled = false; notice(err.message); });
