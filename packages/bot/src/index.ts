@@ -63,9 +63,19 @@ async function requireGroupAdmin(ctx: Context): Promise<void> {
   }
 }
 
+/** 当前正在播掷骰动画的玩家（传输态，仅用于 Mini App 显示"掷骰中…"）。 */
+function pendingRollsOf(gameId: string): Array<{ userId: number; emoji: DiceEmoji; kind: 'roll' | 'showdown' }> {
+  return Object.values(session(gameId).pendingRolls).map(p => ({ userId: p.userId, emoji: p.emoji, kind: p.kind }));
+}
+
 function snapshot(game: GameRecord, definition: RuleDefinition | undefined, players: GamePlayer[], viewerId: number, isAdminViewer: boolean) {
-  // 引擎视图 + 适配器补的传输字段（Mini App 用 chatId 做「去群里掷骰」）
-  return { ...buildView(game, definition, players, viewerId, isAdminViewer), chatId: game.chatId, starterId: game.starterId };
+  // 引擎视图 + 适配器补的传输字段（Mini App 用 chatId 做「去群里掷骰」、用 pending 显示掷骰动画）
+  return {
+    ...buildView(game, definition, players, viewerId, isAdminViewer),
+    chatId: game.chatId,
+    starterId: game.starterId,
+    pending: pendingRollsOf(game.gameId)
+  };
 }
 
 const wsByGame = new Map<string, Set<WebSocket>>();

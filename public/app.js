@@ -65,9 +65,12 @@ function render(snap) {
     $('stepLabel').innerHTML = `${esc(snap.phase.stepLabel || '等待色子')} ${loopBadge(snap)}`;
     const expectedId = snap.phase.expectedPlayerId;
     const expected = snap.players.find(p => p.userId === expectedId);
-    $('stepBody').innerHTML = expected
-      ? `等待 <b>${esc(viewerLabel(expected))}</b> 发 🎲`
-      : '等待任一玩家发 🎲';
+    const pendingRoll = (snap.pending || []).find(p => p.kind === 'roll');
+    $('stepBody').innerHTML = pendingRoll
+      ? `🎲 <b>${esc(viewerLabel(snap.players.find(p => p.userId === pendingRoll.userId)))}</b> 掷骰中…`
+      : expected
+        ? `等待 <b>${esc(viewerLabel(expected))}</b> 发 🎲`
+        : '等待任一玩家发 🎲';
   } else if (snap.phase.kind === 'text') {
     stepCard.hidden = false;
     $('roundName').textContent = roundName;
@@ -104,7 +107,8 @@ function render(snap) {
     }).join('');
     const pendingRows = pending.map(id => {
       const p = snap.players.find(pp => pp.userId === id);
-      return `<li>⏳ ${esc(viewerLabel(p))}</li>`;
+      const rolling = (snap.pending || []).some(x => x.userId === id);
+      return `<li>${rolling ? '🎲 掷骰中…' : '⏳'} ${esc(viewerLabel(p))}</li>`;
     }).join('');
     $('stepBody').innerHTML = `${snap.phase.emoji} ${mode} · 已掷 <b>${rolls.length}</b>/${snap.phase.total}<ul class="choice-options">${rolledRows}${pendingRows}</ul>`;
   } else {
@@ -156,13 +160,14 @@ function render(snap) {
   } else if (snap.status === 'in_progress') {
     if (snap.phase.kind === 'roll' || snap.phase.kind === 'showdown') {
       const isPlayer = snap.players.some(p => p.userId === viewerId);
+      const viewerPending = (snap.pending || []).some(p => p.userId === viewerId);
       let canThrow = false;
       if (snap.phase.kind === 'roll') {
         canThrow = snap.phase.expectedPlayerId === viewerId || snap.phase.expectedPlayerId === null;
       } else {
         canThrow = isPlayer && !(snap.phase.rolls || []).some(r => r.userId === viewerId);
       }
-      if (canThrow && isPlayer) buttons.push({ label: `${snap.phase.emoji} 我扔（点我去群内发）`, action: 'throw', kind: 'primary' });
+      if (canThrow && isPlayer && !viewerPending) buttons.push({ label: `${snap.phase.emoji} 我扔（点我去群内发）`, action: 'throw', kind: 'primary' });
     }
     if (showAdmin) {
       if (snap.phase.kind === 'text' || snap.phase.kind === 'punish') {

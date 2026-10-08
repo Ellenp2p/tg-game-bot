@@ -151,6 +151,8 @@ type EngineCtx = { definition:RuleDefinition; now:()=>number; rng?:()=>number };
       - **统一视图**：群 `renderStatus` 改为消费引擎 `buildView`（群=View→HTML，Mini App=View→JSON），内容不再漂（渲染 golden 字节不变）
       - 扇出补漏：HTTP 的 `undo` 也刷新群消息；`buildView` 补 `drawHint`/`showActor`
       - 契约 golden：`buildView` 视图 golden（固定时钟）
+- [x] P6 传输态透出（掷骰动画）：`snapshot.pending`（来自 bot `session`）随广播/HTTP 下发；Mini App 在 3.5s 揭晓窗口显示「🎲 掷骰中…」并隐藏"我扔"按钮 → 群与 Mini App 连瞬时态也一致
+- [x] P7 事件为真源验收：`determinism.test.ts` 跨**全部 examples**跑 property 测试——同意图序列→同终局（确定性）、`replay(intents) === 直接跑`（可重放）、保护步数内必终止；引擎测试 119→122
 
 ### 可移植性（Discord / 网页）
 
