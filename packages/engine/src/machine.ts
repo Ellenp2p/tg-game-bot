@@ -62,7 +62,7 @@ export function run(
   players: GamePlayer[],
   intent: Intent
 ): RunResult {
-  (game as GameRecord & { _players?: GamePlayer[] })._players = players;
+  game.players = players;
   try {
     switch (intent.type) {
       case 'begin': {

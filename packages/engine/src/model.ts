@@ -270,6 +270,11 @@ export type GameRecord = {
   createdAt: number;
   endedAt: number | null;
   signupMsgId: number | null;
+  /**
+   * 内存中的玩家列表（按加入顺序）。由适配器/引擎在调用时挂载，**不持久化**
+   * （持久化在 game_players 表；`db.listPlayers` 读取）。引擎据此做轮换/主角/结算。
+   */
+  players?: GamePlayer[];
 };
 
 export type GameEventType =

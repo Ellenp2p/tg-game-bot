@@ -846,7 +846,7 @@ async function doAdmin(ctx: Context, fn: (game: GameRecord) => void | Promise<vo
 
 /** 把玩家挂到 game 上，供引擎的轮换 / 主角 / 比大小结算读取 */
 function attachPlayers(game: GameRecord): void {
-  (game as GameRecord & { _players?: GamePlayer[] })._players = db.listPlayers(game.gameId);
+  game.players = db.listPlayers(game.gameId);
 }
 
 /** 引擎唯一入口；失败即抛（沿用 bot.catch 的错误提示），成功返回事件结果 */

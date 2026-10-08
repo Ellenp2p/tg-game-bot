@@ -7,13 +7,14 @@ import {
   DICE_EMOJI_MAX_VALUE, resolveRollEmoji, resolveShowdownEmoji,
   decodeSlotValue, isJackpot, SLOT_SYMBOL_LABEL
 } from './model.js';
+import { now } from './clock.js';
 
 export function displayName(userId: number): string {
   return `用户 #${String(userId).slice(-4)}`;
 }
 
 function playersOf(game: GameRecord): GamePlayer[] {
-  return (game as GameRecord & { _players?: GamePlayer[] })._players ?? [];
+  return game.players ?? [];
 }
 
 export function findStep(definition: RuleDefinition, roundIdx: number, stepIdx: number): Step | undefined {
@@ -91,7 +92,7 @@ export function resolveActorPick(
 
 function resetToEnded(game: GameRecord): GamePhase {
   game.status = 'ended';
-  game.endedAt = Date.now();
+  game.endedAt = now();
   game.state = {
     phase: { kind: 'signup' },
     stepHitCounts: game.state.stepHitCounts,
@@ -253,12 +254,12 @@ export function applyRoll(game: GameRecord, definition: RuleDefinition, userId: 
       }
     }
     const bucket = drawBucket(value, draw.count, draw.uniform, sourceMax);
-    game.state.lastDice = { userId, value, at: Date.now(), emoji: usedEmoji };
+    game.state.lastDice = { userId, value, at: now(), emoji: usedEmoji };
     game.state.lastRollerId = userId;
     game.state.activeActorId = userId;
     game.state.lastDraw = bucket;
     if (draw.store) game.state.draws = { ...(game.state.draws ?? {}), [draw.store]: bucket };
-    (game as GameRecord & { _players?: GamePlayer[] })._players = players;
+    game.players = players;
     const dmsg = `${usedEmoji} ${displayName(userId)} 抽到第 <b>${bucket}</b> 号（点数 ${value}）${slotSuffix}`;
     game.state.lastMessage = dmsg;
     const target = resolveChoiceGoto(draw.targets[bucket - 1] ?? 'next', phase.roundIdx, phase.stepIdx, roundLenOf(definition, phase.roundIdx));
@@ -266,10 +267,10 @@ export function applyRoll(game: GameRecord, definition: RuleDefinition, userId: 
     return { message: dmsg, phase: game.state.phase };
   }
 
-  game.state.lastDice = { userId, value, at: Date.now(), emoji: usedEmoji };
+  game.state.lastDice = { userId, value, at: now(), emoji: usedEmoji };
   game.state.lastRollerId = userId;
   game.state.activeActorId = userId;
-  (game as GameRecord & { _players?: GamePlayer[] })._players = players;
+  game.players = players;
   const message = `${usedEmoji} ${displayName(userId)} 掷出 ${value} — ${step.label}${slotSuffix}`;
   game.state.lastMessage = message;
   advanceToStep(game, definition, phase.roundIdx, phase.stepIdx + 1);
@@ -291,8 +292,8 @@ export function applyShowdownRoll(
     throw Error(`${phase.emoji} 的点数范围是 1-${max}`);
   }
 
-  (game as GameRecord & { _players?: GamePlayer[] })._players = players;
-  phase.rolls.push({ userId, value, at: Date.now() });
+  game.players = players;
+  phase.rolls.push({ userId, value, at: now() });
   let message = `${usedEmoji} ${displayName(userId)} 掷出 ${value}`;
   if (usedEmoji === '🎰') {
     const d = decodeSlotValue(value);

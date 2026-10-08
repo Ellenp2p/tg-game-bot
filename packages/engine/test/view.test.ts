@@ -10,7 +10,7 @@ function makeInitial(): GameRecord {
     state: { phase: { kind: 'signup' }, stepHitCounts: {}, loopCounters: {} },
     roundIdx: 0, stepIdx: 0, createdAt: 0, endedAt: null, signupMsgId: null
   };
-  (g as GameRecord & { _players?: GamePlayer[] })._players = P;
+  g.players = P;
   return g;
 }
 

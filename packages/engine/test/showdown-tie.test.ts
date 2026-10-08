@@ -16,7 +16,7 @@ function newGame(def: RuleDefinition, ps: GamePlayer[] = P): GameRecord {
     state: { phase: { kind: 'signup' }, stepHitCounts: {}, loopCounters: {} },
     roundIdx: 0, stepIdx: 0, createdAt: 0, endedAt: null, signupMsgId: null
   };
-  (g as GameRecord & { _players?: GamePlayer[] })._players = ps;
+  g.players = ps;
   beginGame(g, def);
   return g;
 }

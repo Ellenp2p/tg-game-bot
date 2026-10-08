@@ -11,7 +11,7 @@ function makeGame(def: RuleDefinition, results?: Record<string, ShowdownResult>,
     state: { phase: { kind: 'signup' }, stepHitCounts: {}, loopCounters: {} },
     roundIdx: 0, stepIdx: 0, createdAt: 0, endedAt: null, signupMsgId: null
   };
-  (g as GameRecord & { _players?: GamePlayer[] })._players = [{ userId: 1, joinedAt: 0 }];
+  g.players = [{ userId: 1, joinedAt: 0 }];
   if (results) { g.state.results = results; g.state.lastResultSlot = slot; }
   return g;
 }
@@ -130,13 +130,13 @@ test('branch: routes on the last roll value', () => {
   });
   const players: GamePlayer[] = [{ userId: 1, joinedAt: 0 }];
   const g6 = makeGame(def);
-  (g6 as GameRecord & { _players?: GamePlayer[] })._players = players;
+  g6.players = players;
   beginGame(g6, def);
   applyRoll(g6, def, 1, 6, players, '🎲');
   assert.equal(g6.state.phase.kind === 'text' && g6.state.phase.text, 'SIX');
 
   const g3 = makeGame(def);
-  (g3 as GameRecord & { _players?: GamePlayer[] })._players = players;
+  g3.players = players;
   beginGame(g3, def);
   applyRoll(g3, def, 1, 3, players, '🎲');
   assert.equal(g3.state.phase.kind === 'text' && g3.state.phase.text, 'LOW');
