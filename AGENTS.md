@@ -39,14 +39,14 @@ examples/          规则模板（18 条）
 
 ### /startgame 多次发 = 覆盖
 
-如果群里已有进行中的对局，再发 `/startgame` 会**直接结束旧对局**（记 `replace` event，status='ended'）并继续弹规则选择。旧 view 端（Mini App）会通过 WebSocket 收到 ended 状态自动收尾。
+如果群里已有进行中的对局，再发 `/startgame` 会**直接结束旧对局**（记 `replace` event，status='ended'）并继续弹规则选择。旧对局的置顶入口卡会同时改「🏁 已结束」并解除置顶；旧 view 端（Mini App）会通过 WebSocket 收到 ended 状态自动收尾。
 
 ### Mini App 入口
 
-- **群里**：inline url button 指向 `https://t.me/<bot>/<APP_SHORT_NAME>?startapp=game_<gameId>`。Telegram 自动按 Mini App 打开（不走浏览器）。
-- **私聊**：webApp button 用 `PUBLIC_URL/?game=<gameId>`，全屏内嵌。
-- **Menu Button**：启动时 `setChatMenuButton` 配置，私聊左侧栏固定入口。
+- **群里**：每局一条**置顶入口卡**（复用报名消息）。报名时静默置顶（`disable_notification`）；`/begin` 后改成静态卡「🎲 <规则名> · 对局进行中」+ `📱 打开实时视图`（url button → `https://t.me/<bot>/<APP_SHORT_NAME>?startapp=game_<gameId>`，Telegram 自动按 Mini App 打开）；对局结束（含 `/startgame` 覆盖旧局）自动改「🏁 已结束」并**解除置顶**。管理员可用 `/play` 召唤/重置入口（卡片被删或被顶掉时）。
+- **私聊**：webApp button 用 `PUBLIC_URL/?game=<gameId>`，全屏内嵌；Menu Button 用 `setChatMenuButton` 配置 `PUBLIC_URL`，私聊左侧栏固定入口。
 - 前端 `app.js` 从 `?game=` 或 `tg.initDataUnsafe.start_param=game_<id>` 解析 gameId。
+- **群里 inline 不能用 webApp button**（会 `BUTTON_TYPE_INVALID`），只能用 url + t.me deeplink。
 
 ### 命令清单
 

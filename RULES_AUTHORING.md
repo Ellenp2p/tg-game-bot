@@ -677,7 +677,8 @@ function drawStrategy(N, roundIdx, S) {
 | 玩家 | 点 choice 按钮 | choice 阶段（必须是 pickedBy / chooser 指定的人） |
 | 玩家 | 群里发言 / /joingame / /leavegame | 报名阶段 |
 | 管理员 | `/startgame` `/begin` `/next` `/skip` `/undo` `/endgame` | 全程（showdown 时 `/next` = 立即结算） |
-| 任何人 | `/status` `/play` | 全程（不改变状态） |
+| 任何人 | `/status` | 全程（不改变状态） |
+| 管理员 | `/play` | 召唤/重置置顶入口（不改变对局状态） |
 
 ## 提交方式（用户视角）
 
