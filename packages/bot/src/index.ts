@@ -1050,12 +1050,18 @@ async function resolvePendingRoll(gameId: string, expectedUserId: UserId, expect
     }
     db.recordEvent(gameId, pending.userId, 'roll', { value: pending.value, emoji: pending.emoji });
     push(game);
-    try {
-      await bot.api.editMessageText(pending.chatId, pending.waitingMsgId,
-        `${pending.emoji} ${mentionHtml(pending.userId, displayName(pending.userId))} 掷出 <b>${pending.value}</b>`,
-        { parse_mode: 'HTML' });
-    } catch {}
-    await bot.api.sendMessage(pending.chatId, resultMessage, { parse_mode: 'HTML' });
+    // 只保留一条：把「正在掷…」消息就地改成引擎结果（含点数 + 步骤名），不再另发一条重复的「掷出 X」
+    const shown = resultMessage
+      || `${pending.emoji} ${mentionHtml(pending.userId, displayName(pending.userId))} 掷出 <b>${pending.value}</b>`;
+    if (pending.waitingMsgId) {
+      try {
+        await bot.api.editMessageText(pending.chatId, pending.waitingMsgId, shown, { parse_mode: 'HTML' });
+      } catch {
+        await bot.api.sendMessage(pending.chatId, shown, { parse_mode: 'HTML' });
+      }
+    } else {
+      await bot.api.sendMessage(pending.chatId, shown, { parse_mode: 'HTML' });
+    }
     if (game.status === 'ended') {
       await bot.api.sendMessage(pending.chatId, '🏁 对局已结束。');
       return;
