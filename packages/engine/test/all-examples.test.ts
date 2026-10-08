@@ -4,7 +4,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ruleDefinition, type RuleDefinition, type DiceEmoji, DICE_EMOJI_MAX_VALUE, isJackpot } from '../src/model.js';
-import { beginGame, applyRoll, applyNext, applyChoice, applySkip, applyShowdownRoll, displayName, findStep, stepKey } from '../src/rules.js';
+import { beginGame, applyRoll, applyNext, applyChoice, applySkip, applyShowdownRoll, findStep, stepKey } from '../src/rules.js';
+import { displayName } from '../src/names.js';
 import type { GameRecord, GamePlayer } from '../src/model.js';
 
 const EXAMPLES_DIR = fileURLToPath(new URL('../../../examples', import.meta.url));

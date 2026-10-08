@@ -8,10 +8,7 @@ import {
   decodeSlotValue, isJackpot, SLOT_SYMBOL_LABEL
 } from './model.js';
 import { now } from './clock.js';
-
-export function displayName(userId: number): string {
-  return `用户 #${String(userId).slice(-4)}`;
-}
+import { displayName } from './names.js';
 
 function playersOf(game: GameRecord): GamePlayer[] {
   return game.players ?? [];

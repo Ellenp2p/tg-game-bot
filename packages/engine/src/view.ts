@@ -1,6 +1,7 @@
 import { decodeSlotValue } from './model.js';
 import type { RuleDefinition, GameRecord, GamePlayer } from './model.js';
-import { displayName, findStep, formatTemplate, loopProgress } from './rules.js';
+import { findStep, formatTemplate, loopProgress } from './rules.js';
+import { displayName } from './names.js';
 
 /**
  * 通道无关的「当前局面视图」。渲染成 HTML / 键盘是适配器的事；
