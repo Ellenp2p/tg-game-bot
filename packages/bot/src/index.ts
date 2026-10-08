@@ -13,7 +13,7 @@ import {
   ruleDefinition, type RuleDefinition, type RuleRecord, type GameRecord,
   type GamePlayer, type DiceEmoji, SUPPORTED_DICE_EMOJIS,
   type GamePhase, type GameStatus, type UserId,
-  advanceToStep, displayName, findStep, initialState, loopProgress, formatTemplate,
+  advanceToStep, displayName, setNameResolver, findStep, initialState, loopProgress, formatTemplate,
   decodeSlotValue, isJackpot, SLOT_SYMBOL_LABEL,
   run, type Intent as EngineIntent, type RunResult, buildView, applyUndo
 } from '@tg-game/engine';
@@ -42,6 +42,48 @@ const chatIdOf = (ctx: Context) => ctx.chat!.id;
 /** Telegram 数字 id → 引擎/DB 的不透明 `UserId`（string）。所有引擎/DB 交互走它。 */
 const uid = (n: number): UserId => String(n);
 const userIdOf = (ctx: Context): UserId => uid(ctx.from!.id);
+
+/** Telegram 用户 → 展示名：优先 @username，其次「名 姓」。 */
+function userLabel(u: { first_name?: string; last_name?: string; username?: string } | null | undefined): string | undefined {
+  if (!u) return undefined;
+  if (u.username) return `@${u.username}`;
+  const n = [u.first_name, u.last_name].filter(Boolean).join(' ').trim();
+  return n || undefined;
+}
+const fallbackName = (id: UserId): string => `用户 #${String(id).slice(-4)}`;
+
+/**
+ * 显示名缓存（**仅内存，不落库**）：UserId → 展示名。重启清空，随后按需从群成员补齐。
+ * 符合隐私约定：不持久化任何 Telegram 用户名/昵称。
+ */
+const nameCache = new Map<UserId, string>();
+function cacheUser(id: UserId, u: { first_name?: string; last_name?: string; username?: string } | null | undefined): void {
+  const label = userLabel(u);
+  if (label) nameCache.set(id, label);
+}
+// 引擎内所有 displayName(...) 都走这里：有缓存用真名，否则回退「用户 #xxxx」
+setNameResolver((id) => nameCache.get(id) ?? fallbackName(id));
+
+/** 从群成员信息补齐玩家显示名（仅缓存未命中才请求，带超时，失败静默）。 */
+async function warmNames(chatId: number, ids: UserId[]): Promise<void> {
+  const missing = ids.filter(id => !nameCache.has(id));
+  if (!missing.length) return;
+  await Promise.all(missing.map(async (id) => {
+    try {
+      const m = await Promise.race([
+        bot.api.getChatMember(chatId, Number(id)),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('warm timeout')), 2500))
+      ]);
+      cacheUser(id, m.user);
+    } catch { /* 忽略：非成员/超时/无权限都回退默认名 */ }
+  }));
+}
+
+// 每条 update 都记下发送者名字（内存），供引擎渲染使用
+bot.use(async (ctx, next) => {
+  if (ctx.from) cacheUser(userIdOf(ctx), ctx.from);
+  await next();
+});
 
 async function isTelegramGroupAdmin(chatId: number, userId: number): Promise<boolean> {
   try {
@@ -142,6 +184,7 @@ async function refreshSignupMessage(game: GameRecord): Promise<void> {
   if (!msgId) return;
   const rule = db.getRule(game.ruleId);
   const players = db.listPlayers(game.gameId);
+  await warmNames(game.chatId, players.map(p => p.userId));
   const { text } = renderSignupPage(game, rule?.definition, players, 1);
   try {
     await bot.api.editMessageText(game.chatId, msgId, text, { parse_mode: 'HTML', reply_markup: signupKeyboard(game, 1) });
@@ -179,6 +222,7 @@ async function sendStatus(chatId: number, gameId: string): Promise<void> {
   if (!game) return;
   const rule = db.getRule(game.ruleId);
   const players = db.listPlayers(gameId);
+  await warmNames(chatId, players.map(p => p.userId));
   const text = renderStatus(game, rule?.definition, players);
   const kb = statusKeyboard(game, gameId, game.state.phase, game.status, players);
   const isShowdown = game.status !== 'ended' && game.state.phase.kind === 'showdown';
@@ -814,6 +858,7 @@ async function withAdminGame(ctx: Context, fn: (game: GameRecord, rule: RuleReco
   const rule = db.getRule(game.ruleId);
   if (!rule) return;
   attachPlayers(game);
+  await warmNames(game.chatId, db.listPlayers(game.gameId).map(p => p.userId));
   try {
     await fn(game, rule);
     push(game);
@@ -928,6 +973,7 @@ async function resolvePendingRoll(gameId: string, expectedUserId: UserId, expect
   const rule = db.getRule(game.ruleId);
   if (!rule) { push(game); return; }
   const players = db.listPlayers(gameId);
+  await warmNames(game.chatId, players.map(p => p.userId));
   const phase0 = game.state.phase;
   const matchesStep = (p: typeof phase0) => p.kind !== 'signup' && p.roundIdx === pending.roundIdx && p.stepIdx === pending.stepIdx;
   const boardId = sess.boardMsgId;
@@ -1079,6 +1125,7 @@ bot.callbackQuery(/^pickChoice:([0-9a-f]{8}):(\d+)$/, async ctx => {
     return;
   }
   try {
+    await warmNames(ctx.chat!.id, db.listPlayers(gameId).map(p => p.userId));
     const message = performChoice(game, rule.definition, userIdOf(ctx), optIdx, isAdmin);
     push(game);
     await ctx.answerCallbackQuery({ text: message });
@@ -1131,6 +1178,7 @@ bot.callbackQuery(/^sign:([0-9a-f]{8}):(\d+)$/, async ctx => {
   if (!game) { await ctx.answerCallbackQuery({ text: '对局不存在' }); return; }
   const rule = db.getRule(game.ruleId);
   const players = db.listPlayers(gameId);
+  await warmNames(game.chatId, players.map(p => p.userId));
   const { text, totalPages } = renderSignupPage(game, rule?.definition, players, page);
   try {
     await ctx.answerCallbackQuery();
@@ -1193,8 +1241,11 @@ async function handleApi(req: IncomingMessage, res: any, url: URL): Promise<void
   const initData = url.searchParams.get('initData') ?? (req.headers['x-init-data'] as string | undefined) ?? '';
   let userId: UserId;
   let tgUserId: number;
-  try { tgUserId = verifyInitData(initData, token!).id; userId = String(tgUserId); }
-  catch (e) { setJson(401, { error: (e as Error).message }); return; }
+  try {
+    const initUser = verifyInitData(initData, token!);
+    tgUserId = initUser.id; userId = String(tgUserId);
+    cacheUser(userId, initUser);
+  } catch (e) { setJson(401, { error: (e as Error).message }); return; }
   db.touchUser(userId);
 
   const m = url.pathname.match(/^\/api\/(.+)$/);
@@ -1222,6 +1273,7 @@ async function handleApi(req: IncomingMessage, res: any, url: URL): Promise<void
     if (!game) { setJson(404, { error: 'not found' }); return; }
     const rule = db.getRule(game.ruleId);
     const players = db.listPlayers(game.gameId);
+    await warmNames(game.chatId, players.map(p => p.userId));
     const isAdmin = await isTelegramGroupAdmin(game.chatId, tgUserId);
     setJson(200, snapshot(game, rule?.definition, players, userId, isAdmin));
     return;

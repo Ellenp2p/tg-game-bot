@@ -18,5 +18,5 @@ export function verifyInitData(raw: string, token: string, maxAgeSeconds = 3600)
   if (!timingSafeEqual(expected, Buffer.from(hash, 'hex'))) throw Error('Telegram 登录签名无效');
   const user = JSON.parse(params.get('user') || 'null') as InitDataUser | null;
   if (!user || !Number.isSafeInteger(user.id) || user.id <= 0) throw Error('Telegram 用户无效');
-  return { id: user.id };
+  return { id: user.id, first_name: user.first_name, username: user.username };
 }
