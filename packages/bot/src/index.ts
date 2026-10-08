@@ -1506,10 +1506,9 @@ server.on('upgrade', (req, socket, head) => {
     if (game) {
       const rule = db.getRule(game.ruleId);
       const players = db.listPlayers(gameId);
-      ws.send(JSON.stringify({
-        type: 'state',
-        snapshot: snapshot(game, rule?.definition, players, userId, false)
-      }));
+      // 首帧也不带 viewer：观众身份由客户端初始化时的 GET 决定，否则会把真实 isAdmin 覆盖成 false
+      const { viewer: _drop, ...rest } = snapshot(game, rule?.definition, players, userId, false);
+      ws.send(JSON.stringify({ type: 'state', snapshot: rest }));
     }
     ws.on('close', () => { wsByGame.get(gameId)?.delete(ws); });
   });
