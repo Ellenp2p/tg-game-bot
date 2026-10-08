@@ -145,3 +145,11 @@ type EngineCtx = { definition:RuleDefinition; now:()=>number; rng?:()=>number };
 - [x] P1 undo 引擎化：`undo.ts` `applyUndo()`（纯函数 + 副作用枚举），bot 只做 DB 副作用；补引擎 undo 测试
 - [x] P2 渲染可测：`bot/render.ts`（`renderStatus` 纯函数）+ 渲染 golden（`__golden__/render.json`）
 - [x] P3 交付自洽：`deploy/`（systemd 单元 + 说明）；`.env.example` 与默认对齐；根路径解析（不再依赖 cwd）；优雅退出（SIGTERM/SIGINT）；`DICE_ANIMATION_MS` 读 env
+- [x] P4 可移植性①：`join`/`leave` 变引擎 intent（名册归引擎，满员/重复/阶段校验在引擎；`playerJoined`/`playerLeft` 事件）；spec 现可覆盖 join/leave（含 golden）
+
+### 可移植性待办（Discord / 网页）
+
+- [ ] id 类型 `number → string`（Discord 雪花超安全整数；需连带处理 DB 列/TG mention）
+- [ ] `chatId` / `starterId` / `signupMsgId` 移出引擎类型（进适配器 session）
+- [ ] RNG 注入（`gc`/`rollDice(emoji)`），供无原生骰子的前端生成点数
+- [ ] `displayName` 改由适配器提供 `id → 显示名` 解析

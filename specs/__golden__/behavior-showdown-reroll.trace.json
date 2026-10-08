@@ -13,7 +13,12 @@
     },
     "lastDice": null,
     "lastDraw": null,
-    "loops": {}
+    "loops": {},
+    "playerIds": [
+      9002,
+      9001,
+      9003
+    ]
   },
   {
     "n": 1,
@@ -32,7 +37,12 @@
     },
     "lastDice": null,
     "lastDraw": null,
-    "loops": {}
+    "loops": {},
+    "playerIds": [
+      9002,
+      9001,
+      9003
+    ]
   },
   {
     "n": 2,
@@ -51,7 +61,12 @@
     },
     "lastDice": null,
     "lastDraw": null,
-    "loops": {}
+    "loops": {},
+    "playerIds": [
+      9002,
+      9001,
+      9003
+    ]
   },
   {
     "n": 3,
@@ -70,7 +85,12 @@
     },
     "lastDice": null,
     "lastDraw": null,
-    "loops": {}
+    "loops": {},
+    "playerIds": [
+      9002,
+      9001,
+      9003
+    ]
   },
   {
     "n": 4,
@@ -89,7 +109,12 @@
     },
     "lastDice": null,
     "lastDraw": null,
-    "loops": {}
+    "loops": {},
+    "playerIds": [
+      9002,
+      9001,
+      9003
+    ]
   },
   {
     "n": 5,
@@ -108,7 +133,12 @@
     },
     "lastDice": null,
     "lastDraw": null,
-    "loops": {}
+    "loops": {},
+    "playerIds": [
+      9002,
+      9001,
+      9003
+    ]
   },
   {
     "n": 6,
@@ -127,6 +157,11 @@
     },
     "lastDice": null,
     "lastDraw": null,
-    "loops": {}
+    "loops": {},
+    "playerIds": [
+      9002,
+      9001,
+      9003
+    ]
   }
 ]

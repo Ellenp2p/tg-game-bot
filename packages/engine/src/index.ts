@@ -5,3 +5,4 @@ export * from './replay.js';
 export * from './view.js';
 export * from './clock.js';
 export * from './undo.js';
+export * from './random.js';

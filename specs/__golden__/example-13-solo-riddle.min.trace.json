@@ -14,7 +14,10 @@
     },
     "lastDice": null,
     "lastDraw": null,
-    "loops": {}
+    "loops": {},
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 1,
@@ -33,7 +36,10 @@
     },
     "lastDice": null,
     "lastDraw": null,
-    "loops": {}
+    "loops": {},
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 2,
@@ -52,7 +58,10 @@
     "lastDraw": null,
     "loops": {
       "0": 1
-    }
+    },
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 3,
@@ -71,7 +80,10 @@
     "lastDraw": null,
     "loops": {
       "0": 1
-    }
+    },
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 4,
@@ -92,7 +104,10 @@
     "lastDraw": null,
     "loops": {
       "0": 1
-    }
+    },
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 5,
@@ -111,7 +126,10 @@
     "lastDraw": null,
     "loops": {
       "0": 2
-    }
+    },
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 6,
@@ -130,7 +148,10 @@
     "lastDraw": null,
     "loops": {
       "0": 2
-    }
+    },
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 7,
@@ -151,7 +172,10 @@
     "lastDraw": null,
     "loops": {
       "0": 2
-    }
+    },
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 8,
@@ -170,7 +194,10 @@
     "lastDraw": null,
     "loops": {
       "0": 3
-    }
+    },
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 9,
@@ -189,7 +216,10 @@
     "lastDraw": null,
     "loops": {
       "0": 3
-    }
+    },
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 10,
@@ -210,7 +240,10 @@
     "lastDraw": null,
     "loops": {
       "0": 3
-    }
+    },
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 11,
@@ -229,7 +262,10 @@
     "lastDraw": null,
     "loops": {
       "0": 4
-    }
+    },
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 12,
@@ -248,7 +284,10 @@
     "lastDraw": null,
     "loops": {
       "0": 4
-    }
+    },
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 13,
@@ -269,7 +308,10 @@
     "lastDraw": null,
     "loops": {
       "0": 4
-    }
+    },
+    "playerIds": [
+      2001
+    ]
   },
   {
     "n": 14,
@@ -288,6 +330,9 @@
     "lastDraw": null,
     "loops": {
       "0": 5
-    }
+    },
+    "playerIds": [
+      2001
+    ]
   }
 ]

@@ -1,0 +1,153 @@
+[
+  {
+    "n": 0,
+    "intent": {
+      "type": "join",
+      "userId": 101
+    },
+    "ok": true,
+    "phase": "signup",
+    "status": "signup",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {},
+    "playerIds": [
+      101
+    ]
+  },
+  {
+    "n": 1,
+    "intent": {
+      "type": "join",
+      "userId": 102
+    },
+    "ok": true,
+    "phase": "signup",
+    "status": "signup",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {},
+    "playerIds": [
+      101,
+      102
+    ]
+  },
+  {
+    "n": 2,
+    "intent": {
+      "type": "join",
+      "userId": 102
+    },
+    "ok": false,
+    "error": "你已经报名了",
+    "phase": "signup",
+    "status": "signup",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {},
+    "playerIds": [
+      101,
+      102
+    ]
+  },
+  {
+    "n": 3,
+    "intent": {
+      "type": "join",
+      "userId": 103
+    },
+    "ok": true,
+    "phase": "signup",
+    "status": "signup",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {},
+    "playerIds": [
+      101,
+      102,
+      103
+    ]
+  },
+  {
+    "n": 4,
+    "intent": {
+      "type": "join",
+      "userId": 104
+    },
+    "ok": false,
+    "error": "已满员（最多 3 人）",
+    "phase": "signup",
+    "status": "signup",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {},
+    "playerIds": [
+      101,
+      102,
+      103
+    ]
+  },
+  {
+    "n": 5,
+    "intent": {
+      "type": "leave",
+      "userId": 101
+    },
+    "ok": true,
+    "phase": "signup",
+    "status": "signup",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {},
+    "playerIds": [
+      102,
+      103
+    ]
+  },
+  {
+    "n": 6,
+    "intent": {
+      "type": "leave",
+      "userId": 999
+    },
+    "ok": false,
+    "error": "你不在报名列表里",
+    "phase": "signup",
+    "status": "signup",
+    "cursor": {
+      "roundIdx": 0,
+      "stepIdx": 0
+    },
+    "lastDice": null,
+    "lastDraw": null,
+    "loops": {},
+    "playerIds": [
+      102,
+      103
+    ]
+  }
+]

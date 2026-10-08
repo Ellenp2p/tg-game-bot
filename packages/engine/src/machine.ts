@@ -2,9 +2,12 @@ import type { RuleDefinition, GameRecord, GamePlayer, DiceEmoji, GamePhase } fro
 import {
   beginGame, applyRoll, applyShowdownRoll, applyChoice, applyNext, applySkip, findStep
 } from './rules.js';
+import { now } from './clock.js';
 
 /** 引擎唯一入口的输入：一个"意图"。 */
 export type Intent =
+  | { type: 'join'; userId: number }
+  | { type: 'leave'; userId: number }
   | { type: 'begin'; userId: number }
   | { type: 'roll'; userId: number; value: number; emoji: DiceEmoji }
   | { type: 'showdownRoll'; userId: number; value: number; emoji: DiceEmoji }
@@ -14,10 +17,13 @@ export type Intent =
 
 export type EngineErrorCode =
   | 'NOT_A_PLAYER' | 'NOT_YOUR_TURN' | 'ALREADY_ROLLED' | 'WRONG_EMOJI'
-  | 'OUT_OF_RANGE' | 'NOT_IN_PHASE' | 'INVALID' | 'NO_STEP';
+  | 'OUT_OF_RANGE' | 'NOT_IN_PHASE' | 'INVALID' | 'NO_STEP'
+  | 'NOT_SIGNUP' | 'FULL' | 'ALREADY_JOINED' | 'NOT_JOINED';
 
 /** 语义事件（不含时间戳，保持确定性；需要时由调用方补 at）。 */
 export type EngineEvent =
+  | { type: 'playerJoined'; actor: number }
+  | { type: 'playerLeft'; actor: number }
   | { type: 'gameStarted'; actor: number }
   | { type: 'phaseEntered'; phase: string; roundIdx: number; stepIdx: number }
   | { type: 'rollResolved'; actor: number; value: number; emoji: string }
@@ -62,9 +68,25 @@ export function run(
   players: GamePlayer[],
   intent: Intent
 ): RunResult {
-  game.players = players;
+  // 名册归引擎：拷贝一份，避免污染调用方数组；join/leave 在副本上增删
+  game.players = players.slice();
   try {
     switch (intent.type) {
+      case 'join': {
+        if (game.status !== 'signup') return { ok: false, code: 'NOT_SIGNUP', text: '已开始的对局不能加入' };
+        const roster = game.players;
+        if (roster.some(p => p.userId === intent.userId)) return { ok: false, code: 'ALREADY_JOINED', text: '你已经报名了' };
+        if (roster.length >= definition.maxPlayers) return { ok: false, code: 'FULL', text: `已满员（最多 ${definition.maxPlayers} 人）` };
+        roster.push({ userId: intent.userId, joinedAt: now() });
+        return { ok: true, events: [{ type: 'playerJoined', actor: intent.userId }, ...entered(game)] };
+      }
+      case 'leave': {
+        if (game.status !== 'signup') return { ok: false, code: 'NOT_SIGNUP', text: '已开始的对局不能退出' };
+        const idx = game.players.findIndex(p => p.userId === intent.userId);
+        if (idx < 0) return { ok: false, code: 'NOT_JOINED', text: '你不在报名列表里' };
+        game.players.splice(idx, 1);
+        return { ok: true, events: [{ type: 'playerLeft', actor: intent.userId }, ...entered(game)] };
+      }
       case 'begin': {
         beginGame(game, definition);
         return { ok: true, events: [{ type: 'gameStarted', actor: intent.userId }, ...entered(game)] };

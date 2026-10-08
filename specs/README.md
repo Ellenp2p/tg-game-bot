@@ -61,8 +61,8 @@ specs/
 }
 ```
 
-**intent**（S0 覆盖引擎级动作）：`begin` / `roll` / `showdownRoll` / `choice` / `next` / `skip`。
-（`join`/`leave`/`end`/`undo`/`replace` 属于应用层，S2 引入 `run()` 后支持。）
+**intent**：`join` / `leave` / `begin` / `roll` / `showdownRoll` / `choice` / `next` / `skip`。
+（`join`/`leave` 是引擎 intent——名册归引擎，满员/重复/阶段校验都在引擎；`end`/`replace` 仍是应用层动作，见 `packages/bot`。）
 
 **expect**：`ok` / `error` / `phase` / `expectedPlayerId` / `roundIdx` / `stepIdx` / `messageContains` / `lastDraw` / `loops`。
 

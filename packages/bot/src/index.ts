@@ -593,26 +593,19 @@ bot.command('joingame', async ctx => {
   if (!game || game.status !== 'signup') throw Error('当前不在报名阶段');
   const rule = db.getRule(game.ruleId);
   if (!rule) throw Error('规则不存在（可能被删除）');
-  const players = db.listPlayers(game.gameId);
-  if (players.length >= rule.definition.maxPlayers) {
-    throw Error(`已满员（最多 ${rule.definition.maxPlayers} 人）`);
-  }
-  const ok = db.addPlayer(game.gameId, ctx.from.id);
-  if (!ok) throw Error('你已经在对局里了');
-  db.recordEvent(game.gameId, ctx.from.id, 'join', {});
+  joinLeave(game, rule.definition, ctx.from.id, 'join');
   push(game);
   await notifyGroup(game, 'join', ctx.from.id);
-  await ctx.reply(`✅ 已加入（当前 ${players.length + 1} / ${rule.definition.maxPlayers} 人）`);
+  await ctx.reply(`✅ 已加入（当前 ${db.listPlayers(game.gameId).length} / ${rule.definition.maxPlayers} 人）`);
 });
 
 bot.command('leavegame', async ctx => {
   if (!isGroup(ctx) || !ctx.from) return;
   const game = db.getActiveGameByChat(chatIdOf(ctx));
   if (!game) throw Error('本群没有进行中的对局');
-  if (game.status !== 'signup') throw Error('已开始的对局不能退出（用 /endgame 强制结束）');
-  const ok = db.removePlayer(game.gameId, ctx.from.id);
-  if (!ok) throw Error('你没有加入');
-  db.recordEvent(game.gameId, ctx.from.id, 'leave', {});
+  const rule = db.getRule(game.ruleId);
+  if (!rule) throw Error('规则不存在（可能被删除）');
+  joinLeave(game, rule.definition, ctx.from.id, 'leave');
   push(game);
   await notifyGroup(game, 'leave', ctx.from.id);
   await ctx.reply('已退出。');
@@ -790,6 +783,15 @@ function runOk(game: GameRecord, definition: RuleDefinition, players: GamePlayer
   const r = run(game, definition, players, intent);
   if (!r.ok) throw Error(r.text);
   return r;
+}
+
+/** 报名/退出：引擎校验（阶段 / 满员 / 重复），适配器落库 */
+function joinLeave(game: GameRecord, definition: RuleDefinition, userId: number, kind: 'join' | 'leave'): void {
+  attachPlayers(game);
+  runOk(game, definition, game.players ?? [], { type: kind, userId });
+  if (kind === 'join') db.addPlayer(game.gameId, userId);
+  else db.removePlayer(game.gameId, userId);
+  db.recordEvent(game.gameId, userId, kind, {});
 }
 
 async function withAdminGame(ctx: Context, fn: (game: GameRecord, rule: RuleRecord) => void | Promise<void>): Promise<void> {
@@ -994,32 +996,28 @@ bot.callbackQuery(/^join:([0-9a-f]{8})$/, async ctx => {
   if (!isGroup(ctx) || !ctx.from) return;
   const gameId = ctx.match[1];
   const game = db.getGame(gameId);
-  if (!game || game.status !== 'signup') { await ctx.answerCallbackQuery({ text: '报名已结束' }); return; }
-  const ok = db.addPlayer(gameId, ctx.from.id);
-  if (ok) {
-    db.recordEvent(gameId, ctx.from.id, 'join', {});
-    push(game);
-    await refreshSignupMessage(game);
-    await ctx.answerCallbackQuery({ text: '已加入' });
-  } else {
-    await ctx.answerCallbackQuery({ text: '你已经加入了' });
-  }
+  if (!game) { await ctx.answerCallbackQuery({ text: '对局不存在' }); return; }
+  const rule = db.getRule(game.ruleId);
+  if (!rule) { await ctx.answerCallbackQuery({ text: '规则已删除' }); return; }
+  try { joinLeave(game, rule.definition, ctx.from.id, 'join'); }
+  catch (e) { await ctx.answerCallbackQuery({ text: (e as Error).message, show_alert: true }); return; }
+  push(game);
+  await refreshSignupMessage(game);
+  await ctx.answerCallbackQuery({ text: '已加入' });
 });
 
 bot.callbackQuery(/^leave:([0-9a-f]{8})$/, async ctx => {
   if (!isGroup(ctx) || !ctx.from) return;
   const gameId = ctx.match[1];
   const game = db.getGame(gameId);
-  if (!game || game.status !== 'signup') { await ctx.answerCallbackQuery({ text: '报名已结束' }); return; }
-  const ok = db.removePlayer(gameId, ctx.from.id);
-  if (ok) {
-    db.recordEvent(gameId, ctx.from.id, 'leave', {});
-    push(game);
-    await refreshSignupMessage(game);
-    await ctx.answerCallbackQuery({ text: '已退出' });
-  } else {
-    await ctx.answerCallbackQuery({ text: '你还没加入' });
-  }
+  if (!game) { await ctx.answerCallbackQuery({ text: '对局不存在' }); return; }
+  const rule = db.getRule(game.ruleId);
+  if (!rule) { await ctx.answerCallbackQuery({ text: '规则已删除' }); return; }
+  try { joinLeave(game, rule.definition, ctx.from.id, 'leave'); }
+  catch (e) { await ctx.answerCallbackQuery({ text: (e as Error).message, show_alert: true }); return; }
+  push(game);
+  await refreshSignupMessage(game);
+  await ctx.answerCallbackQuery({ text: '已退出' });
 });
 
 bot.callbackQuery(/^begin:([0-9a-f]{8})$/, async ctx => {
@@ -1225,13 +1223,9 @@ async function handleApi(req: IncomingMessage, res: any, url: URL): Promise<void
     const isAdmin = await isTelegramGroupAdmin(game.chatId, userId);
     try {
       if (action === 'join') {
-        if (game.status !== 'signup') throw Error('不再接受报名');
-        db.addPlayer(gameId, userId);
-        db.recordEvent(gameId, userId, 'join', {});
+        joinLeave(game, rule.definition, userId, 'join');
       } else if (action === 'leave') {
-        if (game.status !== 'signup') throw Error('已开始的对局不能退出');
-        db.removePlayer(gameId, userId);
-        db.recordEvent(gameId, userId, 'leave', {});
+        joinLeave(game, rule.definition, userId, 'leave');
       } else if (action === 'next') {
         if (!isAdmin) throw Error('仅群管理员');
         runOk(game, rule.definition, db.listPlayers(game.gameId), { type: 'next', userId });

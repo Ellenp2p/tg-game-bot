@@ -21,7 +21,11 @@
       "emoji": "🎲"
     },
     "lastDraw": null,
-    "loops": {}
+    "loops": {},
+    "playerIds": [
+      2001,
+      2002
+    ]
   },
   {
     "n": 1,
@@ -46,7 +50,11 @@
     "lastDraw": null,
     "loops": {
       "0": 1
-    }
+    },
+    "playerIds": [
+      2001,
+      2002
+    ]
   },
   {
     "n": 2,
@@ -72,7 +80,11 @@
     "lastDraw": null,
     "loops": {
       "0": 1
-    }
+    },
+    "playerIds": [
+      2001,
+      2002
+    ]
   },
   {
     "n": 3,
@@ -97,7 +109,11 @@
     "lastDraw": null,
     "loops": {
       "0": 2
-    }
+    },
+    "playerIds": [
+      2001,
+      2002
+    ]
   },
   {
     "n": 4,
@@ -123,7 +139,11 @@
     "lastDraw": null,
     "loops": {
       "0": 2
-    }
+    },
+    "playerIds": [
+      2001,
+      2002
+    ]
   },
   {
     "n": 5,
@@ -148,7 +168,11 @@
     "lastDraw": null,
     "loops": {
       "0": 3
-    }
+    },
+    "playerIds": [
+      2001,
+      2002
+    ]
   },
   {
     "n": 6,
@@ -174,7 +198,11 @@
     "lastDraw": null,
     "loops": {
       "0": 3
-    }
+    },
+    "playerIds": [
+      2001,
+      2002
+    ]
   },
   {
     "n": 7,
@@ -199,7 +227,11 @@
     "lastDraw": null,
     "loops": {
       "0": 4
-    }
+    },
+    "playerIds": [
+      2001,
+      2002
+    ]
   },
   {
     "n": 8,
@@ -225,7 +257,11 @@
     "lastDraw": null,
     "loops": {
       "0": 4
-    }
+    },
+    "playerIds": [
+      2001,
+      2002
+    ]
   },
   {
     "n": 9,
@@ -250,7 +286,11 @@
     "lastDraw": null,
     "loops": {
       "0": 5
-    }
+    },
+    "playerIds": [
+      2001,
+      2002
+    ]
   },
   {
     "n": 10,
@@ -276,7 +316,11 @@
     "lastDraw": null,
     "loops": {
       "0": 5
-    }
+    },
+    "playerIds": [
+      2001,
+      2002
+    ]
   },
   {
     "n": 11,
@@ -299,6 +343,10 @@
     "lastDraw": null,
     "loops": {
       "0": 6
-    }
+    },
+    "playerIds": [
+      2001,
+      2002
+    ]
   }
 ]
