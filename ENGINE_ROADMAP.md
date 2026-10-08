@@ -138,3 +138,10 @@ type EngineCtx = { definition:RuleDefinition; now:()=>number; rng?:()=>number };
 - [x] S4 View 抽取：引擎 `view.ts` / `buildView()`（结构化、模板已解析为 plain）；bot 的 WS/Mini App `snapshot` 改为委托它（形状不变）；HTML/键盘仍由适配器渲染
 - [x] S5 传输态外移：`pendingRolls` / `showdownBoardMsgId` 移出引擎 `GameState` → bot `session.ts`（内存）；引擎状态彻底干净
 - [x] S6 边界固化：`packages/engine` 禁 import grammy/better-sqlite3/ws/node:http（import 守卫测试）；文档更新；部署
+
+## 完善（自洽性 P0–P3）
+
+- [x] P0 引擎自洽：`players` 变显式字段（去掉 `_players` 隐藏挂载）；`clock.ts` 时钟注入（`now/setClock/resetClock`）；cursor 不变量测试
+- [x] P1 undo 引擎化：`undo.ts` `applyUndo()`（纯函数 + 副作用枚举），bot 只做 DB 副作用；补引擎 undo 测试
+- [x] P2 渲染可测：`bot/render.ts`（`renderStatus` 纯函数）+ 渲染 golden（`__golden__/render.json`）
+- [x] P3 交付自洽：`deploy/`（systemd 单元 + 说明）；`.env.example` 与默认对齐；根路径解析（不再依赖 cwd）；优雅退出（SIGTERM/SIGINT）；`DICE_ANIMATION_MS` 读 env

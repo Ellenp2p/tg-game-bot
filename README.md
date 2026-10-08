@@ -26,9 +26,11 @@ cp .env.example .env
 # 编辑 .env，至少填 BOT_TOKEN 和 PUBLIC_URL
 
 # 3. 构建并运行
-pnpm run build
+pnpm build
 pnpm start
 ```
+
+生产用 systemd 部署见 [`deploy/README.md`](deploy/README.md)（单元文件在 [`deploy/tg-game-bot.service`](deploy/tg-game-bot.service)）。
 
 向 @BotFather：
 

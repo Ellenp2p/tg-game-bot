@@ -1,0 +1,15 @@
+[Unit]
+Description=Telegram Game Master Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/tg-game-bot
+ExecStart=/usr/bin/env node packages/bot/dist/index.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

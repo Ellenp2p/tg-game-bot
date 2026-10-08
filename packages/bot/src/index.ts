@@ -1,8 +1,9 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import { Bot, InlineKeyboard, InputFile, type BotError, type Context } from 'grammy';
 import { createServer, type IncomingMessage } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { verifyInitData } from './auth.js';
 import { Db } from './db.js';
@@ -14,13 +15,17 @@ import {
   type GamePhase, type GameStatus,
   advanceToStep, displayName, findStep, initialState, loopProgress, formatTemplate,
   decodeSlotValue, isJackpot, SLOT_SYMBOL_LABEL,
-  run, type Intent as EngineIntent, type RunResult, buildView
+  run, type Intent as EngineIntent, type RunResult, buildView, applyUndo
 } from '@tg-game/engine';
+
+/** 仓库根目录（dev: packages/bot/src → ../../../；prod: packages/bot/dist → ../../../） */
+const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
+dotenv.config({ path: join(ROOT, '.env') });
 
 const token = process.env.BOT_TOKEN;
 if (!token) throw Error('BOT_TOKEN is required');
 const bot = new Bot(token, { client: { apiRoot: process.env.BOT_API_ROOT || 'https://api.telegram.org' } });
-const db = new Db(process.env.DATA_FILE || './data/bot.sqlite');
+const db = new Db(process.env.DATA_FILE || join(ROOT, 'data', 'bot.sqlite'));
 const port = Number(process.env.PORT || 3001);
 const appLink = process.env.BOT_USERNAME && process.env.APP_SHORT_NAME
   ? `https://t.me/${process.env.BOT_USERNAME.replace(/^@/, '')}/${process.env.APP_SHORT_NAME}`
@@ -808,52 +813,10 @@ function performUndo(game: GameRecord, definition: RuleDefinition, actorId: numb
   const events = db.listEvents(game.gameId);
   const last = events.at(-1);
   if (!last) throw Error('没有可撤销的事件');
-  switch (last.type) {
-    case 'join': db.removePlayer(game.gameId, last.userId); break;
-    case 'leave': db.addPlayer(game.gameId, last.userId); break;
-    case 'begin':
-      game.status = 'signup';
-      game.state = initialState();
-      game.roundIdx = 0;
-      game.stepIdx = 0;
-      break;
-    case 'next':
-    case 'skip': {
-      const p = last.payload as { roundIdx?: number; stepIdx?: number };
-      if (typeof p.roundIdx === 'number' && typeof p.stepIdx === 'number') {
-        advanceToStep(game, definition, p.roundIdx, p.stepIdx);
-      }
-      break;
-    }
-    case 'choice': {
-      const p = last.payload as { fromRoundIdx?: number; fromStepIdx?: number };
-      if (typeof p.fromRoundIdx === 'number' && typeof p.fromStepIdx === 'number') {
-        advanceToStep(game, definition, p.fromRoundIdx, p.fromStepIdx);
-      }
-      break;
-    }
-    case 'roll':
-      game.state.lastDice = undefined;
-      game.state.lastDraw = undefined;
-      session(game.gameId).pendingRolls = {};
-      break;
-    case 'showdown': {
-      const p = last.payload as { roundIdx?: number; stepIdx?: number };
-      const phase = game.state.phase;
-      if (phase.kind === 'showdown' && phase.roundIdx === p.roundIdx && phase.stepIdx === p.stepIdx) {
-        phase.rolls.pop();
-      } else if (typeof p.roundIdx === 'number' && typeof p.stepIdx === 'number') {
-        advanceToStep(game, definition, p.roundIdx, p.stepIdx);
-      }
-      break;
-    }
-    case 'end':
-      game.status = 'in_progress';
-      game.endedAt = null;
-      break;
-    default:
-      throw Error(`不能撤销 ${last.type}`);
-  }
+  const eff = applyUndo(game, definition, last);
+  if (eff?.kind === 'add-player') db.addPlayer(game.gameId, eff.userId);
+  else if (eff?.kind === 'remove-player') db.removePlayer(game.gameId, eff.userId);
+  else if (eff?.kind === 'clear-pending-rolls') session(game.gameId).pendingRolls = {};
   db.recordEvent(game.gameId, actorId, 'undo', { undoneType: last.type });
 }
 
@@ -872,7 +835,7 @@ function performChoice(game: GameRecord, definition: RuleDefinition, userId: num
   return r.message ?? '';
 }
 
-const DICE_ANIMATION_MS = 3500;
+const DICE_ANIMATION_MS = Number(process.env.DICE_ANIMATION_MS || 3500);
 
 bot.on('message:dice', async ctx => {
   if (!isGroup(ctx) || !ctx.from) return;
@@ -1183,7 +1146,7 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://localhost`);
     if (url.pathname in STATIC_FILES) {
       const filename = STATIC_FILES[url.pathname];
-      const buf = readFileSync(join(process.cwd(), 'public', filename));
+      const buf = readFileSync(join(ROOT, 'public', filename));
       res.writeHead(200, {
         'content-type': `${STATIC_MIME[filename]}; charset=utf-8`,
         'cache-control': 'no-store, no-cache, must-revalidate'
@@ -1347,3 +1310,17 @@ server.on('upgrade', (req, socket, head) => {
 
 server.listen(port, () => console.log(`Mini App listening on :${port}`));
 bot.start();
+
+let shuttingDown = false;
+async function shutdown(signal: string): Promise<void> {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[shutdown] ${signal}`);
+  try { await bot.stop(); } catch (e) { console.warn('[shutdown] bot.stop:', (e as Error).message); }
+  try { wss.close(); } catch { /* ignore */ }
+  try { server.close(); } catch { /* ignore */ }
+  try { db.close(); } catch { /* ignore */ }
+  process.exit(0);
+}
+process.on('SIGTERM', () => { void shutdown('SIGTERM'); });
+process.on('SIGINT', () => { void shutdown('SIGINT'); });
